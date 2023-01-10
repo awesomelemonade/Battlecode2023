@@ -3,6 +3,7 @@ package sprintBot.util;
 import battlecode.common.*;
 import sprintBot.pathfinder.Pathfinding;
 
+import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
 import static sprintBot.util.Constants.rc;
@@ -58,12 +59,42 @@ public class Util {
         }
     }
 
+    public static MapLocation getClosestMapLocation(MapLocation[] locations) {
+        int bestDistanceSquared = Integer.MAX_VALUE;
+        MapLocation bestLocation = null;
+        for (int i = locations.length; --i >= 0; ) {
+            MapLocation location = locations[i];
+            int distanceSquared = location.distanceSquaredTo(Cache.MY_LOCATION);
+            if (distanceSquared < bestDistanceSquared) {
+                bestDistanceSquared = distanceSquared;
+                bestLocation = location;
+            }
+        }
+        return bestLocation;
+    }
+
+    public static MapLocation getClosestMapLocation(MapLocation[] locations, BiPredicate<Integer, MapLocation> predicate) {
+        int bestDistanceSquared = Integer.MAX_VALUE;
+        MapLocation bestLocation = null;
+        for (int i = locations.length; --i >= 0; ) {
+            MapLocation location = locations[i];
+            if (predicate.test(i, location)) {
+                int distanceSquared = location.distanceSquaredTo(Cache.MY_LOCATION);
+                if (distanceSquared < bestDistanceSquared) {
+                    bestDistanceSquared = distanceSquared;
+                    bestLocation = location;
+                }
+            }
+        }
+        return bestLocation;
+    }
+
     public static RobotInfo getClosestRobot(RobotInfo[] robots, Predicate<RobotInfo> filter) {
         int bestDistanceSquared = Integer.MAX_VALUE;
         RobotInfo bestRobot = null;
         for (RobotInfo robot : robots) {
             if (filter.test(robot)) {
-                int distanceSquared = robot.getLocation().distanceSquaredTo(rc.getLocation());
+                int distanceSquared = robot.getLocation().distanceSquaredTo(Cache.MY_LOCATION);
                 if (distanceSquared < bestDistanceSquared) {
                     bestDistanceSquared = distanceSquared;
                     bestRobot = robot;
@@ -125,11 +156,7 @@ public class Util {
     }
 
     public static boolean tryPathfindingMove(MapLocation loc) {
-        try {
-            return Pathfinding.execute(loc);
-        } catch (GameActionException ex) {
-            throw new IllegalStateException(ex);
-        }
+        return Pathfinding.execute(loc);
     }
 
     public static boolean tryMoveTowards(Direction direction) {

@@ -79,13 +79,13 @@ public class Pathfinding {
 				return true;
 			}
 		}
-		// should never happen
-		if (Constants.DEBUG_RESIGN) {
-			throw new IllegalStateException("Should never happen???");
-		} else {
-			rc.setIndicatorDot(Cache.MY_LOCATION, 255, 0, 0);
-			return false;
+		for (int i = 0; i < indices.length; i++) {
+			if (Util.tryMove(directions[indices[i]])) {
+				return true;
+			}
 		}
+		// we're stuck (perhaps surrounded by units?)
+		return false;
 	}
 	public static boolean trySafeMove(Direction direction) {
 		// TODO: do not move towards enemy?

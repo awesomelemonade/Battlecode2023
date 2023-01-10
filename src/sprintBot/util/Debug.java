@@ -7,6 +7,14 @@ import static sprintBot.util.Constants.rc;
 public class Debug {
     public static final int id = -1;
 
+    public static void fastFail(String message) {
+        if (Constants.DEBUG_FAST_FAIL) {
+            throw new IllegalStateException(message);
+        } else {
+            Debug.setIndicatorDot(Profile.PATHFINDING, Cache.MY_LOCATION, 255, 0, 0);
+        }
+    }
+
     public static void println(Object o) {
         if (id == -1 || rc.getID() == id) {
             System.out.println(o);
