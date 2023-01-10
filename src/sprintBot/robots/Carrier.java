@@ -25,18 +25,18 @@ public class Carrier implements RunnableBot {
                     Util.tryExplore();
                 } else {
                     MapLocation wellLocation = well.getMapLocation();
+                    Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, wellLocation, 0, 128, 0); // dark green
                     if (Cache.MY_LOCATION.isAdjacentTo(wellLocation)) {
                         // try mine
                         tryCollectResource(wellLocation, Math.min(well.getRate(), capacityLeft));
-                        Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, wellLocation, 255, 255, 0);
                     } else {
                         // move towards well
                         Util.tryPathfindingMove(well.getMapLocation());
-                        Debug.setIndicatorDot(Profile.MINING, wellLocation, 255, 255, 0);
                     }
                 }
             } else {
-                Debug.setIndicatorDot(Profile.MINING, Cache.MY_LOCATION, 255, 128, 0);
+                // deposit to hq
+                Debug.setIndicatorDot(Profile.MINING, Cache.MY_LOCATION, 0, 128, 0); // dark green
                 if (tryTransferToHQ()) {
                     return;
                 }
@@ -66,12 +66,7 @@ public class Carrier implements RunnableBot {
     }
 
     public static void tryMoveToOurHQ() {
-        RobotInfo hq = Util.getClosestRobot(Cache.ALLY_ROBOTS, robot -> robot.type == RobotType.HEADQUARTERS);
-        if (hq == null) {
-            Util.tryExplore();
-        } else {
-            Util.tryPathfindingMove(hq.location);
-        }
+        Util.tryPathfindingMove(Communication.getClosestSafeAllyHQ());
     }
 
     public static boolean tryTransferToHQ() {
@@ -85,7 +80,7 @@ public class Carrier implements RunnableBot {
             return false;
         }
         // see if in range
-        if (!Cache.MY_LOCATION.isWithinDistanceSquared(hqLocation, Constants.ROBOT_TYPE.actionRadiusSquared)) {
+        if (!Cache.MY_LOCATION.isAdjacentTo(hqLocation)) {
             return false;
         }
         int amount = rc.getResourceAmount(resource);
@@ -111,7 +106,7 @@ public class Carrier implements RunnableBot {
     }
 
     public static boolean tryTransfer(MapLocation location, ResourceType type, int amount) {
-        Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, location, 0, 255, 0);
+        Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, location, 0, 255, 0); // green
         if (rc.canTransferResource(location, type, amount)) {
             try {
                 rc.transferResource(location, type, amount);

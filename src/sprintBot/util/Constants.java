@@ -4,10 +4,9 @@ import battlecode.common.*;
 
 public class Constants {
     // TODO: CHECK BEFORE SUBMITTING
-    public static final boolean ENABLE_DEBUG = true;
-    public static final boolean DEBUG_DRAW = true;
+    public static final boolean DEBUG_PROFILES = false;
     public static final boolean DEBUG_RESIGN = false;
-    public static final boolean DEBUG_PRINT = true;
+    public static final boolean DEBUG_FAST_FAIL = true;
 
     public static Team ALLY_TEAM;
     public static Team ENEMY_TEAM;

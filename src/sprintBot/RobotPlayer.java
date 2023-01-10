@@ -1,9 +1,6 @@
 package sprintBot;
 
-import battlecode.common.Clock;
-import battlecode.common.GameActionException;
-import battlecode.common.RobotController;
-import battlecode.common.RobotType;
+import battlecode.common.*;
 import sprintBot.robots.Carrier;
 import sprintBot.robots.Headquarters;
 import sprintBot.robots.Launcher;
@@ -45,7 +42,30 @@ public class RobotPlayer {
                 while (true) {
                     currentTurn = controller.getRoundNum();
                     Util.loop();
+
+                    int beforeActionCooldown = controller.getActionCooldownTurns();
+                    int beforeMovementCooldown = controller.getMovementCooldownTurns();
                     bot.loop();
+                    int afterActionCooldown = controller.getActionCooldownTurns();
+                    int afterMovementCooldown = controller.getMovementCooldownTurns();
+
+                    // normally a while loop - but this is defensive code to prevent infinite loops that somehow might happen
+                    for (int i = 0; i < 3; i++) {
+                        boolean shouldRepeat =
+                                afterActionCooldown > beforeActionCooldown && afterActionCooldown < GameConstants.COOLDOWN_LIMIT ||
+                                afterMovementCooldown > beforeMovementCooldown && afterMovementCooldown < GameConstants.COOLDOWN_LIMIT;
+                        if (shouldRepeat) {
+                            beforeActionCooldown = controller.getActionCooldownTurns();
+                            beforeMovementCooldown = controller.getMovementCooldownTurns();
+                            bot.loop();
+                            afterActionCooldown = controller.getActionCooldownTurns();
+                            afterMovementCooldown = controller.getMovementCooldownTurns();
+                            Debug.setIndicatorDot(Profile.REPEAT_MOVE, controller.getLocation(), 128, 128, 128);
+                        } else {
+                            break;
+                        }
+                    }
+
                     Util.postLoop();
                     if (controller.getRoundNum() != currentTurn) {
                         overBytecodes = true;
