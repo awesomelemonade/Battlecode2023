@@ -4,7 +4,9 @@ import battlecode.common.Clock;
 import battlecode.common.GameActionException;
 import battlecode.common.RobotController;
 import battlecode.common.RobotType;
+import sprintBot.robots.Carrier;
 import sprintBot.robots.Headquarters;
+import sprintBot.robots.Launcher;
 import sprintBot.util.*;
 
 public class RobotPlayer {
@@ -17,6 +19,12 @@ public class RobotPlayer {
         switch (robotType) { // Can't use switch expressions :(
             case HEADQUARTERS:
                 bot = new Headquarters();
+                break;
+            case CARRIER:
+                bot = new Carrier();
+                break;
+            case LAUNCHER:
+                bot = new Launcher();
                 break;
             default:
                 throw new IllegalStateException("Unknown Robot Type: " + robotType);

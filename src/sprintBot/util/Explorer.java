@@ -1,6 +1,7 @@
 package sprintBot.util;
 
 import battlecode.common.*;
+import sprintBot.pathfinder.Pathfinding;
 
 import static sprintBot.util.Constants.rc;
 
@@ -78,7 +79,8 @@ public class Explorer {
         } else {
             MapLocation target = getExploreLocation();
             Debug.setIndicatorLine(Profile.EXPLORER, Cache.MY_LOCATION, target, 255, 128, 0);
-            return Util.tryPathfindingMove(target);
+//            return Util.tryPathfindingMove(target);
+            return Pathfinding.executeNoReset(target);
         }
     }
 

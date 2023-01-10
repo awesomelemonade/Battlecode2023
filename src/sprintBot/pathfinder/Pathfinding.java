@@ -1,9 +1,7 @@
 package sprintBot.pathfinder;
 
 import battlecode.common.*;
-import sprintBot.util.Cache;
-import sprintBot.util.Constants;
-import sprintBot.util.Util;
+import sprintBot.util.*;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -28,7 +26,7 @@ public class Pathfinding {
 	public static int getTurnsSpentSoFar() {
 		return visitedSet.getCounter();
 	}
-	public static boolean execute(MapLocation target) throws GameActionException {
+	public static boolean execute(MapLocation target) {
 		if (lastTarget == null || !lastTarget.equals(target)) {
 			lastTarget = target;
 			visitedSet.reset();
@@ -36,8 +34,11 @@ public class Pathfinding {
 //		if (Constants.ROBOT_TYPE == RobotType.DELIVERY_DRONE) {
 //			visitedSet.updateBaseTrail(5); // Drones only care about the last 5 visited tiles
 //		}
+		return executeNoReset(target);
+	}
+	public static boolean executeNoReset(MapLocation target) {
 		MapLocation currentLocation = Cache.MY_LOCATION;
-		rc.setIndicatorLine(currentLocation, target, 0, 255, 0);
+		Debug.setIndicatorLine(Profile.PATHFINDING, currentLocation, target, 0, 0, 255);
 		if (!rc.isMovementReady()) {
 			return false;
 		}

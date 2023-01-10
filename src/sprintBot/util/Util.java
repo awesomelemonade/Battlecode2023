@@ -95,7 +95,7 @@ public class Util {
     public static RobotInfo getClosestEnemyRobot() {
         int bestDistanceSquared = Integer.MAX_VALUE;
         RobotInfo bestRobot = null;
-        for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0;) {
+        for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
             RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
             int distanceSquared = enemy.getLocation().distanceSquaredTo(rc.getLocation());
             if (distanceSquared < bestDistanceSquared) {
@@ -149,8 +149,20 @@ public class Util {
         throw new IllegalStateException("Unimplemented");
     }
 
-    public static boolean tryExplore() throws GameActionException {
+    public static boolean tryExplore() {
         return Explorer.smartExplore();
+    }
+
+    public static boolean tryBuild(RobotType type, MapLocation location) {
+        if (rc.canBuildRobot(type, location)) {
+            try {
+                rc.buildRobot(type, location);
+                return true;
+            } catch (GameActionException ex) {
+                throw new IllegalStateException(ex);
+            }
+        }
+        return false;
     }
 
     public static int numAllyRobotsWithin(MapLocation location, int distanceSquared) {
@@ -163,7 +175,7 @@ public class Util {
         } else {
             // loop through robot list
             int count = 0;
-            for (int i = Cache.ALLY_ROBOTS.length; --i >= 0;) {
+            for (int i = Cache.ALLY_ROBOTS.length; --i >= 0; ) {
                 if (location.isWithinDistanceSquared(Cache.ALLY_ROBOTS[i].getLocation(), distanceSquared)) {
                     count++;
                 }
@@ -173,7 +185,7 @@ public class Util {
     }
 
     public static <T> void shuffle(T[] array) {
-        for (int i = array.length; --i >= 0;) {
+        for (int i = array.length; --i >= 0; ) {
             int index = (int) (Math.random() * i);
             T temp = array[index];
             array[index] = array[i];
