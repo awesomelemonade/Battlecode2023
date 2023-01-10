@@ -15,10 +15,6 @@ public class Pathfinding {
 
 	private static FastIntCounter2D visitedSet;
 	private static MapLocation lastTarget;
-	// max 8 directions, heap ignores first element
-	// min heap of counters
-	// private static Direction[] directionsHeap = new Direction[9];
-	// private static int[] countersHeap = new int[9];
 
 	public static void init() {
 		visitedSet = new FastIntCounter2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
