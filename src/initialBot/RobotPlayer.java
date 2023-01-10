@@ -1,11 +1,11 @@
-package bot;
+package initialBot;
 
 import battlecode.common.Clock;
 import battlecode.common.GameActionException;
 import battlecode.common.RobotController;
 import battlecode.common.RobotType;
-import bot.robots.Headquarters;
-import bot.util.*;
+import initialBot.robots.Headquarters;
+import initialBot.util.*;
 
 public class RobotPlayer {
     public static int currentTurn;

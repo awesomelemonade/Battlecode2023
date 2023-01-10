@@ -1,8 +1,8 @@
-package bot.util;
+package initialBot.util;
 
 import battlecode.common.*;
 
-import static bot.util.Constants.rc;
+import static initialBot.util.Constants.rc;
 
 public class Explorer {
     private static Direction previousDirection = Util.randomAdjacentDirection();

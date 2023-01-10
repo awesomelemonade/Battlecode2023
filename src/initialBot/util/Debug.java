@@ -1,8 +1,8 @@
-package bot.util;
+package initialBot.util;
 
 import battlecode.common.MapLocation;
 
-import static bot.util.Constants.rc;
+import static initialBot.util.Constants.rc;
 
 public class Debug {
     public static final int id = -1;

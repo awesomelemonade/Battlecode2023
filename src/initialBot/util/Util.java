@@ -1,11 +1,11 @@
-package bot.util;
+package initialBot.util;
 
 import battlecode.common.*;
-import bot.pathfinder.Pathfinding;
+import initialBot.pathfinder.Pathfinding;
 
 import java.util.function.Predicate;
 
-import static bot.util.Constants.rc;
+import static initialBot.util.Constants.rc;
 
 public class Util {
 

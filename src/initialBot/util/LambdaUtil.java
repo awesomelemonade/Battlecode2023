@@ -1,4 +1,4 @@
-package bot.util;
+package initialBot.util;
 
 import java.util.Comparator;
 import java.util.Optional;

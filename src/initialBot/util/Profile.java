@@ -1,4 +1,4 @@
-package bot.util;
+package initialBot.util;
 
 public enum Profile {
     ERROR_STATE(false),

@@ -1,15 +1,14 @@
-package bot.pathfinder;
+package initialBot.pathfinder;
 
 import battlecode.common.*;
-import bot.util.Cache;
-import bot.util.Constants;
-import bot.util.Profile;
-import bot.util.Util;
+import initialBot.util.Cache;
+import initialBot.util.Constants;
+import initialBot.util.Util;
 
 import java.util.Arrays;
 import java.util.Comparator;
 
-import static bot.util.Constants.rc;
+import static initialBot.util.Constants.rc;
 
 public class Pathfinding {
 	public static int moveDistance(MapLocation a, MapLocation b) {

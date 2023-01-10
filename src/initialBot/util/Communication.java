@@ -1,4 +1,4 @@
-package bot.util;
+package initialBot.util;
 
 public class Communication {
     public static void init() {

@@ -1,7 +1,7 @@
-package bot.robots;
+package initialBot.robots;
 
 import battlecode.common.GameActionException;
-import bot.util.RunnableBot;
+import initialBot.util.RunnableBot;
 
 public class Headquarters implements RunnableBot {
     @Override

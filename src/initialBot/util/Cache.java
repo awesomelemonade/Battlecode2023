@@ -1,10 +1,10 @@
-package bot.util;
+package initialBot.util;
 
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 import battlecode.common.RobotInfo;
 
-import static bot.util.Constants.rc;
+import static initialBot.util.Constants.rc;
 
 public class Cache { // Cache variables that are constant throughout a turn
     public static RobotInfo[] ALLY_ROBOTS, ENEMY_ROBOTS;

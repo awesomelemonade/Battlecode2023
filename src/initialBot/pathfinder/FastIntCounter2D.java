@@ -1,4 +1,4 @@
-package bot.pathfinder;
+package initialBot.pathfinder;
 
 public class FastIntCounter2D {
 	private int[][] array;
