@@ -28,11 +28,45 @@ public class Launcher implements RunnableBot {
         if (!rc.isActionReady()) {
             return;
         }
-        RobotInfo enemy = Util.getClosestEnemyRobot(robot -> robot.type != RobotType.HEADQUARTERS);
+        RobotInfo enemy = getBestImmediateAttackTarget();
         if (enemy != null) {
             MapLocation enemyLocation = enemy.location;
             tryAttack(enemyLocation);
         }
+    }
+
+    public RobotInfo getBestImmediateAttackTarget() {
+        RobotInfo bestEnemy = null;
+        double bestScore = -Double.MAX_VALUE;
+        for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
+            RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
+            MapLocation enemyLocation = enemy.location;
+            if (enemy.type != RobotType.HEADQUARTERS &&
+                    Cache.MY_LOCATION.isWithinDistanceSquared(enemyLocation, Constants.ROBOT_TYPE.actionRadiusSquared)) {
+                double score = getImmediateAttackScore(enemy);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestEnemy = enemy;
+                }
+            }
+        }
+        return bestEnemy;
+    }
+
+    public double getImmediateAttackScore(RobotInfo robot) {
+        // function of robotType, health, canKill, movementCooldown, actionCooldown, distance?
+        double score = 0;
+        switch (robot.type) {
+            case LAUNCHER:
+                score += 100000;
+                break;
+        }
+        if (robot.health <= Constants.ROBOT_TYPE.damage) {
+            score += 10000;
+        }
+        score -= robot.health * 100; // max health is 40
+        score -= robot.location.distanceSquaredTo(Cache.MY_LOCATION);
+        return score;
     }
 
     public void move() {
@@ -47,6 +81,8 @@ public class Launcher implements RunnableBot {
         if (!rc.isMovementReady()) {
             return;
         }
+        // TODO: consider moving to a better attacking square
+        // TODO: consider kiting
         // Move towards our hq?
         MapLocation location = Communication.getClosestAllyHQ();
         if (location != null) {
@@ -79,7 +115,11 @@ public class Launcher implements RunnableBot {
             // Attack
             MapLocation enemyLocation = enemy.location;
             // TODO: only move towards when there is an action
-            Util.tryPathfindingMove(enemyLocation);
+            if (enemyLocation.isWithinDistanceSquared(Cache.MY_LOCATION, Constants.ROBOT_TYPE.actionRadiusSquared)) {
+                // TODO: consider kiting?
+            } else {
+                Util.tryPathfindingMove(enemyLocation);
+            }
         }
     }
 
