@@ -4,7 +4,6 @@ import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 import battlecode.common.RobotInfo;
 import battlecode.common.RobotType;
-import sprintBot.pathfinder.Pathfinding;
 import sprintBot.util.*;
 
 import static sprintBot.util.Constants.rc;
@@ -19,6 +18,34 @@ public class Launcher implements RunnableBot {
     public void loop() throws GameActionException {
         if (Profile.ATTACKING.enabled()) {
             EnemyHqGuesser.forEach(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 0)); // black
+        }
+        action();
+        moveWithAction();
+        action();
+    }
+
+    public void action() {
+        if (!rc.isActionReady()) {
+            return;
+        }
+        RobotInfo enemy = Util.getClosestEnemyRobot(robot -> robot.type != RobotType.HEADQUARTERS);
+        MapLocation enemyLocation = enemy.location;
+        tryAttack(enemyLocation);
+    }
+
+    public void moveWithoutAction() {
+        if (!rc.isMovementReady()) {
+            // Move towards our hq?
+            MapLocation location = Communication.getClosestAllyHQ();
+            if (location != null) {
+                Util.tryPathfindingMove(location);
+            }
+        }
+    }
+
+    public void moveWithAction() {
+        if (!rc.isMovementReady()) {
+            return;
         }
         RobotInfo enemy = Util.getClosestEnemyRobot(robot -> robot.type != RobotType.HEADQUARTERS);
         if (enemy == null) {
@@ -40,7 +67,7 @@ public class Launcher implements RunnableBot {
         } else {
             // Attack
             MapLocation enemyLocation = enemy.location;
-            tryAttack(enemyLocation);
+            // TODO: only move towards when there is an action
             Util.tryPathfindingMove(enemyLocation);
         }
     }
