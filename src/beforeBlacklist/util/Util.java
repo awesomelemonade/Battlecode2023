@@ -1,12 +1,12 @@
-package sprintBot.util;
+package beforeBlacklist.util;
 
 import battlecode.common.*;
-import sprintBot.pathfinder.Pathfinding;
+import beforeBlacklist.pathfinder.Pathfinding;
 
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import static sprintBot.util.Constants.rc;
+import static beforeBlacklist.util.Constants.rc;
 
 public class Util {
 
@@ -224,12 +224,5 @@ public class Util {
         int x = location.x;
         int y = location.y;
         return x >= 0 && y >= 0 && x < Constants.MAP_WIDTH && y < Constants.MAP_HEIGHT;
-    }
-
-    public static int getWeight(RobotInfo robot) {
-        return robot.getResourceAmount(ResourceType.ADAMANTIUM)
-                + robot.getResourceAmount(ResourceType.MANA)
-                + robot.getResourceAmount(ResourceType.ELIXIR)
-                + robot.getTotalAnchors() * GameConstants.ANCHOR_WEIGHT;
     }
 }

@@ -1,4 +1,4 @@
-package sprintBot.util;
+package beforeBlacklist.util;
 
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
@@ -6,9 +6,8 @@ import battlecode.common.RobotInfo;
 import battlecode.common.RobotType;
 
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
-import static sprintBot.util.Constants.rc;
+import static beforeBlacklist.util.Constants.rc;
 
 public class EnemyHqGuesser {
     private static boolean initialized = false;
@@ -102,20 +101,15 @@ public class EnemyHqGuesser {
     }
 
     public static MapLocation getClosest() {
-        return getClosest(location -> true);
-    }
-    public static MapLocation getClosest(Predicate<MapLocation> predicate) {
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MAX_VALUE;
         Node node = head;
         while (node != null) {
             MapLocation location = node.location;
-            if (predicate.test(location)) {
-                int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
-                if (distanceSquared < bestDistanceSquared) {
-                    bestDistanceSquared = distanceSquared;
-                    bestLocation = location;
-                }
+            int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
+            if (distanceSquared < bestDistanceSquared) {
+                bestDistanceSquared = distanceSquared;
+                bestLocation = location;
             }
             node = node.next;
         }

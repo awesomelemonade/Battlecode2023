@@ -1,9 +1,9 @@
-package sprintBot.robots;
+package beforeBlacklist.robots;
 
 import battlecode.common.*;
-import sprintBot.util.*;
+import beforeBlacklist.util.*;
 
-import static sprintBot.util.Constants.rc;
+import static beforeBlacklist.util.Constants.rc;
 
 public class Headquarters implements RunnableBot {
     @Override
@@ -18,7 +18,7 @@ public class Headquarters implements RunnableBot {
             // TODO-someday: broadcast to nearest X empty miners to pickup anchors (where X = numAnchors)
             // Currently only broadcasts to nearest carrier
             RobotInfo carrier = Util.getClosestRobot(Cache.ALLY_ROBOTS,
-                    robot -> robot.type == RobotType.CARRIER && Util.getWeight(robot) == 0); // TODO - remove when inventory bug gets fixed
+                    robot -> robot.type == RobotType.CARRIER/* && robot.inventory.getWeight() == 0*/); // TODO - remove when inventory bug gets fixed
             if (carrier != null && carrier.location.isWithinDistanceSquared(Cache.MY_LOCATION, RobotType.CARRIER.visionRadiusSquared)) {
                 Communication.addTask(carrier.location, Communication.CARRIER_TASK_ANCHOR_PICKUP_ID);
             }

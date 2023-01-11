@@ -12,7 +12,7 @@ emojiMap = {
 errors = []
 currentBot = 'sprintBot'
 
-bots = ['oldLauncherMicro', 'examplefuncsplayer']
+bots = ['beforeBlacklist', 'oldLauncherMicro', 'examplefuncsplayer']
 botsSet = set(bots)
 maps = ['DefaultMap', 'AllElements', 'SmallElements']
 mapsSet = set(maps)

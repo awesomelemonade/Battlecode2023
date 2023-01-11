@@ -1,11 +1,11 @@
-package sprintBot.robots;
+package beforeBlacklist.robots;
 
 import battlecode.common.*;
-import sprintBot.util.*;
+import beforeBlacklist.util.*;
 
 import java.util.Comparator;
 
-import static sprintBot.util.Constants.rc;
+import static beforeBlacklist.util.Constants.rc;
 
 public class Carrier implements RunnableBot {
     @Override
@@ -221,7 +221,16 @@ public class Carrier implements RunnableBot {
     }
 
     public static int getWeight() {
-        return rc.getWeight();
+//        try {
+//            return rc.senseRobotAtLocation(Cache.MY_LOCATION).inventory.getWeight();
+//        } catch (GameActionException ex) {
+//            Debug.failFast(ex);
+//        }
+        // fallback
+        return (rc.getAnchor() == null ? 0 : GameConstants.ANCHOR_WEIGHT)
+                + rc.getResourceAmount(ResourceType.ADAMANTIUM)
+                + rc.getResourceAmount(ResourceType.MANA)
+                + rc.getResourceAmount(ResourceType.ELIXIR);
     }
 
     public static WellInfo getWell() {

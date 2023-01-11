@@ -1,26 +1,25 @@
-package sprintBot.robots;
+package beforeBlacklist.robots;
 
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 import battlecode.common.RobotInfo;
 import battlecode.common.RobotType;
-import sprintBot.fast.FastIntSet2D;
-import sprintBot.util.*;
+import beforeBlacklist.util.*;
 
-import static sprintBot.util.Constants.rc;
+import static beforeBlacklist.util.Constants.rc;
 
 public class Launcher implements RunnableBot {
     @Override
     public void init() throws GameActionException {
-        blacklist = new FastIntSet2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
+
     }
 
     @Override
     public void loop() throws GameActionException {
         if (Profile.ATTACKING.enabled()) {
             EnemyHqGuesser.forEach(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 0)); // black
-            EnemyHqTracker.forEachPending(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 255, 255)); // cyan
             EnemyHqTracker.forEachKnown(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 255)); // blue
+            EnemyHqTracker.forEachPending(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 255, 255)); // cyan
         }
         action();
         move();
@@ -97,20 +96,25 @@ public class Launcher implements RunnableBot {
         if (!rc.isMovementReady()) {
             return;
         }
-        RobotInfo enemy = Util.getClosestEnemyRobot(robot -> robot.type != RobotType.HEADQUARTERS); // check if within blacklist
+        RobotInfo enemy = Util.getClosestEnemyRobot(robot -> robot.type != RobotType.HEADQUARTERS);
         if (enemy == null) {
             // camp the headquarters
-            MapLocation location = getMacroAttackLocation();
-            if (location == null) {
-                Util.tryExplore();
-            } else {
-                // check if hq already has tons of ally units nearby
-                if (Util.numAllyRobotsWithin(location, 20) >= 10) {
-                    blacklist.add(location.x, location.y);
+            RobotInfo hq = Util.getClosestEnemyRobot(robot -> robot.type == RobotType.HEADQUARTERS);
+            if (hq == null) {
+                MapLocation location = EnemyHqTracker.getClosest();
+                if (location == null) {
+                    location = EnemyHqGuesser.getClosest();
                 }
+                if (location == null) {
+                    Util.tryExplore();
+                } else {
+                    Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, location, 0, 0, 0); // black
+                    Util.tryPathfindingMove(location);
+                }
+            } else {
+                MapLocation hqLocation = hq.location;
                 // TODO - try to circle around it?
-                Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, location, 0, 0, 0); // black
-                Util.tryPathfindingMove(location);
+                Util.tryPathfindingMove(hqLocation);
             }
         } else {
             // Attack
@@ -122,24 +126,6 @@ public class Launcher implements RunnableBot {
                 Util.tryPathfindingMove(enemyLocation);
             }
         }
-    }
-
-    private static FastIntSet2D blacklist;
-
-    public static MapLocation getMacroAttackLocation() {
-        RobotInfo closestVisibleEnemyHQ = Util.getClosestEnemyRobot(robot -> robot.type == RobotType.HEADQUARTERS &&
-                !blacklist.contains(robot.location.x, robot.location.y));
-        MapLocation ret = closestVisibleEnemyHQ == null ? null : closestVisibleEnemyHQ.location;
-        if (ret == null) {
-            ret = EnemyHqTracker.getClosest(location -> !blacklist.contains(location.x, location.y)); // check if within blacklist?
-        }
-        if (ret == null) {
-            ret = EnemyHqGuesser.getClosest(location -> !blacklist.contains(location.x, location.y));
-        }
-        if (ret == null) {
-            blacklist.reset();
-        }
-        return ret;
     }
 
     public static boolean tryAttack(MapLocation location) {

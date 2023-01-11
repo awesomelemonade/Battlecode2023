@@ -1,4 +1,4 @@
-package sprintBot.util;
+package beforeBlacklist.util;
 
 public enum Profile {
     ERROR_STATE(true),

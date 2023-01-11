@@ -1,11 +1,11 @@
-package sprintBot.util;
+package beforeBlacklist.util;
 
 import battlecode.common.GameActionException;
 import battlecode.common.GameConstants;
 import battlecode.common.MapLocation;
 import battlecode.common.RobotType;
 
-import static sprintBot.util.Constants.rc;
+import static beforeBlacklist.util.Constants.rc;
 
 public class Communication {
     public static final int ALLY_HEADQUARTERS_LOCATIONS_OFFSET = 0; // 4 integers
