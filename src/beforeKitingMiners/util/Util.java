@@ -1,12 +1,12 @@
-package sprintBot.util;
+package beforeKitingMiners.util;
 
 import battlecode.common.*;
-import sprintBot.pathfinder.Pathfinding;
+import beforeKitingMiners.pathfinder.Pathfinding;
 
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import static sprintBot.util.Constants.rc;
+import static beforeKitingMiners.util.Constants.rc;
 
 public class Util {
 
@@ -172,19 +172,8 @@ public class Util {
         return tryMove(randomAdjacentDirection());
     }
 
-    public static void tryKiteFrom(MapLocation location) {
-        int bestDist = Cache.MY_LOCATION.distanceSquaredTo(location);
-        Direction bestDir = null;
-        for (Direction d : Constants.ORDINAL_DIRECTIONS) {
-            MapLocation candidate = Cache.MY_LOCATION.add(d);
-            if (!isEmptyTerrain(candidate)) continue;
-            int dist = candidate.distanceSquaredTo(location);
-            if (dist > bestDist) {
-                bestDist = dist;
-                bestDir = d;
-            }
-        }
-        if (bestDir != null) tryMove(bestDir);
+    public static void tryKiteFrom(MapLocation location) throws GameActionException {
+        throw new IllegalStateException("Unimplemented");
     }
 
     public static boolean tryExplore() {
@@ -235,19 +224,6 @@ public class Util {
         int x = location.x;
         int y = location.y;
         return x >= 0 && y >= 0 && x < Constants.MAP_WIDTH && y < Constants.MAP_HEIGHT;
-    }
-
-    public static boolean isEmptyTerrain(MapLocation loc) {
-        if (!onTheMap(loc)) return false;
-        if (rc.canSenseLocation(loc)) {
-            try {
-                if (rc.sensePassability(loc) == false) return false;
-                if (rc.senseRobotAtLocation(loc) != null) return false;
-            } catch (GameActionException e) {
-                Debug.failFast(e);
-            }
-        }
-        return true;
     }
 
     public static int getWeight(RobotInfo robot) {

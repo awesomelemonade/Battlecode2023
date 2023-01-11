@@ -1,13 +1,13 @@
-package sprintBot.robots;
+package beforeKitingMiners.robots;
 
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 import battlecode.common.RobotInfo;
 import battlecode.common.RobotType;
-import sprintBot.fast.FastIntSet2D;
-import sprintBot.util.*;
+import beforeKitingMiners.fast.FastIntSet2D;
+import beforeKitingMiners.util.*;
 
-import static sprintBot.util.Constants.rc;
+import static beforeKitingMiners.util.Constants.rc;
 
 public class Launcher implements RunnableBot {
     @Override
@@ -57,12 +57,6 @@ public class Launcher implements RunnableBot {
     }
 
     public double getImmediateAttackScore(RobotInfo robot) {
-        // TODO: replace current behavior with this
-        // out of robots we can kill:
-        // score these and shoot the best
-        // if we cannot kill anything:
-        // score those and shoot the best
-
         // function of robotType, health, canKill, movementCooldown, actionCooldown, distance?
         double score = 0;
         switch (robot.type) {
