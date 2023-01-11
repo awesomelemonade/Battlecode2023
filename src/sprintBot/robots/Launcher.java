@@ -18,6 +18,8 @@ public class Launcher implements RunnableBot {
     public void loop() throws GameActionException {
         if (Profile.ATTACKING.enabled()) {
             EnemyHqGuesser.forEach(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 0)); // black
+            EnemyHqTracker.forEachKnown(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 255)); // blue
+            EnemyHqTracker.forEachPending(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 255, 255)); // cyan
         }
         action();
         move();
@@ -99,7 +101,10 @@ public class Launcher implements RunnableBot {
             // camp the headquarters
             RobotInfo hq = Util.getClosestEnemyRobot(robot -> robot.type == RobotType.HEADQUARTERS);
             if (hq == null) {
-                MapLocation location = EnemyHqGuesser.getClosest();
+                MapLocation location = EnemyHqTracker.getClosest();
+                if (location == null) {
+                    location = EnemyHqGuesser.getClosest();
+                }
                 if (location == null) {
                     Util.tryExplore();
                 } else {

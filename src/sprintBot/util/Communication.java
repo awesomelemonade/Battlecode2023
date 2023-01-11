@@ -8,20 +8,21 @@ import battlecode.common.RobotType;
 import static sprintBot.util.Constants.rc;
 
 public class Communication {
-    public static final int HEADQUARTERS_LOCATIONS_OFFSET = 0;
-    private static final int HEADQUARTERS_LOCATIONS_SET_BIT = 0;
-    private static final int HEADQUARTERS_LOCATIONS_LOCATION_BIT = 1;
-    private static final int HEADQUARTERS_LOCATIONS_LOCATION_MASK = 0b111111_111111; // 12 bits, 6 bit per coordinate
+    public static final int ALLY_HEADQUARTERS_LOCATIONS_OFFSET = 0; // 4 integers
+    public static final int ENEMY_HEADQUARTERS_LOCATIONS_OFFSET = 4; // 4 integers
+    public static final int HEADQUARTERS_LOCATIONS_SET_BIT = 0;
+    public static final int HEADQUARTERS_LOCATIONS_LOCATION_BIT = 1;
+    public static final int HEADQUARTERS_LOCATIONS_LOCATION_MASK = 0b111111_111111; // 12 bits, 6 bit per coordinate
     private static int headquartersSharedIndex = -1;
     public static MapLocation[] headquartersLocations;
 
-    public static final int CARRIER_TASK_OFFSET = 4;
-    public static final int CARRIER_TASK_POSITION_OFFSET = 0;
-    public static final int CARRIER_TASK_POSITION_MASK = 0b1111111; // 7 bits
-    public static final int CARRIER_TASK_HQ_ID_OFFSET = 7;
-    public static final int CARRIER_TASK_HQ_ID_MASK = 0b11; // Max 4 HQs
-    public static final int CARRIER_TASK_ID_OFFSET = 9;
-    public static final int CARRIER_TASK_ID_MASK = 0b1111; // doesn't really matter for now
+    public static final int CARRIER_TASK_OFFSET = 8; // 16 integers
+    public static final int CARRIER_TASK_POSITION_BIT_OFFSET = 0;
+    public static final int CARRIER_TASK_POSITION_BIT_MASK = 0b1111111; // 7 bits
+    public static final int CARRIER_TASK_HQ_ID_BIT_OFFSET = 7;
+    public static final int CARRIER_TASK_HQ_ID_BIT_MASK = 0b11; // Max 4 HQs
+    public static final int CARRIER_TASK_ID_BIT_OFFSET = 9;
+    public static final int CARRIER_TASK_ID_BIT_MASK = 0b1111; // doesn't really matter for now
     public static final int CARRIER_TASK_NONE_ID = 0;
     public static final int CARRIER_TASK_ANCHOR_PICKUP_ID = 1;
 
@@ -67,18 +68,18 @@ public class Communication {
             int commIndex = CARRIER_TASK_OFFSET + i;
             try {
                 int message = rc.readSharedArray(commIndex);
-                int hqIndex = (message >> CARRIER_TASK_HQ_ID_OFFSET) & CARRIER_TASK_HQ_ID_MASK;
+                int hqIndex = (message >> CARRIER_TASK_HQ_ID_BIT_OFFSET) & CARRIER_TASK_HQ_ID_BIT_MASK;
                 MapLocation hqLocation = visibleHqLocations[hqIndex];
                 // if visible
                 if (hqLocation != null) {
                     // read offset
-                    int offset = (message >> CARRIER_TASK_POSITION_OFFSET) & CARRIER_TASK_POSITION_MASK;
+                    int offset = (message >> CARRIER_TASK_POSITION_BIT_OFFSET) & CARRIER_TASK_POSITION_BIT_MASK;
                     int offsetX = (offset / 9) - 4;
                     int offsetY = (offset % 9) - 4;
                     MapLocation referencedLocation = hqLocation.translate(offsetX, offsetY);
                     if (Cache.MY_LOCATION.equals(referencedLocation)) {
                         // get task
-                        int task = (message >> CARRIER_TASK_ID_OFFSET) & CARRIER_TASK_ID_MASK;
+                        int task = (message >> CARRIER_TASK_ID_BIT_OFFSET) & CARRIER_TASK_ID_BIT_MASK;
                         int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(hqLocation);
                         if (distanceSquared < bestDistanceSquared) {
                             bestTask = new CarrierTask(hqLocation, CarrierTaskType.fromId(task));
@@ -112,16 +113,16 @@ public class Communication {
             if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS) {
                 Debug.failFast("Must be headquarters");
             }
-            if ((taskId & CARRIER_TASK_ID_MASK) != taskId) {
+            if ((taskId & CARRIER_TASK_ID_BIT_MASK) != taskId) {
                 Debug.failFast("taskId too large: " + taskId);
             }
         }
         int offsetX = location.x - Cache.MY_LOCATION.x;
         int offsetY = location.y - Cache.MY_LOCATION.y;
         int packed = (offsetX + 4) * 9 + (offsetY + 4);
-        int message = (packed << CARRIER_TASK_POSITION_OFFSET)
-                | (headquartersSharedIndex << CARRIER_TASK_HQ_ID_OFFSET)
-                | (taskId << CARRIER_TASK_ID_OFFSET);
+        int message = (packed << CARRIER_TASK_POSITION_BIT_OFFSET)
+                | (headquartersSharedIndex << CARRIER_TASK_HQ_ID_BIT_OFFSET)
+                | (taskId << CARRIER_TASK_ID_BIT_OFFSET);
         writeTask(message);
     }
 
@@ -130,7 +131,7 @@ public class Communication {
             int commIndex = CARRIER_TASK_OFFSET + i;
             try {
                 int existingMessage = rc.readSharedArray(commIndex);
-                int taskId = (existingMessage >> CARRIER_TASK_ID_OFFSET) & CARRIER_TASK_ID_MASK;
+                int taskId = (existingMessage >> CARRIER_TASK_ID_BIT_OFFSET) & CARRIER_TASK_ID_BIT_MASK;
                 if (taskId == CARRIER_TASK_NONE_ID) {
                     // we can use this index
                     tryWriteSharedIndex(commIndex, message);
@@ -162,7 +163,7 @@ public class Communication {
         if (Constants.ROBOT_TYPE == RobotType.HEADQUARTERS) {
             // Find next available slot
             for (int i = 0; i < GameConstants.MAX_STARTING_HEADQUARTERS; i++) {
-                int sharedArrayIndex = HEADQUARTERS_LOCATIONS_OFFSET + i;
+                int sharedArrayIndex = ALLY_HEADQUARTERS_LOCATIONS_OFFSET + i;
                 if (rc.readSharedArray(sharedArrayIndex) == 0) {
                     headquartersSharedIndex = sharedArrayIndex;
                     break;
@@ -191,6 +192,7 @@ public class Communication {
                     if (value != 0) {
                         if (!initialized) {
                             headquartersLocations = new MapLocation[i + 1];
+                            EnemyHqTracker.init(i + 1);
                             initialized = true;
                         }
                     }
@@ -211,6 +213,8 @@ public class Communication {
             }
             // TODO: broadcast whether the headquarters is safe (for carriers to deposit resources)
         }
+        // Update enemy hqs from comms
+        EnemyHqTracker.update();
         EnemyHqGuesser.update();
     }
 
@@ -219,6 +223,9 @@ public class Communication {
     }
 
     public static MapLocation getClosestAllyHQ() {
+        if (headquartersLocations == null) {
+            return null;
+        }
         return Util.getClosestMapLocation(headquartersLocations);
     }
 
