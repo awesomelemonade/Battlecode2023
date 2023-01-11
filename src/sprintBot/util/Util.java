@@ -225,4 +225,11 @@ public class Util {
         int y = location.y;
         return x >= 0 && y >= 0 && x < Constants.MAP_WIDTH && y < Constants.MAP_HEIGHT;
     }
+
+    public static int getWeight(RobotInfo robot) {
+        return robot.getResourceAmount(ResourceType.ADAMANTIUM)
+                + robot.getResourceAmount(ResourceType.MANA)
+                + robot.getResourceAmount(ResourceType.ELIXIR)
+                + robot.getTotalAnchors() * GameConstants.ANCHOR_WEIGHT;
+    }
 }

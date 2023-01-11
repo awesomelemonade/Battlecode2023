@@ -221,16 +221,7 @@ public class Carrier implements RunnableBot {
     }
 
     public static int getWeight() {
-//        try {
-//            return rc.senseRobotAtLocation(Cache.MY_LOCATION).inventory.getWeight();
-//        } catch (GameActionException ex) {
-//            Debug.failFast(ex);
-//        }
-        // fallback
-        return (rc.getAnchor() == null ? 0 : GameConstants.ANCHOR_WEIGHT)
-                + rc.getResourceAmount(ResourceType.ADAMANTIUM)
-                + rc.getResourceAmount(ResourceType.MANA)
-                + rc.getResourceAmount(ResourceType.ELIXIR);
+        return rc.getWeight();
     }
 
     public static WellInfo getWell() {
