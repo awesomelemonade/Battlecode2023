@@ -1,4 +1,4 @@
-package sprintBot.pathfinder;
+package sprintBot.fast;
 
 public class FastIntCounter2D {
 	private int[][] array;

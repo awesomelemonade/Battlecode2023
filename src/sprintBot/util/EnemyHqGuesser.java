@@ -6,6 +6,7 @@ import battlecode.common.RobotInfo;
 import battlecode.common.RobotType;
 
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import static sprintBot.util.Constants.rc;
 
@@ -101,15 +102,20 @@ public class EnemyHqGuesser {
     }
 
     public static MapLocation getClosest() {
+        return getClosest(location -> true);
+    }
+    public static MapLocation getClosest(Predicate<MapLocation> predicate) {
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MAX_VALUE;
         Node node = head;
         while (node != null) {
             MapLocation location = node.location;
-            int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
-            if (distanceSquared < bestDistanceSquared) {
-                bestDistanceSquared = distanceSquared;
-                bestLocation = location;
+            if (predicate.test(location)) {
+                int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
+                if (distanceSquared < bestDistanceSquared) {
+                    bestDistanceSquared = distanceSquared;
+                    bestLocation = location;
+                }
             }
             node = node.next;
         }

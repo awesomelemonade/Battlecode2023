@@ -3,6 +3,7 @@ package sprintBot.util;
 import battlecode.common.*;
 
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import static sprintBot.util.Constants.rc;
 import static sprintBot.util.Communication.*;
@@ -41,11 +42,6 @@ public class EnemyHqTracker {
         }
         // if we can write, flush pending to communications
         if (rc.canWriteSharedArray(0, 0)) {
-            // TODO - remove this when the comm bug gets fixed
-            MapLocation closestAllyHq = Communication.getClosestAllyHQ();
-            if (closestAllyHq == null || !closestAllyHq.isWithinDistanceSquared(Cache.MY_LOCATION, GameConstants.DISTANCE_SQUARED_FROM_HEADQUARTER)) {
-                return;
-            }
             // we can write
             for (int i = numPendingLocations; --i >= 0; ) {
                 MapLocation location = pendingLocations[i];
@@ -65,25 +61,32 @@ public class EnemyHqTracker {
     }
 
     public static MapLocation getClosest() {
+        return getClosest(location -> true);
+    }
+    public static MapLocation getClosest(Predicate<MapLocation> predicate) {
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MAX_VALUE;
         if (enemyHeadquartersLocations != null) {
             for (int i = numKnownEnemyHeadquarterLocations; --i >= 0; ) {
                 MapLocation location = enemyHeadquartersLocations[i];
-                int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
-                if (distanceSquared < bestDistanceSquared) {
-                    bestLocation = location;
-                    bestDistanceSquared = distanceSquared;
+                if (predicate.test(location)) {
+                    int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
+                    if (distanceSquared < bestDistanceSquared) {
+                        bestLocation = location;
+                        bestDistanceSquared = distanceSquared;
+                    }
                 }
             }
         }
         // check in pending
         for (int i = numPendingLocations; --i >= 0; ) {
             MapLocation location = pendingLocations[i];
-            int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
-            if (distanceSquared < bestDistanceSquared) {
-                bestLocation = location;
-                bestDistanceSquared = distanceSquared;
+            if (predicate.test(location)) {
+                int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
+                if (distanceSquared < bestDistanceSquared) {
+                    bestLocation = location;
+                    bestDistanceSquared = distanceSquared;
+                }
             }
         }
         return bestLocation;

@@ -1,6 +1,7 @@
 package sprintBot.pathfinder;
 
 import battlecode.common.*;
+import sprintBot.fast.FastIntCounter2D;
 import sprintBot.util.*;
 
 import java.util.Arrays;
