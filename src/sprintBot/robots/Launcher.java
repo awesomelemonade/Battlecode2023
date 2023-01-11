@@ -20,7 +20,7 @@ public class Launcher implements RunnableBot {
             EnemyHqGuesser.forEach(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 0)); // black
         }
         action();
-        moveWithAction();
+        move();
         action();
     }
 
@@ -29,17 +29,28 @@ public class Launcher implements RunnableBot {
             return;
         }
         RobotInfo enemy = Util.getClosestEnemyRobot(robot -> robot.type != RobotType.HEADQUARTERS);
-        MapLocation enemyLocation = enemy.location;
-        tryAttack(enemyLocation);
+        if (enemy != null) {
+            MapLocation enemyLocation = enemy.location;
+            tryAttack(enemyLocation);
+        }
+    }
+
+    public void move() {
+        if (rc.isActionReady()) {
+            moveWithAction();
+        } else {
+            moveWithoutAction();
+        }
     }
 
     public void moveWithoutAction() {
         if (!rc.isMovementReady()) {
-            // Move towards our hq?
-            MapLocation location = Communication.getClosestAllyHQ();
-            if (location != null) {
-                Util.tryPathfindingMove(location);
-            }
+            return;
+        }
+        // Move towards our hq?
+        MapLocation location = Communication.getClosestAllyHQ();
+        if (location != null) {
+            Util.tryPathfindingMove(location);
         }
     }
 

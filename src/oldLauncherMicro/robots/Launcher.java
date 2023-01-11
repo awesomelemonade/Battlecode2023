@@ -29,8 +29,10 @@ public class Launcher implements RunnableBot {
             return;
         }
         RobotInfo enemy = Util.getClosestEnemyRobot(robot -> robot.type != RobotType.HEADQUARTERS);
-        MapLocation enemyLocation = enemy.location;
-        tryAttack(enemyLocation);
+        if (enemy != null) {
+            MapLocation enemyLocation = enemy.location;
+            tryAttack(enemyLocation);
+        }
     }
 
     public void moveWithoutAction() {
