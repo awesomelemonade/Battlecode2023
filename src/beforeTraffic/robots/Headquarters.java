@@ -1,9 +1,9 @@
-package sprintBot.robots;
+package beforeTraffic.robots;
 
 import battlecode.common.*;
-import sprintBot.util.*;
+import beforeTraffic.util.*;
 
-import static sprintBot.util.Constants.rc;
+import static beforeTraffic.util.Constants.rc;
 
 public class Headquarters implements RunnableBot {
     @Override

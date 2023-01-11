@@ -1,40 +1,13 @@
-package sprintBot.robots;
+package beforeTraffic.robots;
 
 import battlecode.common.*;
-import sprintBot.util.*;
-import java.util.function.Predicate;
-import sprintBot.pathfinder.Pathfinding;
+import beforeTraffic.util.*;
 
 import java.util.Comparator;
 
-import static sprintBot.util.Constants.rc;
+import static beforeTraffic.util.Constants.rc;
 
 public class Carrier implements RunnableBot {
-    // assumption: onTheMap is already guaranteed when calling these predicates
-    private static Predicate<MapLocation> ALL_SQUARES = (loc) -> true;
-    private static Predicate<MapLocation> ADJACENT_TO_RESOURCE_OR_HQ = (loc) -> {
-        Predicate<MapLocation> isResourceOrHQ = (loc2) -> {
-            if (!rc.canSenseLocation(loc2)) return false;
-            try {
-                if (rc.senseWell(loc2) != null) return true;
-                RobotInfo robot = rc.senseRobotAtLocation(loc2);
-                if (robot == null) return false;
-                if (robot.type == RobotType.HEADQUARTERS && robot.team == Constants.ALLY_TEAM) return true;
-                return false;
-            } catch (GameActionException e) {
-                Debug.failFast(e);
-                return false;
-            }
-        };
-        return Util.isAdjacentTo(loc, isResourceOrHQ);
-    };
-    private static Predicate<MapLocation> EVEN_SQUARES = (loc) -> {
-        return ((loc.x + loc.y)%2 == 0);
-    };
-    private static Predicate<MapLocation> ODD_SQUARES = (loc) -> {
-        return ((loc.x + loc.y)%2 == 1);
-    };
-
     @Override
     public void init() throws GameActionException {
 
@@ -46,7 +19,6 @@ public class Carrier implements RunnableBot {
     }
 
     public void debug_loop() throws GameActionException {
-        Pathfinding.validLocationPredicate = EVEN_SQUARES.or(ADJACENT_TO_RESOURCE_OR_HQ);
         // let's try to pick up an anchor from hq
         if (tryPickupAnchorFromHQ()) {
             return;
@@ -67,7 +39,7 @@ public class Carrier implements RunnableBot {
                         tryCollectResource(wellLocation, Math.min(well.getRate(), capacityLeft));
                     } else {
                         // move towards well
-                        Util.tryPathfindingMoveAdjacent(well.getMapLocation());
+                        Util.tryPathfindingMove(well.getMapLocation());
                     }
                 }
             } else {
@@ -77,8 +49,6 @@ public class Carrier implements RunnableBot {
                     return;
                 }
                 // return to hq
-                Debug.setIndicatorDot(Cache.MY_LOCATION, 0, 0, 0);
-                Pathfinding.validLocationPredicate = ODD_SQUARES.or(ADJACENT_TO_RESOURCE_OR_HQ);
                 tryMoveToOurHQ();
             }
         } else {
@@ -109,7 +79,7 @@ public class Carrier implements RunnableBot {
                     tryTakeAnchor(location, Anchor.ACCELERATING);
                     tryTakeAnchor(location, Anchor.STANDARD);
                 } else {
-                    Util.tryPathfindingMoveAdjacent(location);
+                    Util.tryPathfindingMove(location);
                 }
                 return true;
             }
@@ -203,7 +173,7 @@ public class Carrier implements RunnableBot {
     }
 
     public static void tryMoveToOurHQ() {
-        Util.tryPathfindingMoveAdjacent(Communication.getClosestSafeAllyHQ());
+        Util.tryPathfindingMove(Communication.getClosestSafeAllyHQ());
     }
 
     public static boolean tryTransferToHQ() {

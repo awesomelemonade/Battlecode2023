@@ -1,12 +1,12 @@
-package sprintBot.util;
+package beforeTraffic.util;
 
 import battlecode.common.*;
-import sprintBot.pathfinder.Pathfinding;
+import beforeTraffic.pathfinder.Pathfinding;
 
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import static sprintBot.util.Constants.rc;
+import static beforeTraffic.util.Constants.rc;
 
 public class Util {
 
@@ -153,55 +153,6 @@ public class Util {
         } else {
             return false;
         }
-    }
-
-    public static boolean isEmptyTerrain(MapLocation loc) {
-        if (!onTheMap(loc)) return false;
-        if (rc.canSenseLocation(loc)) {
-            try {
-                if (rc.sensePassability(loc) == false) return false;
-                if (rc.senseRobotAtLocation(loc) != null) return false;
-            } catch (GameActionException e) {
-                Debug.failFast(e);
-            }
-        }
-        return true;
-    }
-
-    // checks if loc is on or adjacent to another loc that satisfies predicate
-    public static boolean isAdjacentTo(MapLocation loc, Predicate<MapLocation> predicate) {
-        if (predicate.test(loc)) return true;
-        for (Direction d : Constants.ORDINAL_DIRECTIONS) {
-            MapLocation candidate = loc.add(d);
-            if (predicate.test(candidate)) return true;
-        }
-        return false;
-    }
-
-    public static boolean tryPathfindingMoveAdjacent(MapLocation loc) {
-        // if (Cache.MY_LOCATION.distanceSquaredTo(loc) <= 2) return true;
-
-        // // Prefer center square to reduce traffic
-        // if (isEmptyTerrain(loc)) {
-        //     Pathfinding.execute(loc);
-        //     return true;
-        // }
-
-        // // Otherwise, pick the closest adjacent square
-        // int bestDist = 100000;
-        // MapLocation bestTarget = null;
-        // for (Direction d: Constants.ORDINAL_DIRECTIONS) {
-        //     MapLocation target = loc.add(d);
-        //     int dist = target.distanceSquaredTo(Cache.MY_LOCATION);
-        //     if (dist < bestDist) {
-        //         bestDist = dist;
-        //         bestTarget = target;
-        //     }
-        // }
-        // if (bestTarget == null) return false;
-        // Pathfinding.execute(bestTarget);
-        // return true;
-        return Pathfinding.execute(loc);
     }
 
     public static boolean tryPathfindingMove(MapLocation loc) {

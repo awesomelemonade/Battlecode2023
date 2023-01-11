@@ -1,12 +1,12 @@
-package sprintBot.util;
+package beforeTraffic.util;
 
 public enum Profile {
     ERROR_STATE(true),
     PATHFINDING(false),
-    EXPLORER(false),
-    MINING(false),
-    ATTACKING(false),
-    REPEAT_MOVE(false);
+    EXPLORER(true),
+    MINING(true),
+    ATTACKING(true),
+    REPEAT_MOVE(true);
 
     private final boolean enabled;
 

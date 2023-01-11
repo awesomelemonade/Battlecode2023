@@ -1,17 +1,14 @@
-package sprintBot.pathfinder;
+package beforeTraffic.pathfinder;
 
 import battlecode.common.*;
-import java.util.function.Predicate;
-import sprintBot.util.*;
+import beforeTraffic.util.*;
 
 import java.util.Arrays;
 import java.util.Comparator;
 
-import static sprintBot.util.Constants.rc;
+import static beforeTraffic.util.Constants.rc;
 
 public class Pathfinding {
-	public static Predicate<MapLocation> validLocationPredicate;
-
 	public static int moveDistance(MapLocation a, MapLocation b) {
 		return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 	}
@@ -21,7 +18,6 @@ public class Pathfinding {
 
 	public static void init() {
 		visitedSet = new FastIntCounter2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
-		validLocationPredicate = (x) -> true;
 	}
 	public static int getTurnsSpentSoFar() {
 		return visitedSet.getCounter();
@@ -53,9 +49,6 @@ public class Pathfinding {
 			if (!Util.onTheMap(location)) {
 				continue;
 			}
-			if (!validLocationPredicate.test(location)) {
-				continue;
-			}
 			if (visitedSet.contains(location.x, location.y)) {
 				continue;
 			}
@@ -78,18 +71,12 @@ public class Pathfinding {
 		}
 		Arrays.sort(indices, Comparator.comparingInt(i -> counters[i]));
 		for (int i = 0; i < indices.length; i++) {
-			Direction dir = directions[indices[i]];
-			MapLocation loc = Cache.MY_LOCATION.add(dir);
-			if (!validLocationPredicate.test(loc)) continue;
-			if (trySafeMove(dir)) {
+			if (trySafeMove(directions[indices[i]])) {
 				return true;
 			}
 		}
 		for (int i = 0; i < indices.length; i++) {
-			Direction dir = directions[indices[i]];
-			MapLocation loc = Cache.MY_LOCATION.add(dir);
-			if (!validLocationPredicate.test(loc)) continue;
-			if (Util.tryMove(dir)) {
+			if (Util.tryMove(directions[indices[i]])) {
 				return true;
 			}
 		}
