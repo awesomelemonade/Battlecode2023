@@ -4,9 +4,9 @@ import battlecode.common.*;
 
 public class Constants {
     // TODO: CHECK BEFORE SUBMITTING
-    public static final boolean DEBUG_PROFILES = false;
+    public static final boolean DEBUG_PROFILES = true;
     public static final boolean DEBUG_RESIGN = false;
-    public static final boolean DEBUG_FAST_FAIL = true;
+    public static final boolean DEBUG_FAIL_FAST = true;
 
     public static Team ALLY_TEAM;
     public static Team ENEMY_TEAM;
@@ -18,8 +18,6 @@ public class Constants {
     public static MapLocation SPAWN;
 
     public static RobotController rc;
-
-    public static final int MAX_HEADQUARTERS = 4; // From Specs
 
     public static void init(RobotController controller) {
         Constants.rc = controller;

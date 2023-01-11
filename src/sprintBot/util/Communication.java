@@ -15,6 +15,148 @@ public class Communication {
     private static int headquartersSharedIndex = -1;
     public static MapLocation[] headquartersLocations;
 
+    public static final int CARRIER_TASK_OFFSET = 4;
+    public static final int CARRIER_TASK_POSITION_OFFSET = 0;
+    public static final int CARRIER_TASK_POSITION_MASK = 0b1111111; // 7 bits
+    public static final int CARRIER_TASK_HQ_ID_OFFSET = 7;
+    public static final int CARRIER_TASK_HQ_ID_MASK = 0b11; // Max 4 HQs
+    public static final int CARRIER_TASK_ID_OFFSET = 9;
+    public static final int CARRIER_TASK_ID_MASK = 0b1111; // doesn't really matter for now
+    public static final int CARRIER_TASK_NONE_ID = 0;
+    public static final int CARRIER_TASK_ANCHOR_PICKUP_ID = 1;
+
+    public static final int MAX_CARRIER_COMMED_TASKS = 16;
+
+    public enum CarrierTaskType {
+        PICKUP_ANCHOR;
+        public static CarrierTaskType fromId(int id) {
+            switch (id) {
+                case CARRIER_TASK_NONE_ID:
+                    return null;
+                case CARRIER_TASK_ANCHOR_PICKUP_ID:
+                    return PICKUP_ANCHOR;
+                default:
+                    Debug.failFast("Unknown Carrier Task Id");
+                    return null;
+            }
+        }
+    }
+
+    public static class CarrierTask {
+        public CarrierTaskType type;
+        public MapLocation hqLocation;
+        public CarrierTask(MapLocation hqLocation, CarrierTaskType type) {
+            this.hqLocation = hqLocation;
+            this.type = type;
+        }
+    }
+
+    // should only be called by carriers
+    public static CarrierTask getTaskAsCarrier() {
+        CarrierTask bestTask = null;
+        int bestDistanceSquared = Integer.MAX_VALUE;
+        // locate all headquarters nearby
+        MapLocation[] visibleHqLocations = new MapLocation[headquartersLocations.length];
+        for (int i = headquartersLocations.length; --i >= 0; ) {
+            if (rc.canSenseLocation(headquartersLocations[i])) {
+                visibleHqLocations[i] = headquartersLocations[i];
+            }
+        }
+        // loop
+        for (int i = MAX_CARRIER_COMMED_TASKS; --i >= 0; ) {
+            int commIndex = CARRIER_TASK_OFFSET + i;
+            try {
+                int message = rc.readSharedArray(commIndex);
+                int hqIndex = (message >> CARRIER_TASK_HQ_ID_OFFSET) & CARRIER_TASK_HQ_ID_MASK;
+                MapLocation hqLocation = visibleHqLocations[hqIndex];
+                // if visible
+                if (hqLocation != null) {
+                    // read offset
+                    int offset = (message >> CARRIER_TASK_POSITION_OFFSET) & CARRIER_TASK_POSITION_MASK;
+                    int offsetX = (offset / 9) - 4;
+                    int offsetY = (offset % 9) - 4;
+                    MapLocation referencedLocation = hqLocation.translate(offsetX, offsetY);
+                    if (Cache.MY_LOCATION.equals(referencedLocation)) {
+                        // get task
+                        int task = (message >> CARRIER_TASK_ID_OFFSET) & CARRIER_TASK_ID_MASK;
+                        int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(hqLocation);
+                        if (distanceSquared < bestDistanceSquared) {
+                            bestTask = new CarrierTask(hqLocation, CarrierTaskType.fromId(task));
+                            bestDistanceSquared = distanceSquared;
+                        }
+                    }
+                }
+            } catch (GameActionException ex) {
+                Debug.failFast(ex);
+            }
+        }
+        return bestTask;
+    }
+
+    private static int[] taskWrittenIndices = new int[MAX_CARRIER_COMMED_TASKS];
+    private static int numTasksWritten = 0;
+
+    public static void clearOurTasks() {
+        for (int i = numTasksWritten; --i >= 0; ) {
+            int commIndex = CARRIER_TASK_OFFSET + taskWrittenIndices[i];
+            tryWriteSharedIndex(commIndex, 0); // TODO-someday: may want to delay to save bytecodes?
+        }
+        numTasksWritten = 0;
+    }
+
+    public static void addTask(MapLocation location, int taskId) {
+        if (Constants.DEBUG_FAIL_FAST) {
+            if (!Cache.MY_LOCATION.isWithinDistanceSquared(location, RobotType.CARRIER.visionRadiusSquared)) {
+                Debug.failFast("Should not add task to location this far out: " + location);
+            }
+            if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS) {
+                Debug.failFast("Must be headquarters");
+            }
+            if ((taskId & CARRIER_TASK_ID_MASK) != taskId) {
+                Debug.failFast("taskId too large: " + taskId);
+            }
+        }
+        int offsetX = location.x - Cache.MY_LOCATION.x;
+        int offsetY = location.y - Cache.MY_LOCATION.y;
+        int packed = (offsetX + 4) * 9 + (offsetY + 4);
+        int message = (packed << CARRIER_TASK_POSITION_OFFSET)
+                | (headquartersSharedIndex << CARRIER_TASK_HQ_ID_OFFSET)
+                | (taskId << CARRIER_TASK_ID_OFFSET);
+        writeTask(message);
+    }
+
+    public static boolean writeTask(int message) {
+        for (int i = MAX_CARRIER_COMMED_TASKS; --i >= 0; ) {
+            int commIndex = CARRIER_TASK_OFFSET + i;
+            try {
+                int existingMessage = rc.readSharedArray(commIndex);
+                int taskId = (existingMessage >> CARRIER_TASK_ID_OFFSET) & CARRIER_TASK_ID_MASK;
+                if (taskId == CARRIER_TASK_NONE_ID) {
+                    // we can use this index
+                    tryWriteSharedIndex(commIndex, message);
+                    taskWrittenIndices[numTasksWritten] = i;
+                    numTasksWritten++;
+                    return true;
+                }
+            } catch (GameActionException ex) {
+                Debug.failFast(ex);
+            }
+        }
+        return false;
+    }
+
+    public static boolean tryWriteSharedIndex(int index, int message) {
+        if (rc.canWriteSharedArray(index, message)) {
+            try {
+                rc.writeSharedArray(index, message);
+                return true;
+            } catch (GameActionException ex) {
+                Debug.failFast(ex);
+            }
+        }
+        return false;
+    }
+
     public static void init() throws GameActionException {
         // Set Headquarters location
         if (Constants.ROBOT_TYPE == RobotType.HEADQUARTERS) {
@@ -27,7 +169,7 @@ public class Communication {
                 }
             }
             if (headquartersSharedIndex == -1) {
-                Debug.fastFail("-1 headquarters index");
+                Debug.failFast("-1 headquarters index");
             }
             // Broadcast headquarter location
             rc.writeSharedArray(headquartersSharedIndex,
@@ -37,6 +179,9 @@ public class Communication {
     }
 
     public static void loop() throws GameActionException {
+        if (Constants.ROBOT_TYPE == RobotType.HEADQUARTERS) {
+            clearOurTasks();
+        }
         if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS || Cache.TURN_COUNT > 1) {
             // Initialize Arrays
             if (headquartersLocations == null) {
@@ -51,7 +196,7 @@ public class Communication {
                     }
                 }
                 if (!initialized) {
-                    Debug.fastFail("Cannot read any archon locations");
+                    Debug.failFast("Cannot read any archon locations");
                 }
                 // Read archon locations
                 for (int i = GameConstants.MAX_STARTING_HEADQUARTERS; --i >= 0; ) {

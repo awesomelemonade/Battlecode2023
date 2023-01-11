@@ -1,5 +1,6 @@
 package sprintBot.util;
 
+import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 
 import static sprintBot.util.Constants.rc;
@@ -7,8 +8,16 @@ import static sprintBot.util.Constants.rc;
 public class Debug {
     public static final int id = -1;
 
-    public static void fastFail(String message) {
-        if (Constants.DEBUG_FAST_FAIL) {
+    public static void failFast(GameActionException ex) {
+        if (Constants.DEBUG_FAIL_FAST) {
+            throw new IllegalStateException(ex);
+        } else {
+            Debug.setIndicatorDot(Profile.PATHFINDING, Cache.MY_LOCATION, 255, 0, 0);
+        }
+    }
+
+    public static void failFast(String message) {
+        if (Constants.DEBUG_FAIL_FAST) {
             throw new IllegalStateException(message);
         } else {
             Debug.setIndicatorDot(Profile.PATHFINDING, Cache.MY_LOCATION, 255, 0, 0);
