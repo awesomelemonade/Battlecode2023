@@ -206,9 +206,12 @@ public class Communication {
                         headquartersLocations[i] = unpack((value >> HEADQUARTERS_LOCATIONS_LOCATION_BIT) & HEADQUARTERS_LOCATIONS_LOCATION_MASK);
                     }
                 }
+                // Guess enemy hqs
+                EnemyHqGuesser.generateHQGuessList();
             }
             // TODO: broadcast whether the headquarters is safe (for carriers to deposit resources)
         }
+        EnemyHqGuesser.update();
     }
 
     public static void postLoop() {
