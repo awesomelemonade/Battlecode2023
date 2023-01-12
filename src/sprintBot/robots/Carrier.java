@@ -65,10 +65,10 @@ public class Carrier implements RunnableBot {
         if (tryPlaceAnchorOnIsland()) {
             return;
         }
-        if (tryTransferResourceToHQ()) {
+        if (tryCollectResource()) {
             return;
         }
-        if (tryCollectResource()) {
+        if (tryTransferResourceToHQ()) {
             return;
         }
     }
@@ -101,6 +101,9 @@ public class Carrier implements RunnableBot {
     }
 
     public static boolean tryCollectResource() {
+        if (capacityLeft() <= 0) {
+            return false;
+        }
         // try mine
         WellInfo well = getWell();
         if (well != null) {
