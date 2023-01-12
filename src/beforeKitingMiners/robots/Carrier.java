@@ -1,11 +1,11 @@
-package sprintBot.robots;
+package beforeKitingMiners.robots;
 
 import battlecode.common.*;
-import sprintBot.util.*;
+import beforeKitingMiners.util.*;
 
 import java.util.Comparator;
 
-import static sprintBot.util.Constants.rc;
+import static beforeKitingMiners.util.Constants.rc;
 
 public class Carrier implements RunnableBot {
     @Override
@@ -15,10 +15,6 @@ public class Carrier implements RunnableBot {
 
     @Override
     public void loop() throws GameActionException {
-        // let's try to kite from enemies
-        if (tryKiteFromEnemies()) {
-            return;
-        }
         // let's try to pick up an anchor from hq
         if (tryPickupAnchorFromHQ()) {
             return;
@@ -65,19 +61,6 @@ public class Carrier implements RunnableBot {
                 }
             }
         }
-    }
-
-    public static boolean tryKiteFromEnemies() {
-        RobotInfo closestAttacker = Util.getClosestEnemyRobot(
-            Cache.MY_LOCATION,
-            RobotType.CARRIER.visionRadiusSquared,
-            (r) -> Util.isAttacker(r.type)
-        );
-        if (closestAttacker == null) {
-            return false;
-        }
-        Util.tryKiteFrom(closestAttacker.location);
-        return true;
     }
 
     public static boolean tryPickupAnchorFromHQ() {
