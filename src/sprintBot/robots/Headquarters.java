@@ -78,7 +78,6 @@ public class Headquarters implements RunnableBot {
 //        Debug.println("adamantiumIncome: " + adamantiumIncome.average() + ", adamantiumDerivative: " + adamantiumDerivativeTracker.average());
 
         assignTasks();
-        action();
         lastAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
         lastMana = rc.getResourceAmount(ResourceType.MANA);
         lastElixir = rc.getResourceAmount(ResourceType.ELIXIR);
@@ -114,7 +113,13 @@ public class Headquarters implements RunnableBot {
         }
     }
 
-    public static void action() {
+    @Override
+    public void move() {
+        // HQs don't move
+    }
+
+    @Override
+    public void action() {
         if (rc.getRobotCount() > 250) {
             int adamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
             int mana = rc.getResourceAmount(ResourceType.MANA);

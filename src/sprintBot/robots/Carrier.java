@@ -39,12 +39,10 @@ public class Carrier implements RunnableBot {
         } else {
             Debug.setIndicatorString(Profile.MINING, currentTask.type.toString());
         }
-        action();
-        move();
-        action();
     }
 
-    public static void move() {
+    @Override
+    public void move() {
         if (tryKiteFromEnemies()) {
             return;
         }
@@ -63,7 +61,8 @@ public class Carrier implements RunnableBot {
         Util.tryExplore();
     }
 
-    public static void action() {
+    @Override
+    public void action() {
         if (tryPickupAnchorFromHQ()) {
             return;
         }

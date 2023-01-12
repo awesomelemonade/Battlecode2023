@@ -23,11 +23,9 @@ public class Launcher implements RunnableBot {
     @Override
     public void loop() throws GameActionException {
         debug_render();
-        action();
-        move();
-        action();
     }
 
+    @Override
     public void action() {
         if (!rc.isActionReady()) {
             return;
@@ -79,6 +77,7 @@ public class Launcher implements RunnableBot {
         return score;
     }
 
+    @Override
     public void move() {
         if (rc.isActionReady()) {
             moveWithAction();

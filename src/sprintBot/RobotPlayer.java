@@ -42,29 +42,10 @@ public class RobotPlayer {
                 while (true) {
                     currentTurn = controller.getRoundNum();
                     Util.loop();
-
-                    int beforeActionCooldown = controller.getActionCooldownTurns();
-                    int beforeMovementCooldown = controller.getMovementCooldownTurns();
                     bot.loop();
-                    int afterActionCooldown = controller.getActionCooldownTurns();
-                    int afterMovementCooldown = controller.getMovementCooldownTurns();
 
-                    // normally a while loop - but this is defensive code to prevent infinite loops that somehow might happen
-                    for (int i = 0; i < 3; i++) {
-                        boolean shouldRepeat =
-                                afterActionCooldown > beforeActionCooldown && afterActionCooldown < GameConstants.COOLDOWN_LIMIT ||
-                                afterMovementCooldown > beforeMovementCooldown && afterMovementCooldown < GameConstants.COOLDOWN_LIMIT;
-                        if (shouldRepeat) {
-                            beforeActionCooldown = controller.getActionCooldownTurns();
-                            beforeMovementCooldown = controller.getMovementCooldownTurns();
-                            bot.loop();
-                            afterActionCooldown = controller.getActionCooldownTurns();
-                            afterMovementCooldown = controller.getMovementCooldownTurns();
-                            Debug.setIndicatorDot(Profile.REPEAT_MOVE, controller.getLocation(), 128, 128, 128);
-                        } else {
-                            break;
-                        }
-                    }
+                    tryMultiAction(controller, bot);
+                    tryMultiMove(controller, bot);
 
                     Util.postLoop();
                     if (controller.getRoundNum() != currentTurn) {
@@ -86,6 +67,43 @@ public class RobotPlayer {
                 ex.printStackTrace();
                 errored = true;
                 Clock.yield();
+            }
+        }
+    }
+    public static void tryMultiAction(RobotController controller, RunnableBot bot) throws GameActionException {
+        int beforeActionCooldown = controller.getActionCooldownTurns();
+        if (controller.isActionReady()) {
+            bot.action();
+        }
+        int afterActionCooldown = controller.getActionCooldownTurns();
+        // normally a while loop - but this is defensive code to prevent infinite loops that somehow might happen
+        for (int i = 0; i < 3; i++) {
+            if (afterActionCooldown > beforeActionCooldown && afterActionCooldown < GameConstants.COOLDOWN_LIMIT) {
+                beforeActionCooldown = controller.getActionCooldownTurns();
+                bot.action();
+                afterActionCooldown = controller.getActionCooldownTurns();
+            } else {
+                break;
+            }
+        }
+    }
+
+    public static void tryMultiMove(RobotController controller, RunnableBot bot) throws GameActionException {
+        int beforeMoveCooldown = controller.getMovementCooldownTurns();
+        if (controller.isMovementReady()) {
+            bot.move();
+        }
+        int afterMoveCooldown = controller.getMovementCooldownTurns();
+        tryMultiAction(controller, bot);
+        // normally a while loop - but this is defensive code to prevent infinite loops that somehow might happen
+        for (int i = 0; i < 3; i++) {
+            if (afterMoveCooldown > beforeMoveCooldown && afterMoveCooldown < GameConstants.COOLDOWN_LIMIT) {
+                beforeMoveCooldown = controller.getActionCooldownTurns();
+                bot.move();
+                afterMoveCooldown = controller.getActionCooldownTurns();
+                tryMultiAction(controller, bot);
+            } else {
+                break;
             }
         }
     }
