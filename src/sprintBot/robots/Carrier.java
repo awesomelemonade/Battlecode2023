@@ -27,8 +27,17 @@ public class Carrier implements RunnableBot {
         debug_render();
         // update task (if needed)
         if (taskTurn != Cache.TURN_COUNT) {
-            currentTask = Communication.getTaskAsCarrier();
+            // get new task
+            Communication.CarrierTask potentialTask = Communication.getTaskAsCarrier();
+            if (potentialTask != null) {
+                currentTask = potentialTask;
+            }
             taskTurn = Cache.TURN_COUNT;
+        }
+        if (currentTask == null) {
+            Debug.setIndicatorString(Profile.MINING, "None");
+        } else {
+            Debug.setIndicatorString(Profile.MINING, currentTask.type.toString());
         }
         // let's try to kite from enemies
         if (tryKiteFromEnemies()) {
@@ -43,9 +52,17 @@ public class Carrier implements RunnableBot {
             int capacityLeft = capacityLeft();
             if (capacityLeft > 0) {
                 // look for well
+//                ResourceType targetResource = Communication.CarrierTask.getMineResourceType(currentTask);
+//                WellInfo well = targetResource == null ? getClosestWell() : getClosestWell(targetResource);
                 WellInfo well = getWell();
                 if (well == null) {
-                    Util.tryExplore();
+//                    // go to commed well
+//                    MapLocation commedWell = targetResource == null ? WellTracker.getClosestKnownWell() : WellTracker.getClosestKnownWell(targetResource);
+//                    if (commedWell == null) {
+                        Util.tryExplore();
+//                    } else {
+//                        Util.tryPathfindingMove(commedWell);
+//                    }
                 } else {
                     MapLocation wellLocation = well.getMapLocation();
                     Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, wellLocation, 0, 128, 0); // dark green
@@ -253,6 +270,29 @@ public class Carrier implements RunnableBot {
         return rc.getWeight();
     }
 
+    public static WellInfo getClosestWell(ResourceType type) {
+        return getClosestWell(rc.senseNearbyWells(type));
+    }
+
+    public static WellInfo getClosestWell() {
+        return getClosestWell(rc.senseNearbyWells());
+    }
+
+    public static WellInfo getClosestWell(WellInfo[] wells) {
+        WellInfo bestWell = null;
+        int bestDistanceSquared = Integer.MAX_VALUE;
+        for (int i = wells.length; --i >= 0; ) {
+            WellInfo well = wells[i];
+            int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(well.getMapLocation());
+            if (distanceSquared < bestDistanceSquared) {
+                bestDistanceSquared = distanceSquared;
+                bestWell = well;
+            }
+        }
+        return bestWell;
+    }
+
+    // TODO-someday: to be removed
     public static WellInfo getWell() {
         WellInfo[] wells = getWells();
         WellInfo closestWell = LambdaUtil.

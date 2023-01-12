@@ -19,7 +19,7 @@ public class Communication {
     public static final int WELL_LOCATIONS_LOCATION_BIT = 1;
     public static final int WELL_LOCATIONS_LOCATION_MASK = 0b111111_111111; // 12 bits, 6 bit per coordinate
 
-    public static final int CARRIER_TASK_OFFSET = 20; // 16 integers
+    public static final int CARRIER_TASK_OFFSET = 20; // 32 integers
     public static final int CARRIER_TASK_POSITION_BIT_OFFSET = 0;
     public static final int CARRIER_TASK_POSITION_BIT_MASK = 0b1111111; // 7 bits
     public static final int CARRIER_TASK_HQ_ID_BIT_OFFSET = 7;
@@ -28,21 +28,48 @@ public class Communication {
     public static final int CARRIER_TASK_ID_BIT_MASK = 0b1111; // doesn't really matter for now
     public static final int CARRIER_TASK_NONE_ID = 0;
     public static final int CARRIER_TASK_ANCHOR_PICKUP_ID = 1;
+    public static final int CARRIER_TASK_MINE_ADAMANTIUM_ID = 2;
+    public static final int CARRIER_TASK_MINE_MANA_ID = 3;
+    public static final int CARRIER_TASK_MINE_ELIXIR_ID = 4;
 
-    public static final int MAX_CARRIER_COMMED_TASKS = 16;
+    public static final int MAX_CARRIER_COMMED_TASKS = 32;
 
     public enum CarrierTaskType {
-        PICKUP_ANCHOR;
+        PICKUP_ANCHOR, MINE_ADAMANTIUM, MINE_MANA, MINE_ELIXIR;
+        public static int toId(CarrierTaskType type) {
+            switch (type) {
+                case PICKUP_ANCHOR:
+                    return CARRIER_TASK_ANCHOR_PICKUP_ID;
+                case MINE_ADAMANTIUM:
+                    return CARRIER_TASK_MINE_ADAMANTIUM_ID;
+                case MINE_MANA:
+                    return CARRIER_TASK_MINE_MANA_ID;
+                case MINE_ELIXIR:
+                    return CARRIER_TASK_MINE_ELIXIR_ID;
+                default:
+                    Debug.failFast("Unknown Carrier Task: " + type);
+                    return -1;
+            }
+        }
         public static CarrierTaskType fromId(int id) {
             switch (id) {
                 case CARRIER_TASK_NONE_ID:
                     return null;
                 case CARRIER_TASK_ANCHOR_PICKUP_ID:
                     return PICKUP_ANCHOR;
+                case CARRIER_TASK_MINE_ADAMANTIUM_ID:
+                    return MINE_ADAMANTIUM;
+                case CARRIER_TASK_MINE_MANA_ID:
+                    return MINE_MANA;
+                case CARRIER_TASK_MINE_ELIXIR_ID:
+                    return MINE_ELIXIR;
                 default:
                     Debug.failFast("Unknown Carrier Task Id");
                     return null;
             }
+        }
+        public int id() {
+            return toId(this);
         }
     }
 
@@ -52,6 +79,20 @@ public class Communication {
         public CarrierTask(MapLocation hqLocation, CarrierTaskType type) {
             this.hqLocation = hqLocation;
             this.type = type;
+        }
+        public static ResourceType getMineResourceType(CarrierTask task) {
+            if (task == null) {
+                return null;
+            }
+            switch (task.type) {
+                case MINE_ADAMANTIUM:
+                    return ResourceType.ADAMANTIUM;
+                case MINE_MANA:
+                    return ResourceType.MANA;
+                case MINE_ELIXIR:
+                    return ResourceType.ELIXIR;
+            }
+            return null;
         }
     }
 
@@ -85,8 +126,11 @@ public class Communication {
                         int task = (message >> CARRIER_TASK_ID_BIT_OFFSET) & CARRIER_TASK_ID_BIT_MASK;
                         int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(hqLocation);
                         if (distanceSquared < bestDistanceSquared) {
-                            bestTask = new CarrierTask(hqLocation, CarrierTaskType.fromId(task));
-                            bestDistanceSquared = distanceSquared;
+                            CarrierTaskType taskType = CarrierTaskType.fromId(task);
+                            if (taskType != null) {
+                                bestTask = new CarrierTask(hqLocation, taskType);
+                                bestDistanceSquared = distanceSquared;
+                            }
                         }
                     }
                 }
@@ -146,6 +190,7 @@ public class Communication {
                 Debug.failFast(ex);
             }
         }
+        Debug.println("Warning: ran out of carrier task bandwidth");
         return false;
     }
 

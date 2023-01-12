@@ -5,8 +5,8 @@ public enum Profile {
     PATHFINDING(false),
     EXPLORER(false),
     MINING(true),
-    ATTACKING(true),
-    REPEAT_MOVE(true);
+    ATTACKING(false),
+    REPEAT_MOVE(false);
 
     private final boolean enabled;
 

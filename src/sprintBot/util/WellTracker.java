@@ -1,9 +1,6 @@
 package sprintBot.util;
 
-import battlecode.common.GameActionException;
-import battlecode.common.MapLocation;
-import battlecode.common.ResourceType;
-import battlecode.common.WellInfo;
+import battlecode.common.*;
 
 import java.util.function.Consumer;
 
@@ -14,6 +11,8 @@ public class WellTracker {
 
     public static MapLocation[] knownWells = new MapLocation[NUM_WELLS_TRACKED];
     public static MapLocation[] pendingWells = new MapLocation[NUM_WELLS_TRACKED];
+
+    private static int lastHqIndex = -1;
 
     public static void forEachKnown(Consumer<MapLocation> consumer) {
         for (int i = NUM_WELLS_TRACKED; --i >= 0; ) {
@@ -33,6 +32,43 @@ public class WellTracker {
         }
     }
 
+    public static MapLocation getClosestKnownWell() {
+        MapLocation bestLocation = null;
+        int bestDistanceSquared = Integer.MAX_VALUE;
+        // look at wells in our vision radius
+        WellInfo[] visionWells = rc.senseNearbyWells();
+        for (int i = visionWells.length; --i >= 0; ) {
+            MapLocation location = visionWells[i].getMapLocation();
+            int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
+            if (distanceSquared < bestDistanceSquared) {
+                bestDistanceSquared = distanceSquared;
+                bestLocation = location;
+            }
+        }
+        for (int i = NUM_WELLS_TRACKED; --i >= 0; ) {
+            if (lastHqIndex != -1 && lastHqIndex != i / 3) {
+                continue;
+            }
+            MapLocation known = knownWells[i];
+            if (known != null) {
+                int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(known);
+                if (distanceSquared < bestDistanceSquared) {
+                    bestDistanceSquared = distanceSquared;
+                    bestLocation = known;
+                }
+            }
+            MapLocation pending = pendingWells[i];
+            if (pending != null) {
+                int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(pending);
+                if (distanceSquared < bestDistanceSquared) {
+                    bestDistanceSquared = distanceSquared;
+                    bestLocation = known;
+                }
+            }
+        }
+        return bestLocation;
+    }
+
     public static MapLocation getClosestKnownWell(ResourceType type) {
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MAX_VALUE;
@@ -48,22 +84,11 @@ public class WellTracker {
         }
         if (bestLocation == null) {
             // read from known and read from pending
-            int startingIndex = 0;
-            switch (type) {
-                case ADAMANTIUM:
-                    // 0, 3, 6, 9
-                    startingIndex = 0;
-                    break;
-                case MANA:
-                    // 1, 4, 7, 10
-                    startingIndex = 1;
-                    break;
-                case ELIXIR:
-                    // 2, 5, 8, 11
-                    startingIndex = 2;
-                    break;
-            }
+            int startingIndex = getResourceIndex(type);
             for (int i = startingIndex; i < NUM_WELLS_TRACKED; i += 3) {
+                if (lastHqIndex != -1 && lastHqIndex != i / 3) {
+                    continue;
+                }
                 MapLocation known = knownWells[i];
                 if (known != null) {
                     int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(known);
@@ -85,6 +110,20 @@ public class WellTracker {
         return bestLocation;
     }
 
+    public static int getResourceIndex(ResourceType type) {
+        switch (type) {
+            case ADAMANTIUM:
+                return 0;
+            case MANA:
+                return 1;
+            case ELIXIR:
+                return 2;
+            default:
+                Debug.failFast("Unknown resource: " + type);
+                return -1;
+        }
+    }
+
     public static ResourceType getExpectedType(int index) {
         switch (index % 3) {
             case 0:
@@ -99,23 +138,41 @@ public class WellTracker {
     }
 
     public static MapLocation getHQLocation(int index) {
-        int hqIndex = index / 4;
+        int hqIndex = index / 3;
         if (hqIndex >= Communication.headquartersLocations.length) {
             return null;
         }
-        return Communication.headquartersLocations[index / 4];
+        return Communication.headquartersLocations[index / 3];
     }
 
     public static void update() throws GameActionException {
         if (Communication.headquartersLocations == null) {
             return;
         }
-        WellInfo[] adamantiumWells = rc.senseNearbyWells(ResourceType.ADAMANTIUM);
-        WellInfo[] manaWells = rc.senseNearbyWells(ResourceType.MANA);
-        WellInfo[] elixirWells = rc.senseNearbyWells(ResourceType.ELIXIR);
+        if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS) {
+            // update lastHqIndex
+            int bestIndex = -1;
+            int bestDistanceSquared = RobotType.HEADQUARTERS.actionRadiusSquared + 1; // add 1 for inclusive
+            for (int i = Communication.headquartersLocations.length; --i >= 0; ) {
+                MapLocation location = Communication.headquartersLocations[i];
+                int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
+                if (distanceSquared < bestDistanceSquared) {
+                    bestDistanceSquared = distanceSquared;
+                    bestIndex = i;
+                }
+            }
+            if (bestIndex != -1) {
+                lastHqIndex = bestIndex;
+            }
+        }
+
+        WellInfo[] adamantiumWells = rc.senseNearbyWells(2, ResourceType.ADAMANTIUM);
+        WellInfo[] manaWells = rc.senseNearbyWells(2, ResourceType.MANA);
+        WellInfo[] elixirWells = rc.senseNearbyWells(2, ResourceType.ELIXIR);
 
         for (int i = NUM_WELLS_TRACKED; --i >= 0; ) {
             int commIndex = Communication.WELL_LOCATIONS_OFFSET + i;
+            int hqIndex = i / 3;
             MapLocation hqLocation = getHQLocation(i);
             if (hqLocation == null) {
                 continue;
@@ -154,19 +211,23 @@ public class WellTracker {
             }
             // add to pending
             WellInfo[] wells; // fetch relevant wells
-            switch (expectedType) {
-                case ADAMANTIUM:
-                    wells = adamantiumWells;
-                    break;
-                case MANA:
-                    wells = manaWells;
-                    break;
-                case ELIXIR:
-                    wells = elixirWells;
-                    break;
-                default:
-                    Debug.failFast("Unknown expected type: " + expectedType);
-                    wells = adamantiumWells;
+            if (hqIndex == lastHqIndex) {
+                switch (expectedType) {
+                    case ADAMANTIUM:
+                        wells = adamantiumWells;
+                        break;
+                    case MANA:
+                        wells = manaWells;
+                        break;
+                    case ELIXIR:
+                        wells = elixirWells;
+                        break;
+                    default:
+                        Debug.failFast("Unknown expected type: " + expectedType);
+                        wells = new WellInfo[0];
+                }
+            } else {
+                wells = new WellInfo[0];
             }
             int bestDistanceSquared = Math.min(knownDistanceSquared, pendingDistanceSquared);
             for (int j = wells.length; --j >= 0; ) {

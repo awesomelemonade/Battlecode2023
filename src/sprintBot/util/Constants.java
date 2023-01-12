@@ -17,6 +17,8 @@ public class Constants {
     public static final int MAX_DISTANCE_SQUARED = (MAX_MAP_SIZE - 1) * (MAX_MAP_SIZE - 1);
     public static MapLocation SPAWN;
 
+    public static final int ROBOT_STARTING_ID = 10000;
+
     public static RobotController rc;
 
     public static void init(RobotController controller) {
