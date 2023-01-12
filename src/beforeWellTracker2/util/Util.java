@@ -1,12 +1,12 @@
-package sprintBot.util;
+package beforeWellTracker2.util;
 
 import battlecode.common.*;
-import sprintBot.pathfinder.Pathfinding;
+import beforeWellTracker2.pathfinder.Pathfinding;
 
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import static sprintBot.util.Constants.rc;
+import static beforeWellTracker2.util.Constants.rc;
 
 public class Util {
 

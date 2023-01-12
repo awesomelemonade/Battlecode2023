@@ -1,12 +1,12 @@
-package sprintBot.util;
+package beforeWellTracker.util;
 
 import battlecode.common.*;
-import sprintBot.pathfinder.Pathfinding;
+import beforeWellTracker.pathfinder.Pathfinding;
 
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import static sprintBot.util.Constants.rc;
+import static beforeWellTracker.util.Constants.rc;
 
 public class Util {
 
@@ -16,12 +16,12 @@ public class Util {
         Cache.init();
         Communication.init();
         Explorer.init();
+        Pathfinding.init();
     }
 
     public static void loop() throws GameActionException {
         Cache.loop();
         Communication.loop();
-        Pathfinding.loop();
     }
 
     public static void postLoop() throws GameActionException {

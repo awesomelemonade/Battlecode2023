@@ -1,8 +1,8 @@
-package sprintBot.util;
+package beforeWellTracker2.util;
 
 import battlecode.common.*;
 
-import static sprintBot.util.Constants.rc;
+import static beforeWellTracker2.util.Constants.rc;
 
 public class Communication {
     public static final int ALLY_HEADQUARTERS_LOCATIONS_OFFSET = 0; // 4 integers

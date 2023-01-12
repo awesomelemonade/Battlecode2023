@@ -1,8 +1,11 @@
-package sprintBot.util;
+package beforeWellTracker.util;
 
-import battlecode.common.*;
+import battlecode.common.GameActionException;
+import battlecode.common.GameConstants;
+import battlecode.common.MapLocation;
+import battlecode.common.RobotType;
 
-import static sprintBot.util.Constants.rc;
+import static beforeWellTracker.util.Constants.rc;
 
 public class Communication {
     public static final int ALLY_HEADQUARTERS_LOCATIONS_OFFSET = 0; // 4 integers
@@ -13,13 +16,7 @@ public class Communication {
     private static int headquartersSharedIndex = -1;
     public static MapLocation[] headquartersLocations;
 
-    // 3 resource types * 4 headquarters * 12 bits per well = 144 bits total = theoretically 9 integers
-    public static final int WELL_LOCATIONS_OFFSET = 8; // 144 12 integers
-    public static final int WELL_LOCATIONS_SET_BIT = 0;
-    public static final int WELL_LOCATIONS_LOCATION_BIT = 1;
-    public static final int WELL_LOCATIONS_LOCATION_MASK = 0b111111_111111; // 12 bits, 6 bit per coordinate
-
-    public static final int CARRIER_TASK_OFFSET = 20; // 16 integers
+    public static final int CARRIER_TASK_OFFSET = 8; // 16 integers
     public static final int CARRIER_TASK_POSITION_BIT_OFFSET = 0;
     public static final int CARRIER_TASK_POSITION_BIT_MASK = 0b1111111; // 7 bits
     public static final int CARRIER_TASK_HQ_ID_BIT_OFFSET = 7;
@@ -219,7 +216,6 @@ public class Communication {
         // Update enemy hqs from comms
         EnemyHqTracker.update();
         EnemyHqGuesser.update();
-        WellTracker.update();
     }
 
     public static void postLoop() {

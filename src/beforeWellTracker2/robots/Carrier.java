@@ -1,11 +1,11 @@
-package sprintBot.robots;
+package beforeWellTracker2.robots;
 
 import battlecode.common.*;
-import sprintBot.util.*;
+import beforeWellTracker2.util.*;
 
 import java.util.Comparator;
 
-import static sprintBot.util.Constants.rc;
+import static beforeWellTracker2.util.Constants.rc;
 
 public class Carrier implements RunnableBot {
     private static Communication.CarrierTask currentTask;

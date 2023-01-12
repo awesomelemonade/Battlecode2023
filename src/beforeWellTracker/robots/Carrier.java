@@ -1,35 +1,20 @@
-package sprintBot.robots;
+package beforeWellTracker.robots;
 
 import battlecode.common.*;
-import sprintBot.util.*;
+import beforeWellTracker.util.*;
 
 import java.util.Comparator;
 
-import static sprintBot.util.Constants.rc;
+import static beforeWellTracker.util.Constants.rc;
 
 public class Carrier implements RunnableBot {
-    private static Communication.CarrierTask currentTask;
-    private static int taskTurn = -1;
     @Override
     public void init() throws GameActionException {
 
     }
 
-    private static void debug_render() {
-        if (Profile.MINING.enabled()) {
-            WellTracker.forEachPending(location -> Debug.setIndicatorDot(Profile.MINING, location, 0, 255, 255)); // cyan
-            WellTracker.forEachKnown(location -> Debug.setIndicatorDot(Profile.MINING, location, 0, 0, 255)); // blue
-        }
-    }
-
     @Override
     public void loop() throws GameActionException {
-        debug_render();
-        // update task (if needed)
-        if (taskTurn != Cache.TURN_COUNT) {
-            currentTask = Communication.getTaskAsCarrier();
-            taskTurn = Cache.TURN_COUNT;
-        }
         // let's try to kite from enemies
         if (tryKiteFromEnemies()) {
             return;
@@ -99,15 +84,18 @@ public class Carrier implements RunnableBot {
         if (getWeight() > 0) { // we need space for an anchor
             return false;
         }
-        if (currentTask != null && currentTask.type == Communication.CarrierTaskType.PICKUP_ANCHOR) {
-            MapLocation location = currentTask.hqLocation;
-            if (Cache.MY_LOCATION.isAdjacentTo(location)) {
-                tryTakeAnchor(location, Anchor.ACCELERATING);
-                tryTakeAnchor(location, Anchor.STANDARD);
-            } else {
-                Util.tryPathfindingMove(location);
+        Communication.CarrierTask task = Communication.getTaskAsCarrier();
+        if (task != null) {
+            if (task.type == Communication.CarrierTaskType.PICKUP_ANCHOR) {
+                MapLocation location = task.hqLocation;
+                if (Cache.MY_LOCATION.isAdjacentTo(location)) {
+                    tryTakeAnchor(location, Anchor.ACCELERATING);
+                    tryTakeAnchor(location, Anchor.STANDARD);
+                } else {
+                    Util.tryPathfindingMove(location);
+                }
+                return true;
             }
-            return true;
         }
         return false;
 
