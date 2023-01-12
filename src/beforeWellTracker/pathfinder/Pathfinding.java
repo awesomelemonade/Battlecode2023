@@ -1,30 +1,26 @@
-package sprintBot.pathfinder;
+package beforeWellTracker.pathfinder;
 
 import battlecode.common.*;
-import sprintBot.fast.FastIntCounter2D;
-import sprintBot.util.*;
+import beforeWellTracker.fast.FastIntCounter2D;
+import beforeWellTracker.util.*;
 
 import java.util.Arrays;
 import java.util.Comparator;
 
-import static sprintBot.util.Constants.rc;
+import static beforeWellTracker.util.Constants.rc;
 
 public class Pathfinding {
 	public static int moveDistance(MapLocation a, MapLocation b) {
 		return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 	}
 
-	private static FastIntCounter2D visitedSet = null;
+	private static FastIntCounter2D visitedSet;
 	private static MapLocation lastTarget;
 
 	public static void init() {
 		visitedSet = new FastIntCounter2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
 	}
-
 	public static int getTurnsSpentSoFar() {
-		if (visitedSet == null) {
-			return 0;
-		}
 		return visitedSet.getCounter();
 	}
 	public static boolean execute(MapLocation target) {

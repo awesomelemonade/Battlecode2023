@@ -1,12 +1,12 @@
-package sprintBot.util;
+package beforeWellTracker2.util;
 
 public enum Profile {
     ERROR_STATE(true),
     PATHFINDING(false),
     EXPLORER(false),
     MINING(true),
-    ATTACKING(false),
-    REPEAT_MOVE(false);
+    ATTACKING(true),
+    REPEAT_MOVE(true);
 
     private final boolean enabled;
 

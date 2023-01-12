@@ -1,10 +1,10 @@
-package sprintBot.util;
+package beforeWellTracker2.util;
 
 import battlecode.common.*;
 
 public class Constants {
     // TODO: CHECK BEFORE SUBMITTING
-    public static final boolean DEBUG_PROFILES = true;
+    public static final boolean DEBUG_PROFILES = false;
     public static final boolean DEBUG_RESIGN = false;
     public static final boolean DEBUG_FAIL_FAST = true;
 
@@ -16,8 +16,6 @@ public class Constants {
     public static final int MAX_MAP_SIZE = 60;
     public static final int MAX_DISTANCE_SQUARED = (MAX_MAP_SIZE - 1) * (MAX_MAP_SIZE - 1);
     public static MapLocation SPAWN;
-
-    public static final int ROBOT_STARTING_ID = 10000;
 
     public static RobotController rc;
 

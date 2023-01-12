@@ -1,10 +1,13 @@
-package sprintBot.robots;
+package beforeWellTracker2.robots;
 
-import battlecode.common.*;
-import sprintBot.fast.FastIntSet2D;
-import sprintBot.util.*;
+import battlecode.common.GameActionException;
+import battlecode.common.MapLocation;
+import battlecode.common.RobotInfo;
+import battlecode.common.RobotType;
+import beforeWellTracker2.fast.FastIntSet2D;
+import beforeWellTracker2.util.*;
 
-import static sprintBot.util.Constants.rc;
+import static beforeWellTracker2.util.Constants.rc;
 
 public class Launcher implements RunnableBot {
     @Override
@@ -12,17 +15,13 @@ public class Launcher implements RunnableBot {
         blacklist = new FastIntSet2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
     }
 
-    private static void debug_render() {
+    @Override
+    public void loop() throws GameActionException {
         if (Profile.ATTACKING.enabled()) {
             EnemyHqGuesser.forEach(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 0)); // black
             EnemyHqTracker.forEachPending(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 255, 255)); // cyan
             EnemyHqTracker.forEachKnown(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 255)); // blue
         }
-    }
-
-    @Override
-    public void loop() throws GameActionException {
-        debug_render();
         action();
         move();
         action();

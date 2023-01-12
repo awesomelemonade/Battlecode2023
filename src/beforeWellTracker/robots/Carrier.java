@@ -1,44 +1,20 @@
-package sprintBot.robots;
+package beforeWellTracker.robots;
 
 import battlecode.common.*;
-import sprintBot.util.*;
+import beforeWellTracker.util.*;
 
 import java.util.Comparator;
 
-import static sprintBot.util.Constants.rc;
+import static beforeWellTracker.util.Constants.rc;
 
 public class Carrier implements RunnableBot {
-    private static Communication.CarrierTask currentTask;
-    private static int taskTurn = -1;
     @Override
     public void init() throws GameActionException {
 
     }
 
-    private static void debug_render() {
-        if (Profile.MINING.enabled()) {
-            WellTracker.forEachPending(location -> Debug.setIndicatorDot(Profile.MINING, location, 0, 255, 255)); // cyan
-            WellTracker.forEachKnown(location -> Debug.setIndicatorDot(Profile.MINING, location, 0, 0, 255)); // blue
-        }
-    }
-
     @Override
     public void loop() throws GameActionException {
-        debug_render();
-        // update task (if needed)
-        if (taskTurn != Cache.TURN_COUNT) {
-            // get new task
-            Communication.CarrierTask potentialTask = Communication.getTaskAsCarrier();
-            if (potentialTask != null) {
-                currentTask = potentialTask;
-            }
-            taskTurn = Cache.TURN_COUNT;
-        }
-        if (currentTask == null) {
-            Debug.setIndicatorString(Profile.MINING, "None");
-        } else {
-            Debug.setIndicatorString(Profile.MINING, currentTask.type.toString());
-        }
         // let's try to kite from enemies
         if (tryKiteFromEnemies()) {
             return;
@@ -52,17 +28,9 @@ public class Carrier implements RunnableBot {
             int capacityLeft = capacityLeft();
             if (capacityLeft > 0) {
                 // look for well
-//                ResourceType targetResource = Communication.CarrierTask.getMineResourceType(currentTask);
-//                WellInfo well = targetResource == null ? getClosestWell() : getClosestWell(targetResource);
                 WellInfo well = getWell();
                 if (well == null) {
-//                    // go to commed well
-//                    MapLocation commedWell = targetResource == null ? WellTracker.getClosestKnownWell() : WellTracker.getClosestKnownWell(targetResource);
-//                    if (commedWell == null) {
-                        Util.tryExplore();
-//                    } else {
-//                        Util.tryPathfindingMove(commedWell);
-//                    }
+                    Util.tryExplore();
                 } else {
                     MapLocation wellLocation = well.getMapLocation();
                     Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, wellLocation, 0, 128, 0); // dark green
@@ -116,15 +84,18 @@ public class Carrier implements RunnableBot {
         if (getWeight() > 0) { // we need space for an anchor
             return false;
         }
-        if (currentTask != null && currentTask.type == Communication.CarrierTaskType.PICKUP_ANCHOR) {
-            MapLocation location = currentTask.hqLocation;
-            if (Cache.MY_LOCATION.isAdjacentTo(location)) {
-                tryTakeAnchor(location, Anchor.ACCELERATING);
-                tryTakeAnchor(location, Anchor.STANDARD);
-            } else {
-                Util.tryPathfindingMove(location);
+        Communication.CarrierTask task = Communication.getTaskAsCarrier();
+        if (task != null) {
+            if (task.type == Communication.CarrierTaskType.PICKUP_ANCHOR) {
+                MapLocation location = task.hqLocation;
+                if (Cache.MY_LOCATION.isAdjacentTo(location)) {
+                    tryTakeAnchor(location, Anchor.ACCELERATING);
+                    tryTakeAnchor(location, Anchor.STANDARD);
+                } else {
+                    Util.tryPathfindingMove(location);
+                }
+                return true;
             }
-            return true;
         }
         return false;
 
@@ -270,29 +241,6 @@ public class Carrier implements RunnableBot {
         return rc.getWeight();
     }
 
-    public static WellInfo getClosestWell(ResourceType type) {
-        return getClosestWell(rc.senseNearbyWells(type));
-    }
-
-    public static WellInfo getClosestWell() {
-        return getClosestWell(rc.senseNearbyWells());
-    }
-
-    public static WellInfo getClosestWell(WellInfo[] wells) {
-        WellInfo bestWell = null;
-        int bestDistanceSquared = Integer.MAX_VALUE;
-        for (int i = wells.length; --i >= 0; ) {
-            WellInfo well = wells[i];
-            int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(well.getMapLocation());
-            if (distanceSquared < bestDistanceSquared) {
-                bestDistanceSquared = distanceSquared;
-                bestWell = well;
-            }
-        }
-        return bestWell;
-    }
-
-    // TODO-someday: to be removed
     public static WellInfo getWell() {
         WellInfo[] wells = getWells();
         WellInfo closestWell = LambdaUtil.
