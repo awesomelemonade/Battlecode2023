@@ -78,7 +78,6 @@ public class Headquarters implements RunnableBot {
 //        Debug.println("adamantiumIncome: " + adamantiumIncome.average() + ", adamantiumDerivative: " + adamantiumDerivativeTracker.average());
 
         assignTasks();
-        action();
         lastAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
         lastMana = rc.getResourceAmount(ResourceType.MANA);
         lastElixir = rc.getResourceAmount(ResourceType.ELIXIR);
@@ -86,6 +85,7 @@ public class Headquarters implements RunnableBot {
 
     public static void assignTasks() throws GameActionException {
         RobotInfo[] allies = rc.senseNearbyRobots(RobotType.CARRIER.visionRadiusSquared, Constants.ALLY_TEAM);
+        int numHeadquarters = Communication.headquartersLocations == null ? 1 : Communication.headquartersLocations.length;
         int assignedCount = 0;
         for (int i = allies.length; --i >= 0; ) {
             RobotInfo ally = allies[i];
@@ -103,7 +103,7 @@ public class Headquarters implements RunnableBot {
                     }
                     Communication.addTask(ally.location, task);
                     assignedCount++;
-                    if (assignedCount >= 8) {
+                    if (assignedCount >= Communication.MAX_CARRIER_COMMED_TASKS / numHeadquarters + 1) {
                         break;
                     }
                 } else {
@@ -114,7 +114,13 @@ public class Headquarters implements RunnableBot {
         }
     }
 
-    public static void action() {
+    @Override
+    public void move() {
+        // HQs don't move
+    }
+
+    @Override
+    public void action() {
         if (rc.getRobotCount() > 250) {
             int adamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
             int mana = rc.getResourceAmount(ResourceType.MANA);

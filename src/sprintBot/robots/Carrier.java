@@ -9,7 +9,6 @@ import static sprintBot.util.Constants.rc;
 
 public class Carrier implements RunnableBot {
     private static Communication.CarrierTask currentTask;
-    private static int taskTurn = -1;
     @Override
     public void init() throws GameActionException {
 
@@ -26,85 +25,99 @@ public class Carrier implements RunnableBot {
     public void loop() throws GameActionException {
         debug_render();
         // update task (if needed)
-        if (taskTurn != Cache.TURN_COUNT) {
-            // get new task
-            Communication.CarrierTask potentialTask = Communication.getTaskAsCarrier();
-            if (potentialTask != null) {
-                currentTask = potentialTask;
-            }
-            taskTurn = Cache.TURN_COUNT;
+        Communication.CarrierTask potentialTask = Communication.getTaskAsCarrier();
+        if (potentialTask != null) {
+            currentTask = potentialTask;
         }
+
         if (currentTask == null) {
             Debug.setIndicatorString(Profile.MINING, "None");
         } else {
             Debug.setIndicatorString(Profile.MINING, currentTask.type.toString());
         }
-        // let's try to kite from enemies
+    }
+
+    @Override
+    public void move() {
         if (tryKiteFromEnemies()) {
             return;
         }
-        // let's try to pick up an anchor from hq
+        if (tryMoveToPickupAnchor()) {
+            return;
+        }
+        if (tryMoveToPlaceAnchorOnIsland()) {
+            return;
+        }
+        if (tryMoveToTransferResourceToHQ()) {
+            return;
+        }
+        if (tryMoveToWell()) {
+            return;
+        }
+        Util.tryExplore();
+    }
+
+    @Override
+    public void action() {
         if (tryPickupAnchorFromHQ()) {
             return;
         }
-        Anchor anchor = rc.getAnchor();
-        if (anchor == null) {
-            int capacityLeft = capacityLeft();
-            if (capacityLeft > 0) {
-                // look for well
-//                ResourceType targetResource = Communication.CarrierTask.getMineResourceType(currentTask);
-//                WellInfo well = targetResource == null ? getClosestWell() : getClosestWell(targetResource);
-                WellInfo well = getWell();
-                if (well == null) {
-//                    // go to commed well
-//                    MapLocation commedWell = targetResource == null ? WellTracker.getClosestKnownWell() : WellTracker.getClosestKnownWell(targetResource);
-//                    if (commedWell == null) {
-                        Util.tryExplore();
-//                    } else {
-//                        Util.tryPathfindingMove(commedWell);
-//                    }
-                } else {
-                    MapLocation wellLocation = well.getMapLocation();
-                    Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, wellLocation, 0, 128, 0); // dark green
-                    if (Cache.MY_LOCATION.isAdjacentTo(wellLocation)) {
-                        // try mine
-                        tryCollectResource(wellLocation, Math.min(well.getRate(), capacityLeft));
-                    } else {
-                        // move towards well
-                        Util.tryPathfindingMove(well.getMapLocation());
-                    }
-                }
-            } else {
-                // deposit to hq
-                Debug.setIndicatorDot(Profile.MINING, Cache.MY_LOCATION, 0, 128, 0); // dark green
-                if (tryTransferToHQ()) {
-                    return;
-                }
-                // return to hq
-                tryMoveToOurHQ();
-            }
-        } else {
-            // TODO: we don't want to go to an island that already has an anchor already assigned to it
-            MapLocation islandLocation = findClosestUnoccupiedNonAllyIsland();
-            if (islandLocation == null) {
-                // TODO: go to commed islands?
-                Util.tryExplore();
-            } else {
-                if (islandLocation.equals(Cache.MY_LOCATION)) {
-                    tryPlaceAnchor();
-                } else {
-                    Util.tryPathfindingMove(islandLocation);
-                }
-            }
+        if (tryPlaceAnchorOnIsland()) {
+            return;
+        }
+        if (tryCollectResource()) {
+            return;
+        }
+        if (tryTransferResourceToHQ()) {
+            return;
         }
     }
 
+    public static boolean tryMoveToWell() {
+        if (capacityLeft() <= 0) {
+            return false;
+        }
+        WellInfo well = getWell();
+        if (well == null) {
+            // go to commed well?
+            // look for well
+//                ResourceType targetResource = Communication.CarrierTask.getMineResourceType(currentTask);
+//                WellInfo well = targetResource == null ? getClosestWell() : getClosestWell(targetResource);
+//                    // go to commed well
+//                    MapLocation commedWell = targetResource == null ? WellTracker.getClosestKnownWell() : WellTracker.getClosestKnownWell(targetResource);
+//                    if (commedWell != null) {
+//                        Util.tryPathfindingMove(commedWell);
+//                    }
+            return false;
+        } else {
+            MapLocation wellLocation = well.getMapLocation();
+            Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, wellLocation, 0, 128, 0); // dark green
+            if (!Cache.MY_LOCATION.isAdjacentTo(wellLocation)) {
+                // move towards well
+                Util.tryPathfindingMove(well.getMapLocation());
+            }
+            return true;
+        }
+    }
+
+    public static boolean tryCollectResource() {
+        if (capacityLeft() <= 0) {
+            return false;
+        }
+        // try mine
+        WellInfo well = getWell();
+        if (well != null) {
+            MapLocation wellLocation = well.getMapLocation();
+            if (Cache.MY_LOCATION.isAdjacentTo(wellLocation)) {
+                tryCollectResource(wellLocation, Math.min(well.getRate(), capacityLeft()));
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static boolean tryKiteFromEnemies() {
-        RobotInfo closestAttacker = Util.getClosestEnemyRobot(
-            Cache.MY_LOCATION,
-            RobotType.CARRIER.visionRadiusSquared,
-            (r) -> Util.isAttacker(r.type)
-        );
+        RobotInfo closestAttacker = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
         if (closestAttacker == null) {
             return false;
         }
@@ -113,10 +126,8 @@ public class Carrier implements RunnableBot {
     }
 
     public static boolean tryPickupAnchorFromHQ() {
-        if (getWeight() > 0) { // we need space for an anchor
-            return false;
-        }
-        if (currentTask != null && currentTask.type == Communication.CarrierTaskType.PICKUP_ANCHOR) {
+        if (getWeight() == 0 && currentTask != null
+                && currentTask.type == Communication.CarrierTaskType.PICKUP_ANCHOR) {
             MapLocation location = currentTask.hqLocation;
             if (Cache.MY_LOCATION.isAdjacentTo(location)) {
                 tryTakeAnchor(location, Anchor.ACCELERATING);
@@ -127,23 +138,52 @@ public class Carrier implements RunnableBot {
             return true;
         }
         return false;
+    }
 
-        // naive - also doesn't work cuz we can't use the Inventory task
-//        // get all ally headquarters
-//        RobotInfo closestAnchorPickupTarget = Util.getClosestRobot(Cache.ALLY_ROBOTS,
-//                robot -> robot.type == RobotType.HEADQUARTERS && robot.inventory.getTotalAnchors() > 0);
-//        if (closestAnchorPickupTarget != null) {
-//            MapLocation location = closestAnchorPickupTarget.getLocation();
-//            if (Cache.MY_LOCATION.isAdjacentTo(location)) {
-//                Anchor anchorType = closestAnchorPickupTarget.inventory.getNumAnchors(Anchor.ACCELERATING) > 0
-//                        ? Anchor.ACCELERATING : Anchor.STANDARD;
-//                tryTakeAnchor(location, anchorType);
-//            } else {
-//                Util.tryPathfindingMove(location);
-//            }
-//            return true;
-//        }
-//        return false;
+    public static boolean tryMoveToPickupAnchor() {
+        if (getWeight() == 0 && currentTask != null
+                && currentTask.type == Communication.CarrierTaskType.PICKUP_ANCHOR) {
+            MapLocation location = currentTask.hqLocation;
+            if (!Cache.MY_LOCATION.isAdjacentTo(location)) {
+                Util.tryPathfindingMove(location);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean tryPlaceAnchorOnIsland() {
+        if (rc.getAnchor() == null) {
+            return false;
+        }
+        MapLocation islandLocation = findClosestUnoccupiedNonAllyIsland();
+        if (islandLocation == null) {
+            // TODO: go to commed islands?
+            return false;
+        } else {
+            if (islandLocation.equals(Cache.MY_LOCATION)) {
+                tryPlaceAnchor();
+            } else {
+                Util.tryPathfindingMove(islandLocation);
+            }
+            return true;
+        }
+    }
+
+    public static boolean tryMoveToPlaceAnchorOnIsland() {
+        if (rc.getAnchor() == null) {
+            return false;
+        }
+        try {
+            int islandId = rc.senseIsland(Cache.MY_LOCATION);
+            if (islandId != -1 && rc.senseTeamOccupyingIsland(islandId) == Team.NEUTRAL) {
+                tryPlaceAnchor();
+                return true;
+            }
+        } catch (GameActionException ex) {
+            Debug.failFast(ex);
+        }
+        return false;
     }
 
     public static boolean tryTakeAnchor(MapLocation location, Anchor anchorType) {
@@ -177,7 +217,7 @@ public class Carrier implements RunnableBot {
         for (int i = islands.length; --i >= 0; ) {
             int islandId = islands[i];
             try {
-                if (rc.senseTeamOccupyingIsland(islandId) != Constants.ALLY_TEAM) {
+                if (rc.senseTeamOccupyingIsland(islandId) != Constants.ALLY_TEAM) { // TODO: only target neutral?
                     // TODO-someday: can likely save bytecodes by using rc.senseNearbyIslandLocations(distanceSquared, idx)
                     MapLocation[] locations = rc.senseNearbyIslandLocations(islandId);
                     for (int j = locations.length; --j >= 0; ) {
@@ -214,16 +254,23 @@ public class Carrier implements RunnableBot {
         return false;
     }
 
-    public static void tryMoveToOurHQ() {
-        Util.tryPathfindingMove(Communication.getClosestSafeAllyHQ());
-    }
-
-    public static boolean tryTransferToHQ() {
-        RobotInfo hq = Util.getClosestRobot(Cache.ALLY_ROBOTS, robot -> robot.type == RobotType.HEADQUARTERS);
-        if (hq == null) {
+    public static boolean tryMoveToTransferResourceToHQ() {
+        if (capacityLeft() > 0) {
             return false;
         }
-        MapLocation hqLocation = hq.location;
+        MapLocation hqLocation = Util.getClosestAllyHeadquartersLocation(); // TODO: choose safe HQ?
+        if (hqLocation == null) {
+            return false;
+        }
+        Util.tryPathfindingMove(hqLocation);
+        return true;
+    }
+
+    public static boolean tryTransferResourceToHQ() {
+        MapLocation hqLocation = Util.getClosestAllyHeadquartersLocation();
+        if (hqLocation == null) {
+            return false;
+        }
         ResourceType resource = getTransferToHQResource();
         if (resource == ResourceType.NO_RESOURCE) {
             return false;
@@ -295,21 +342,28 @@ public class Carrier implements RunnableBot {
     // TODO-someday: to be removed
     public static WellInfo getWell() {
         WellInfo[] wells = getWells();
-        WellInfo closestWell = LambdaUtil.
-                arraysStreamMin(wells, Comparator.comparingInt(
-                        well -> well.getMapLocation().distanceSquaredTo(Cache.MY_LOCATION))).orElse(null);
-        return closestWell;
+        WellInfo bestWell = null;
+        int bestDistanceSquared = Integer.MAX_VALUE;
+        for (int i = wells.length; --i >= 0; ) {
+            WellInfo well = wells[i];
+            int distanceSquared = well.getMapLocation().distanceSquaredTo(Cache.MY_LOCATION);
+            if (distanceSquared < bestDistanceSquared) {
+                bestDistanceSquared = distanceSquared;
+                bestWell = well;
+            }
+        }
+        return bestWell;
     }
 
     public static WellInfo[] getWells() {
-        WellInfo[] wells = rc.senseNearbyWells(ResourceType.ADAMANTIUM);
+        WellInfo[] wells = Cache.ADAMANTIUM_WELLS;
         if (wells.length > 0) {
             return wells;
         }
-        wells = rc.senseNearbyWells(ResourceType.MANA);
+        wells = Cache.MANA_WELLS;
         if (wells.length > 0) {
             return wells;
         }
-        return rc.senseNearbyWells(ResourceType.MANA);
+        return Cache.ELIXIR_WELLS;
     }
 }
