@@ -142,7 +142,7 @@ public class WellTracker {
         if (hqIndex >= Communication.headquartersLocations.length) {
             return null;
         }
-        return Communication.headquartersLocations[index / 3];
+        return Communication.headquartersLocations[hqIndex];
     }
 
     public static void update() throws GameActionException {
@@ -166,13 +166,26 @@ public class WellTracker {
             }
         }
 
-        WellInfo[] adamantiumWells = rc.senseNearbyWells(2, ResourceType.ADAMANTIUM);
-        WellInfo[] manaWells = rc.senseNearbyWells(2, ResourceType.MANA);
-        WellInfo[] elixirWells = rc.senseNearbyWells(2, ResourceType.ELIXIR);
+        WellInfo[] adamantiumWells;
+        WellInfo[] manaWells;
+        WellInfo[] elixirWells;
+        if (Cache.TURN_COUNT == 1) {
+            // save bytecodes - don't register new wells
+            adamantiumWells = new WellInfo[0];
+            manaWells = new WellInfo[0];
+            elixirWells = new WellInfo[0];
+        } else {
+            adamantiumWells = rc.senseNearbyWells(2, ResourceType.ADAMANTIUM);
+            manaWells = rc.senseNearbyWells(2, ResourceType.MANA);
+            elixirWells = rc.senseNearbyWells(2, ResourceType.ELIXIR);
+        }
 
         for (int i = NUM_WELLS_TRACKED; --i >= 0; ) {
             int commIndex = Communication.WELL_LOCATIONS_OFFSET + i;
             int hqIndex = i / 3;
+            if (lastHqIndex != -1 && lastHqIndex != hqIndex) {
+                continue;
+            }
             MapLocation hqLocation = getHQLocation(i);
             if (hqLocation == null) {
                 continue;
@@ -200,7 +213,6 @@ public class WellTracker {
                 if (well == null || well.getResourceType() != expectedType) {
                     // remove this well
                     pendingLocation = null;
-                    pendingWells[i] = null;
                 }
             }
             // check if pending is better than existing

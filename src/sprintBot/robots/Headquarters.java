@@ -85,6 +85,7 @@ public class Headquarters implements RunnableBot {
 
     public static void assignTasks() throws GameActionException {
         RobotInfo[] allies = rc.senseNearbyRobots(RobotType.CARRIER.visionRadiusSquared, Constants.ALLY_TEAM);
+        int numHeadquarters = Communication.headquartersLocations == null ? 1 : Communication.headquartersLocations.length;
         int assignedCount = 0;
         for (int i = allies.length; --i >= 0; ) {
             RobotInfo ally = allies[i];
@@ -102,7 +103,7 @@ public class Headquarters implements RunnableBot {
                     }
                     Communication.addTask(ally.location, task);
                     assignedCount++;
-                    if (assignedCount >= 8) {
+                    if (assignedCount >= Communication.MAX_CARRIER_COMMED_TASKS / numHeadquarters + 1) {
                         break;
                     }
                 } else {

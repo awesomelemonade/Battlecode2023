@@ -9,7 +9,6 @@ import static sprintBot.util.Constants.rc;
 
 public class Carrier implements RunnableBot {
     private static Communication.CarrierTask currentTask;
-    private static int taskTurn = -1;
     @Override
     public void init() throws GameActionException {
 
@@ -26,14 +25,11 @@ public class Carrier implements RunnableBot {
     public void loop() throws GameActionException {
         debug_render();
         // update task (if needed)
-        if (taskTurn != Cache.TURN_COUNT) {
-            // get new task
-            Communication.CarrierTask potentialTask = Communication.getTaskAsCarrier();
-            if (potentialTask != null) {
-                currentTask = potentialTask;
-            }
-            taskTurn = Cache.TURN_COUNT;
+        Communication.CarrierTask potentialTask = Communication.getTaskAsCarrier();
+        if (potentialTask != null) {
+            currentTask = potentialTask;
         }
+
         if (currentTask == null) {
             Debug.setIndicatorString(Profile.MINING, "None");
         } else {
@@ -343,21 +339,28 @@ public class Carrier implements RunnableBot {
     // TODO-someday: to be removed
     public static WellInfo getWell() {
         WellInfo[] wells = getWells();
-        WellInfo closestWell = LambdaUtil.
-                arraysStreamMin(wells, Comparator.comparingInt(
-                        well -> well.getMapLocation().distanceSquaredTo(Cache.MY_LOCATION))).orElse(null);
-        return closestWell;
+        WellInfo bestWell = null;
+        int bestDistanceSquared = Integer.MAX_VALUE;
+        for (int i = wells.length; --i >= 0; ) {
+            WellInfo well = wells[i];
+            int distanceSquared = well.getMapLocation().distanceSquaredTo(Cache.MY_LOCATION);
+            if (distanceSquared < bestDistanceSquared) {
+                bestDistanceSquared = distanceSquared;
+                bestWell = well;
+            }
+        }
+        return bestWell;
     }
 
     public static WellInfo[] getWells() {
-        WellInfo[] wells = rc.senseNearbyWells(ResourceType.ADAMANTIUM);
+        WellInfo[] wells = Cache.ADAMANTIUM_WELLS;
         if (wells.length > 0) {
             return wells;
         }
-        wells = rc.senseNearbyWells(ResourceType.MANA);
+        wells = Cache.MANA_WELLS;
         if (wells.length > 0) {
             return wells;
         }
-        return rc.senseNearbyWells(ResourceType.MANA);
+        return Cache.ELIXIR_WELLS;
     }
 }

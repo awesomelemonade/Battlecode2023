@@ -32,7 +32,7 @@ public class Communication {
     public static final int CARRIER_TASK_MINE_MANA_ID = 3;
     public static final int CARRIER_TASK_MINE_ELIXIR_ID = 4;
 
-    public static final int MAX_CARRIER_COMMED_TASKS = 32;
+    public static final int MAX_CARRIER_COMMED_TASKS = 16;
 
     public enum CarrierTaskType {
         PICKUP_ANCHOR, MINE_ADAMANTIUM, MINE_MANA, MINE_ELIXIR;
@@ -163,6 +163,9 @@ public class Communication {
             if ((taskId & CARRIER_TASK_ID_BIT_MASK) != taskId) {
                 Debug.failFast("taskId too large: " + taskId);
             }
+        }
+        if (taskId == CARRIER_TASK_NONE_ID) {
+            return;
         }
         int offsetX = location.x - Cache.MY_LOCATION.x;
         int offsetY = location.y - Cache.MY_LOCATION.y;
