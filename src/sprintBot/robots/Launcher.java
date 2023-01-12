@@ -94,7 +94,7 @@ public class Launcher implements RunnableBot {
         // TODO: consider moving to a better attacking square
         // TODO: consider kiting
         // Move towards our hq?
-        MapLocation location = Communication.getClosestAllyHQ();
+        MapLocation location = Util.getClosestAllyHeadquartersLocation();
         if (location != null) {
             Util.tryPathfindingMove(location);
         }

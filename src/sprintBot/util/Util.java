@@ -137,6 +137,25 @@ public class Util {
         return bestRobot;
     }
 
+    public static MapLocation getClosestAllyHeadquartersLocation() {
+        if (Communication.headquartersLocations == null) {
+            RobotInfo hq = Util.getClosestRobot(Cache.ALLY_ROBOTS, robot -> robot.type == RobotType.HEADQUARTERS);
+            return hq == null ? null : hq.location;
+        } else {
+            int bestDistanceSquared = Integer.MAX_VALUE;
+            MapLocation bestLocation = null;
+            for (int i = Communication.headquartersLocations.length; --i >= 0; ) {
+                MapLocation location = Communication.headquartersLocations[i];
+                int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
+                if (distanceSquared < bestDistanceSquared) {
+                    bestDistanceSquared = distanceSquared;
+                    bestLocation = location;
+                }
+            }
+            return bestLocation;
+        }
+    }
+
     public static void move(Direction direction) {
         try {
             rc.move(direction);

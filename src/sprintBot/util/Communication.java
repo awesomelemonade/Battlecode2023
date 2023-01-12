@@ -271,19 +271,6 @@ public class Communication {
 
     }
 
-    public static MapLocation getClosestAllyHQ() {
-        if (headquartersLocations == null) {
-            return null;
-        }
-        return Util.getClosestMapLocation(headquartersLocations);
-    }
-
-    public static MapLocation getClosestSafeAllyHQ() {
-        // TODO
-//        Util.getClosestMapLocation(locations, predicate)
-        return getClosestAllyHQ();
-    }
-
     public static int pack(MapLocation location) {
         return (location.x << 6) | location.y;
     }
