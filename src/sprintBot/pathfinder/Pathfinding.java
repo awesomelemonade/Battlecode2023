@@ -15,17 +15,12 @@ public class Pathfinding {
 	}
 
 	private static FastIntCounter2D visitedSet = null;
-	private static MapLocation visitedSetBuffer = null; // buffer of 1 lol
 	private static MapLocation lastTarget;
 
-	public static void loop() {
-		if (Cache.TURN_COUNT >= 2 && visitedSet == null) {
-			visitedSet = new FastIntCounter2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
-			if (visitedSetBuffer != null) {
-				visitedSet.add(visitedSetBuffer.x, visitedSetBuffer.y);
-			}
-		}
+	public static void init() {
+		visitedSet = new FastIntCounter2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
 	}
+
 	public static int getTurnsSpentSoFar() {
 		if (visitedSet == null) {
 			return 0;
@@ -35,11 +30,7 @@ public class Pathfinding {
 	public static boolean execute(MapLocation target) {
 		if (lastTarget == null || !lastTarget.equals(target)) {
 			lastTarget = target;
-			if (visitedSet == null) {
-				visitedSetBuffer = null;
-			} else {
-				visitedSet.reset();
-			}
+			visitedSet.reset();
 		}
 //		if (Constants.ROBOT_TYPE == RobotType.DELIVERY_DRONE) {
 //			visitedSet.updateBaseTrail(5); // Drones only care about the last 5 visited tiles
@@ -56,25 +47,15 @@ public class Pathfinding {
 			// We're already there
 			return true;
 		}
-		if (visitedSet == null) {
-			visitedSetBuffer = currentLocation;
-		} else {
-			visitedSet.add(currentLocation.x, currentLocation.y);
-		}
+		visitedSet.add(currentLocation.x, currentLocation.y);
 		Direction idealDirection = currentLocation.directionTo(target);
 		for (Direction direction : Constants.getAttemptOrder(idealDirection)) {
 			MapLocation location = currentLocation.add(direction);
 			if (!Util.onTheMap(location)) {
 				continue;
 			}
-			if (visitedSet == null) {
-				if (visitedSetBuffer.equals(location)) {
-					continue;
-				}
-			} else {
-				if (visitedSet.contains(location.x, location.y)) {
-					continue;
-				}
+			if (visitedSet.contains(location.x, location.y)) {
+				continue;
 			}
 			if (trySafeMove(direction)) {
 				return true;
@@ -85,13 +66,11 @@ public class Pathfinding {
 		int[] counters = new int[8];
 		Integer[] indices = new Integer[8];
 		for (int i = counters.length; --i >= 0;) {
-			if (visitedSet != null) {
-				MapLocation location = currentLocation.add(directions[i]);
-				if (Util.onTheMap(location)) {
-					counters[i] = visitedSet.get(location.x, location.y);
-				} else {
-					counters[i] = Integer.MAX_VALUE;
-				}
+			MapLocation location = currentLocation.add(directions[i]);
+			if (Util.onTheMap(location)) {
+				counters[i] = visitedSet.get(location.x, location.y);
+			} else {
+				counters[i] = Integer.MAX_VALUE;
 			}
 			indices[i] = i;
 		}

@@ -16,12 +16,12 @@ public class Util {
         Cache.init();
         Communication.init();
         Explorer.init();
+        Pathfinding.init();
     }
 
     public static void loop() throws GameActionException {
         Cache.loop();
         Communication.loop();
-        Pathfinding.loop();
     }
 
     public static void postLoop() throws GameActionException {

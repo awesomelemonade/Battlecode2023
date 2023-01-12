@@ -1,9 +1,6 @@
 package sprintBot.robots;
 
-import battlecode.common.GameActionException;
-import battlecode.common.MapLocation;
-import battlecode.common.RobotInfo;
-import battlecode.common.RobotType;
+import battlecode.common.*;
 import sprintBot.fast.FastIntSet2D;
 import sprintBot.util.*;
 
@@ -15,13 +12,17 @@ public class Launcher implements RunnableBot {
         blacklist = new FastIntSet2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
     }
 
-    @Override
-    public void loop() throws GameActionException {
+    private static void debug_render() {
         if (Profile.ATTACKING.enabled()) {
             EnemyHqGuesser.forEach(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 0)); // black
             EnemyHqTracker.forEachPending(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 255, 255)); // cyan
             EnemyHqTracker.forEachKnown(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 255)); // blue
         }
+    }
+
+    @Override
+    public void loop() throws GameActionException {
+        debug_render();
         action();
         move();
         action();
