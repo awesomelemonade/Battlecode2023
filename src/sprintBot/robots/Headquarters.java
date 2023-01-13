@@ -121,13 +121,25 @@ public class Headquarters implements RunnableBot {
 
     @Override
     public void action() {
-        if (rc.getRobotCount() > 250) {
+        int robotCount = rc.getRobotCount();
+        int roundNum = rc.getRoundNum();
+        if (robotCount > 0.25 * Constants.MAP_WIDTH * Constants.MAP_HEIGHT
+                || robotCount > 100 && roundNum > 1800
+                || robotCount > 50 && roundNum > 1900
+                || roundNum > 1950) {
             int adamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
             int mana = rc.getResourceAmount(ResourceType.MANA);
             if (adamantium >= Anchor.STANDARD.adamantiumCost
                     && mana >= Anchor.STANDARD.manaCost) { // simple random heuristic to build anchors
-                if (tryBuildAnchor(Anchor.STANDARD)) {
-                    return;
+                if (Math.random() < 0.8) {
+                    if (tryBuildAnchor(Anchor.STANDARD)) {
+                        return;
+                    }
+                } else {
+                    if (tryBuildRandom(RobotType.CARRIER)) {
+                        return;
+                    }
+                    tryBuildRandom(RobotType.LAUNCHER);
                 }
             }
             // save to build anchor
