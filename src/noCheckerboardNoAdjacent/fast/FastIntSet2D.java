@@ -1,4 +1,4 @@
-package sprintBot.fast;
+package noCheckerboardNoAdjacent.fast;
 
 import battlecode.common.MapLocation;
 

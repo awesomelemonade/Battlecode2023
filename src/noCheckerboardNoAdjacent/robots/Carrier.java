@@ -1,11 +1,11 @@
-package sprintBot.robots;
+package noCheckerboardNoAdjacent.robots;
 
 import battlecode.common.*;
-import sprintBot.fast.FastIntSet2D;
-import sprintBot.pathfinder.Pathfinding;
-import sprintBot.util.*;
+import noCheckerboardNoAdjacent.fast.FastIntSet2D;
+import noCheckerboardNoAdjacent.pathfinder.Pathfinding;
+import noCheckerboardNoAdjacent.util.*;
 
-import static sprintBot.util.Constants.rc;
+import static noCheckerboardNoAdjacent.util.Constants.rc;
 
 public class Carrier implements RunnableBot {
     private static Communication.CarrierTask currentTask;
@@ -45,27 +45,27 @@ public class Carrier implements RunnableBot {
 
     @Override
     public void move() {
-        Pathfinding.predicate = location -> true;
+//        Pathfinding.predicate = location -> true;
         if (tryKiteFromEnemies()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0;
+//        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0;
         if (tryMoveToPickupAnchor()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1;
+//        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1;
         if (tryMoveToPlaceAnchorOnIsland()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0;
+//        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0;
         if (tryMoveToTransferResourceToHQ()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1;
+//        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1;
         if (tryMoveToWell()) {
             return;
         }
-        Pathfinding.predicate = location -> true;
+//        Pathfinding.predicate = location -> true;
         Util.tryExplore();
     }
 

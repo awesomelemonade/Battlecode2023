@@ -1,14 +1,14 @@
-package sprintBot.pathfinder;
+package noCheckerboardNoAdjacent.pathfinder;
 
 import battlecode.common.*;
-import sprintBot.fast.FastIntCounter2D;
-import sprintBot.util.*;
+import noCheckerboardNoAdjacent.fast.FastIntCounter2D;
+import noCheckerboardNoAdjacent.util.*;
 
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.function.Predicate;
 
-import static sprintBot.util.Constants.rc;
+import static noCheckerboardNoAdjacent.util.Constants.rc;
 
 public class Pathfinding {
 	public static Predicate<MapLocation> predicate = location -> true;

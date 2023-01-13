@@ -1,12 +1,12 @@
-package sprintBot.util;
+package beforeTrafficControl.util;
 
 import battlecode.common.*;
-import sprintBot.pathfinder.Pathfinding;
+import beforeTrafficControl.pathfinder.Pathfinding;
 
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import static sprintBot.util.Constants.rc;
+import static beforeTrafficControl.util.Constants.rc;
 
 public class Util {
 
@@ -174,36 +174,8 @@ public class Util {
         }
     }
 
-    public static void tryPathfindingMove(MapLocation loc) {
-        Pathfinding.execute(loc);
-    }
-
-    // tries to move on the location OR any location adjacent to it
-    public static void tryPathfindingMoveAdjacent(MapLocation location) {
-//        Pathfinding.execute(location);
-        if (Cache.MY_LOCATION.isAdjacentTo(location)) {
-            // try to move on the location
-            if (!Cache.MY_LOCATION.equals(location)) {
-                Util.tryMove(Cache.MY_LOCATION.directionTo(location));
-            }
-        } else {
-            // try to move to the nearest adjacent spot
-            int bestDistanceSquared = Integer.MAX_VALUE;
-            MapLocation bestLocation = null;
-            for (Direction direction: Constants.ORDINAL_DIRECTIONS) {
-                MapLocation adjacentLocation = location.add(direction);
-                if (!rc.canSenseRobotAtLocation(adjacentLocation)) {
-                    int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(adjacentLocation);
-                    if (distanceSquared < bestDistanceSquared) {
-                        bestDistanceSquared = distanceSquared;
-                        bestLocation = adjacentLocation;
-                    }
-                }
-            }
-            if (bestLocation != null) {
-                Pathfinding.execute(bestLocation);
-            }
-        }
+    public static boolean tryPathfindingMove(MapLocation loc) {
+        return Pathfinding.execute(loc);
     }
 
     public static boolean tryMoveTowards(Direction direction) {

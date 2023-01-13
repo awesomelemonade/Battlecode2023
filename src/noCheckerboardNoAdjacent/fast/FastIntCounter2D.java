@@ -1,4 +1,4 @@
-package sprintBot.fast;
+package noCheckerboardNoAdjacent.fast;
 
 public class FastIntCounter2D {
 	private int[][] array;

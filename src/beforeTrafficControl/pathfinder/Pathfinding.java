@@ -1,18 +1,15 @@
-package sprintBot.pathfinder;
+package beforeTrafficControl.pathfinder;
 
 import battlecode.common.*;
-import sprintBot.fast.FastIntCounter2D;
-import sprintBot.util.*;
+import beforeTrafficControl.fast.FastIntCounter2D;
+import beforeTrafficControl.util.*;
 
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.function.Predicate;
 
-import static sprintBot.util.Constants.rc;
+import static beforeTrafficControl.util.Constants.rc;
 
 public class Pathfinding {
-	public static Predicate<MapLocation> predicate = location -> true;
-
 	public static int moveDistance(MapLocation a, MapLocation b) {
 		return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 	}
@@ -47,12 +44,12 @@ public class Pathfinding {
 			return false;
 		}
 		if (currentLocation.equals(target)) {
+			// We're already there
 			return true;
 		}
 		visitedSet.add(currentLocation.x, currentLocation.y);
 		Direction idealDirection = currentLocation.directionTo(target);
-		Direction[] directions = Constants.getAttemptOrder(idealDirection);
-		for (Direction direction : directions) {
+		for (Direction direction : Constants.getAttemptOrder(idealDirection)) {
 			MapLocation location = currentLocation.add(direction);
 			if (!Util.onTheMap(location)) {
 				continue;
@@ -60,14 +57,12 @@ public class Pathfinding {
 			if (visitedSet.contains(location.x, location.y)) {
 				continue;
 			}
-			if (!location.equals(target) && !predicate.test(location)) {
-				continue;
-			}
-			if (Util.tryMove(direction)) {
+			if (trySafeMove(direction)) {
 				return true;
 			}
 		}
 		// We stuck bois - let's look for the lowest non-negative
+		Direction[] directions = Constants.getAttemptOrder(idealDirection);
 		int[] counters = new int[8];
 		Integer[] indices = new Integer[8];
 		for (int i = counters.length; --i >= 0;) {
@@ -81,16 +76,20 @@ public class Pathfinding {
 		}
 		Arrays.sort(indices, Comparator.comparingInt(i -> counters[i]));
 		for (int i = 0; i < indices.length; i++) {
-			Direction direction = directions[indices[i]];
-			MapLocation location = currentLocation.add(direction);
-			if (!location.equals(target) && !predicate.test(location)) {
-				continue;
+			if (trySafeMove(directions[indices[i]])) {
+				return true;
 			}
-			if (Util.tryMove(direction)) {
+		}
+		for (int i = 0; i < indices.length; i++) {
+			if (Util.tryMove(directions[indices[i]])) {
 				return true;
 			}
 		}
 		// we're stuck (perhaps surrounded by units?)
 		return false;
+	}
+	public static boolean trySafeMove(Direction direction) {
+		// TODO: do not move towards enemy?
+		return Util.tryMove(direction);
 	}
 }
