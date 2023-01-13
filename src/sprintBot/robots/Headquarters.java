@@ -27,11 +27,14 @@ public class Headquarters implements RunnableBot {
     private static int lastMana = GameConstants.INITIAL_MN_AMOUNT;
     private static int lastElixir = 0;
 
+    private static MapLocation[] shuffledLocations;
+
     @Override
     public void init() throws GameActionException {
         // max robots = num hqs * num turns = 8 * 2000 = 16000
         // 4096 * 16 is well beyond that
         carrierTasks = new FastIntMap(4096 * 16);
+        shuffledLocations = rc.getAllLocationsWithinRadiusSquared(Cache.MY_LOCATION, RobotType.HEADQUARTERS.actionRadiusSquared);
     }
 
     public static int getNewTask() {
@@ -64,6 +67,7 @@ public class Headquarters implements RunnableBot {
 
     @Override
     public void loop() throws GameActionException {
+        Util.shuffle(shuffledLocations);
         int currentAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
         int currentMana = rc.getResourceAmount(ResourceType.MANA);
         int currentElixir = rc.getResourceAmount(ResourceType.ELIXIR);
@@ -171,17 +175,11 @@ public class Headquarters implements RunnableBot {
     }
 
     public static boolean tryBuildRandom(RobotType type) {
-        try {
-            MapLocation[] locations = rc.getAllLocationsWithinRadiusSquared(Cache.MY_LOCATION, RobotType.HEADQUARTERS.actionRadiusSquared);
-            Util.shuffle(locations);
-            for (int i = locations.length; --i >= 0;) {
-                if (Util.tryBuild(type, locations[i])) {
-                    return true;
-                }
+        for (int i = shuffledLocations.length; --i >= 0;) {
+            if (Util.tryBuild(type, shuffledLocations[i])) {
+                return true;
             }
-            return false;
-        } catch (GameActionException ex) {
-            throw new IllegalStateException(ex);
         }
+        return false;
     }
 }
