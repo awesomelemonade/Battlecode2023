@@ -4,7 +4,7 @@ public enum Profile {
     ERROR_STATE(true),
     PATHFINDING(false),
     EXPLORER(false),
-    MINING(true),
+    MINING(false),
     ATTACKING(false),
     REPEAT_MOVE(false);
 

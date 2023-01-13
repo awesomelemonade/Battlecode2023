@@ -1,12 +1,12 @@
-package sprintBot.util;
+package beforeScoringMicro.util;
 
 import battlecode.common.*;
-import sprintBot.pathfinder.Pathfinding;
+import beforeScoringMicro.pathfinder.Pathfinding;
 
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import static sprintBot.util.Constants.rc;
+import static beforeScoringMicro.util.Constants.rc;
 
 public class Util {
 
@@ -255,17 +255,18 @@ public class Util {
             try {
                 return rc.senseNearbyRobots(location, distanceSquared, Constants.ALLY_TEAM).length;
             } catch (GameActionException ex) {
-                Debug.failFast(ex);
+                throw new IllegalStateException(ex);
             }
-        }
-        // loop through robot list
-        int count = 0;
-        for (int i = Cache.ALLY_ROBOTS.length; --i >= 0; ) {
-            if (location.isWithinDistanceSquared(Cache.ALLY_ROBOTS[i].getLocation(), distanceSquared)) {
-                count++;
+        } else {
+            // loop through robot list
+            int count = 0;
+            for (int i = Cache.ALLY_ROBOTS.length; --i >= 0; ) {
+                if (location.isWithinDistanceSquared(Cache.ALLY_ROBOTS[i].getLocation(), distanceSquared)) {
+                    count++;
+                }
             }
+            return count;
         }
-        return count;
     }
 
     public static <T> void shuffle(T[] array) {
@@ -301,29 +302,5 @@ public class Util {
                 + robot.getResourceAmount(ResourceType.MANA)
                 + robot.getResourceAmount(ResourceType.ELIXIR)
                 + robot.getTotalAnchors() * GameConstants.ANCHOR_WEIGHT;
-    }
-
-    public static boolean isDiagonalDirection(Direction direction) {
-        switch (direction) {
-            case NORTHEAST:
-            case SOUTHEAST:
-            case SOUTHWEST:
-            case NORTHWEST:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    public static boolean isStraightDirection(Direction direction) {
-        switch (direction) {
-            case NORTH:
-            case EAST:
-            case SOUTH:
-            case WEST:
-                return true;
-            default:
-                return false;
-        }
     }
 }
