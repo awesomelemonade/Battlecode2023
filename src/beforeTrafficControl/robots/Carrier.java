@@ -153,8 +153,12 @@ public class Carrier implements RunnableBot {
     }
 
     public static boolean tryPlaceAnchorOnIsland() {
-        if (rc.getAnchor() == null) {
-            return false;
+        try {
+            if (rc.getAnchor() == null) {
+                return false;
+            }
+        } catch (GameActionException ex) {
+            Debug.failFast(ex);
         }
         MapLocation islandLocation = findClosestUnoccupiedNonAllyIsland();
         if (islandLocation == null) {
@@ -171,8 +175,12 @@ public class Carrier implements RunnableBot {
     }
 
     public static boolean tryMoveToPlaceAnchorOnIsland() {
-        if (rc.getAnchor() == null) {
-            return false;
+        try {
+            if (rc.getAnchor() == null) {
+                return false;
+            }
+        } catch (GameActionException ex) {
+            Debug.failFast(ex);
         }
         try {
             int islandId = rc.senseIsland(Cache.MY_LOCATION);

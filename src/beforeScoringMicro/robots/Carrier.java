@@ -1,11 +1,11 @@
-package noCheckerboardNoAdjacent.robots;
+package beforeScoringMicro.robots;
 
 import battlecode.common.*;
-import noCheckerboardNoAdjacent.fast.FastIntSet2D;
-import noCheckerboardNoAdjacent.pathfinder.Pathfinding;
-import noCheckerboardNoAdjacent.util.*;
+import beforeScoringMicro.fast.FastIntSet2D;
+import beforeScoringMicro.pathfinder.Pathfinding;
+import beforeScoringMicro.util.*;
 
-import static noCheckerboardNoAdjacent.util.Constants.rc;
+import static beforeScoringMicro.util.Constants.rc;
 
 public class Carrier implements RunnableBot {
     private static Communication.CarrierTask currentTask;
@@ -45,27 +45,27 @@ public class Carrier implements RunnableBot {
 
     @Override
     public void move() {
-//        Pathfinding.predicate = location -> true;
+        Pathfinding.predicate = location -> true;
         if (tryKiteFromEnemies()) {
             return;
         }
-//        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0;
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0;
         if (tryMoveToPickupAnchor()) {
             return;
         }
-//        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1;
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1;
         if (tryMoveToPlaceAnchorOnIsland()) {
             return;
         }
-//        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0;
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0;
         if (tryMoveToTransferResourceToHQ()) {
             return;
         }
-//        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1;
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1;
         if (tryMoveToWell()) {
             return;
         }
-//        Pathfinding.predicate = location -> true;
+        Pathfinding.predicate = location -> true;
         Util.tryExplore();
     }
 

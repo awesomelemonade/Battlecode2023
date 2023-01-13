@@ -1,10 +1,10 @@
-package sprintBot.util;
+package beforeScoringMicro.util;
 
 public enum Profile {
     ERROR_STATE(true),
     PATHFINDING(false),
     EXPLORER(false),
-    MINING(false),
+    MINING(true),
     ATTACKING(false),
     REPEAT_MOVE(false);
 

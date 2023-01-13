@@ -4,6 +4,8 @@ import battlecode.common.*;
 import sprintBot.fast.FastIntSet2D;
 import sprintBot.util.*;
 
+import java.util.function.ToDoubleFunction;
+
 import static sprintBot.util.Constants.rc;
 
 public class Launcher implements RunnableBot {
@@ -79,55 +81,164 @@ public class Launcher implements RunnableBot {
 
     @Override
     public void move() {
-        if (rc.isActionReady()) {
-            moveWithAction();
-        } else {
-            moveWithoutAction();
-        }
-    }
-
-    public void moveWithoutAction() {
-        if (!rc.isMovementReady()) {
+        if (executeMicro()) {
             return;
         }
-        // TODO: consider moving to a better attacking square
-        // TODO: consider kiting
-        // Move towards our hq?
-        MapLocation location = Util.getClosestAllyHeadquartersLocation();
-        if (location != null) {
+        // go to attack random other enemies (non-attackers)
+        RobotInfo enemy = Util.getClosestEnemyRobot(robot -> robot.type != RobotType.HEADQUARTERS);
+        if (enemy != null) {
+            Util.tryPathfindingMove(enemy.location);
+            return;
+        }
+        // camp the headquarters
+        MapLocation location = getMacroAttackLocation();
+        if (location == null) {
+            Util.tryExplore();
+        } else {
+            // check if hq already has tons of ally units nearby
+            if (Util.numAllyRobotsWithin(location, 20) >= 10) {
+                blacklist.add(location.x, location.y);
+            }
+            // TODO - try to circle around it?
+            Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, location, 0, 0, 0); // black
             Util.tryPathfindingMove(location);
         }
     }
 
-    public void moveWithAction() {
-        if (!rc.isMovementReady()) {
-            return;
-        }
-        RobotInfo enemy = Util.getClosestEnemyRobot(robot -> robot.type != RobotType.HEADQUARTERS); // check if within blacklist
+    public static boolean executeMicro() {
+        RobotInfo enemy = Util.getClosestEnemyRobot(robot -> Util.isAttacker(robot.type));
         if (enemy == null) {
-            // camp the headquarters
-            MapLocation location = getMacroAttackLocation();
-            if (location == null) {
-                Util.tryExplore();
-            } else {
-                // check if hq already has tons of ally units nearby
-                if (Util.numAllyRobotsWithin(location, 20) >= 10) {
-                    blacklist.add(location.x, location.y);
-                }
-                // TODO - try to circle around it?
-                Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, location, 0, 0, 0); // black
-                Util.tryPathfindingMove(location);
-            }
+            return false;
+        }
+        if (Cache.ALLY_ROBOTS.length > 15) {
+            Util.tryPathfindingMove(enemy.location);
         } else {
-            // Attack
-            MapLocation enemyLocation = enemy.location;
-            // TODO: only move towards when there is an action
-            if (enemyLocation.isWithinDistanceSquared(Cache.MY_LOCATION, Constants.ROBOT_TYPE.actionRadiusSquared)) {
-                // TODO: consider kiting?
-            } else {
-                Util.tryPathfindingMove(enemyLocation);
+            Direction direction = getMicroDirection();
+            Debug.setIndicatorString(Profile.ATTACKING, "Micro direction: " + direction);
+            if (direction != Direction.CENTER) {
+                Util.tryMove(direction);
             }
         }
+        return true;
+    }
+
+    // TODO: remember the enemies of the previous turn?
+    public static Direction getMicroDirection() {
+        if (rc.isActionReady()) {
+            // must be seeing an enemy but not in attack radius
+            RobotInfo enemy = getSingleAttackerOrNull();
+            if (enemy != null) {
+                boolean shouldAttack = shouldAttackSingleEnemyWithAction(enemy);
+                if (shouldAttack) {
+                    Debug.setIndicatorDot(Profile.ATTACKING, Cache.MY_LOCATION, 0, 255, 0);
+                    return getBestMoveDirection(location -> getScoreWithActionSingleEnemyAttacker(location, enemy));
+                }
+            }
+        }
+        return getBestMoveDirection(Launcher::getScoreForKiting);
+    }
+
+    public static Direction getBestMoveDirection(ToDoubleFunction<MapLocation> scorer) {
+        Direction bestDirection = Direction.CENTER;
+        double bestScore = -Double.MAX_VALUE;
+        for (int i = Constants.ALL_DIRECTIONS.length; --i >= 0; ) {
+            Direction direction = Constants.ALL_DIRECTIONS[i];
+            MapLocation location = Cache.MY_LOCATION.add(direction);
+            if (direction != Direction.CENTER && rc.canSenseRobotAtLocation(location)) {
+                // occupied
+                continue;
+            }
+            double score = scorer.applyAsDouble(location);
+            if (score > bestScore) {
+                bestScore = score;
+                bestDirection = direction;
+            }
+        }
+        return bestDirection;
+    }
+
+    public static boolean shouldAttackSingleEnemyWithAction(RobotInfo enemy) {
+        if (enemy.type == RobotType.LAUNCHER) {
+            int damage = RobotType.LAUNCHER.damage;
+            int numAttacksToEnemy = (enemy.health + damage - 1) / damage; // round up
+            int numAttacksToUs = (rc.getHealth() + damage - 1) / damage; // round up
+            // see if we can win the fight
+            return numAttacksToUs >= numAttacksToEnemy;
+        } else {
+            return true;
+        }
+    }
+
+    public static double getScoreWithActionSingleEnemyAttacker(MapLocation location, RobotInfo enemy) {
+        MapLocation enemyLocation = enemy.location;
+
+        double score = 0;
+        // prefer squares that we can attack the enemy
+        if (location.isWithinDistanceSquared(enemyLocation, Constants.ROBOT_TYPE.actionRadiusSquared)) {
+            score += 1000000;
+        }
+
+        // prefer straight moves
+        if (Util.isStraightDirection(Cache.MY_LOCATION.directionTo(location))) {
+            score += 1000;
+        }
+
+        // prefer squares where you're further away from the enemy
+        score += location.distanceSquaredTo(enemyLocation);
+
+        return score;
+    }
+
+    public static double getScoreForKiting(MapLocation location) {
+        double score = 0;
+        // prefer squares where attackers can't see you
+        score -= numAttackerRobotsWithin(location, Constants.ROBOT_TYPE.visionRadiusSquared) * 100000.0;
+
+        // prefer squares where you're further away from the closest enemy
+        score += getClosestEnemyAttackerDistanceSquared(location) * 1000.0;
+
+        // prefer diagonals over straight directions
+        if (Util.isDiagonalDirection(Cache.MY_LOCATION.directionTo(location))) {
+            score += 50;
+        }
+
+        return score;
+    }
+
+    public static RobotInfo getSingleAttackerOrNull() {
+        RobotInfo robot = null;
+        for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
+            RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
+            if (Util.isAttacker(enemy.type)) {
+                if (robot != null) {
+                    return null;
+                }
+                robot = enemy;
+            }
+        }
+        return robot;
+    }
+
+    public static int numAttackerRobotsWithin(MapLocation location, int distanceSquared) {
+        int count = 0;
+        for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
+            RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
+            if (Util.isAttacker(enemy.type) && location.isWithinDistanceSquared(enemy.getLocation(), distanceSquared)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public static int getClosestEnemyAttackerDistanceSquared(MapLocation location) {
+        int bestDistanceSquared = Integer.MAX_VALUE;
+        for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
+            RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
+            if (Util.isAttacker(enemy.type)) {
+                bestDistanceSquared = Math.min(bestDistanceSquared, location.distanceSquaredTo(enemy.location));
+            }
+        }
+        return bestDistanceSquared;
     }
 
     private static FastIntSet2D blacklist;
