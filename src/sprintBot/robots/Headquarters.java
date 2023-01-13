@@ -143,7 +143,13 @@ public class Headquarters implements RunnableBot {
                     if (tryBuildRandom(RobotType.CARRIER)) {
                         return;
                     }
-                    tryBuildRandom(RobotType.LAUNCHER);
+                    if (tryBuildRandom(RobotType.LAUNCHER)) {
+                        return;
+                    }
+                    // what if there is nowhere to spawn units? let's just build anchors
+                    if (tryBuildAnchor(Anchor.STANDARD)) {
+                        return;
+                    }
                 }
             }
             // save to build anchor
@@ -163,12 +169,16 @@ public class Headquarters implements RunnableBot {
     }
 
     public static boolean tryBuildAnchor(Anchor anchorType) {
-        if (rc.canBuildAnchor(anchorType)) {
-            try {
-                rc.buildAnchor(anchorType);
-                return true;
-            } catch (GameActionException ex) {
-                Debug.failFast(ex);
+        // do not build anchors if we don't have an ally carrier nearby
+        // we can save mana for the tiebreaker
+        if (LambdaUtil.arraysAnyMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.CARRIER)) {
+            if (rc.canBuildAnchor(anchorType)) {
+                try {
+                    rc.buildAnchor(anchorType);
+                    return true;
+                } catch (GameActionException ex) {
+                    Debug.failFast(ex);
+                }
             }
         }
         return false;

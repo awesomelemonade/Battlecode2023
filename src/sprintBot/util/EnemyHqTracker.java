@@ -2,6 +2,7 @@ package sprintBot.util;
 
 import battlecode.common.*;
 
+import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -40,23 +41,25 @@ public class EnemyHqTracker {
                 markKnownEnemyHQ(enemy.location);
             }
         }
-        // if we can write, flush pending to communications
-        if (rc.canWriteSharedArray(0, 0)) {
-            // we can write
-            for (int i = numPendingLocations; --i >= 0; ) {
-                MapLocation location = pendingLocations[i];
-                if (isKnownEnemyHQ(location)) {
-                    // already found
-                    continue;
+        if (enemyHeadquartersLocations != null) {
+            // if we can write, flush pending to communications
+            if (rc.canWriteSharedArray(0, 0)) {
+                // we can write
+                for (int i = numPendingLocations; --i >= 0; ) {
+                    MapLocation location = pendingLocations[i];
+                    if (isKnownEnemyHQ(location)) {
+                        // already found
+                        continue;
+                    }
+                    // write to comms
+                    int message = (pack(location) << HEADQUARTERS_LOCATIONS_LOCATION_BIT) | (1 << HEADQUARTERS_LOCATIONS_SET_BIT);
+                    rc.writeSharedArray(ENEMY_HEADQUARTERS_LOCATIONS_OFFSET + numKnownEnemyHeadquarterLocations, message);
+                    // set for our own record keeping
+                    enemyHeadquartersLocations[numKnownEnemyHeadquarterLocations] = location;
+                    numKnownEnemyHeadquarterLocations++;
                 }
-                // write to comms
-                int message = (pack(location) << HEADQUARTERS_LOCATIONS_LOCATION_BIT) | (1 << HEADQUARTERS_LOCATIONS_SET_BIT);
-                rc.writeSharedArray(ENEMY_HEADQUARTERS_LOCATIONS_OFFSET + numKnownEnemyHeadquarterLocations, message);
-                // set for our own record keeping
-                enemyHeadquartersLocations[numKnownEnemyHeadquarterLocations] = location;
-                numKnownEnemyHeadquarterLocations++;
+                numPendingLocations = 0;
             }
-            numPendingLocations = 0;
         }
     }
 
