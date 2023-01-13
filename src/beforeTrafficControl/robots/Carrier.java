@@ -1,19 +1,17 @@
-package sprintBot.robots;
+package beforeTrafficControl.robots;
 
 import battlecode.common.*;
-import sprintBot.fast.FastIntSet2D;
-import sprintBot.pathfinder.Pathfinding;
-import sprintBot.util.*;
+import beforeTrafficControl.util.*;
 
-import static sprintBot.util.Constants.rc;
+import java.util.Comparator;
+
+import static beforeTrafficControl.util.Constants.rc;
 
 public class Carrier implements RunnableBot {
     private static Communication.CarrierTask currentTask;
-    private static FastIntSet2D blacklist;
-
     @Override
     public void init() throws GameActionException {
-        blacklist = new FastIntSet2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
+
     }
 
     private static void debug_render() {
@@ -37,35 +35,25 @@ public class Carrier implements RunnableBot {
         } else {
             Debug.setIndicatorString(Profile.MINING, currentTask.type.toString());
         }
-
-        if (getWeight() == GameConstants.CARRIER_CAPACITY) {
-            blacklist.reset();
-        }
     }
 
     @Override
     public void move() {
-        Pathfinding.predicate = location -> true;
         if (tryKiteFromEnemies()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0;
         if (tryMoveToPickupAnchor()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1;
         if (tryMoveToPlaceAnchorOnIsland()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0;
         if (tryMoveToTransferResourceToHQ()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1;
         if (tryMoveToWell()) {
             return;
         }
-        Pathfinding.predicate = location -> true;
         Util.tryExplore();
     }
 
@@ -103,15 +91,11 @@ public class Carrier implements RunnableBot {
             return false;
         } else {
             MapLocation wellLocation = well.getMapLocation();
-            if (!Cache.MY_LOCATION.isAdjacentTo(wellLocation)) {
-                if (Util.numAllyRobotsWithin(wellLocation, 5) >= 12) {
-                    // blacklist from future
-                    blacklist.add(wellLocation);
-                }
-            }
             Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, wellLocation, 0, 128, 0); // dark green
-            // move towards well
-            Util.tryPathfindingMoveAdjacent(well.getMapLocation());
+            if (!Cache.MY_LOCATION.isAdjacentTo(wellLocation)) {
+                // move towards well
+                Util.tryPathfindingMove(well.getMapLocation());
+            }
             return true;
         }
     }
@@ -148,6 +132,8 @@ public class Carrier implements RunnableBot {
             if (Cache.MY_LOCATION.isAdjacentTo(location)) {
                 tryTakeAnchor(location, Anchor.ACCELERATING);
                 tryTakeAnchor(location, Anchor.STANDARD);
+            } else {
+                Util.tryPathfindingMove(location);
             }
             return true;
         }
@@ -159,7 +145,7 @@ public class Carrier implements RunnableBot {
                 && currentTask.type == Communication.CarrierTaskType.PICKUP_ANCHOR) {
             MapLocation location = currentTask.hqLocation;
             if (!Cache.MY_LOCATION.isAdjacentTo(location)) {
-                Util.tryPathfindingMoveAdjacent(location);
+                Util.tryPathfindingMove(location);
             }
             return true;
         }
@@ -269,14 +255,14 @@ public class Carrier implements RunnableBot {
     }
 
     public static boolean tryMoveToTransferResourceToHQ() {
-        if (capacityLeft() > 0 || rc.getAnchor() != null) {
+        if (capacityLeft() > 0) {
             return false;
         }
         MapLocation hqLocation = Util.getClosestAllyHeadquartersLocation(); // TODO: choose safe HQ?
         if (hqLocation == null) {
             return false;
         }
-        Util.tryPathfindingMoveAdjacent(hqLocation);
+        Util.tryPathfindingMove(hqLocation);
         return true;
     }
 
@@ -355,50 +341,29 @@ public class Carrier implements RunnableBot {
 
     // TODO-someday: to be removed
     public static WellInfo getWell() {
-        WellInfo[] wells = Cache.ADAMANTIUM_WELLS;
+        WellInfo[] wells = getWells();
         WellInfo bestWell = null;
         int bestDistanceSquared = Integer.MAX_VALUE;
         for (int i = wells.length; --i >= 0; ) {
             WellInfo well = wells[i];
-            MapLocation wellLocation = well.getMapLocation();
-            if (!blacklist.contains(wellLocation)) {
-                int distanceSquared = wellLocation.distanceSquaredTo(Cache.MY_LOCATION);
-                if (distanceSquared < bestDistanceSquared) {
-                    bestDistanceSquared = distanceSquared;
-                    bestWell = well;
-                }
-            }
-        }
-        if (bestWell != null) {
-            return bestWell;
-        }
-        wells = Cache.MANA_WELLS;
-        for (int i = wells.length; --i >= 0; ) {
-            WellInfo well = wells[i];
-            MapLocation wellLocation = well.getMapLocation();
-            if (!blacklist.contains(wellLocation)) {
-                int distanceSquared = wellLocation.distanceSquaredTo(Cache.MY_LOCATION);
-                if (distanceSquared < bestDistanceSquared) {
-                    bestDistanceSquared = distanceSquared;
-                    bestWell = well;
-                }
-            }
-        }
-        if (bestWell != null) {
-            return bestWell;
-        }
-        wells = Cache.ELIXIR_WELLS;
-        for (int i = wells.length; --i >= 0; ) {
-            WellInfo well = wells[i];
-            MapLocation wellLocation = well.getMapLocation();
-            if (!blacklist.contains(wellLocation)) {
-                int distanceSquared = wellLocation.distanceSquaredTo(Cache.MY_LOCATION);
-                if (distanceSquared < bestDistanceSquared) {
-                    bestDistanceSquared = distanceSquared;
-                    bestWell = well;
-                }
+            int distanceSquared = well.getMapLocation().distanceSquaredTo(Cache.MY_LOCATION);
+            if (distanceSquared < bestDistanceSquared) {
+                bestDistanceSquared = distanceSquared;
+                bestWell = well;
             }
         }
         return bestWell;
+    }
+
+    public static WellInfo[] getWells() {
+        WellInfo[] wells = Cache.ADAMANTIUM_WELLS;
+        if (wells.length > 0) {
+            return wells;
+        }
+        wells = Cache.MANA_WELLS;
+        if (wells.length > 0) {
+            return wells;
+        }
+        return Cache.ELIXIR_WELLS;
     }
 }

@@ -1,6 +1,4 @@
-package sprintBot.fast;
-
-import battlecode.common.MapLocation;
+package beforeTrafficControl.fast;
 
 public class FastIntSet2D {
 	private int[][] array;
@@ -12,13 +10,9 @@ public class FastIntSet2D {
 		this.array = new int[width][];
 		this.width = width;
 		this.height = height;
-		this.counter = 1;
 	}
 	public void reset() {
 		this.counter++;
-	}
-	public void add(MapLocation location) {
-		add(location.x, location.y);
 	}
 	public void add(int x, int y) {
 		int[] array = this.array[x];
@@ -27,9 +21,6 @@ public class FastIntSet2D {
 			this.array[x] = array;
 		}
 		array[y] = counter;
-	}
-	public boolean contains(MapLocation location) {
-		return contains(location.x, location.y);
 	}
 	public boolean contains(int x, int y) {
 		int[] array = this.array[x];

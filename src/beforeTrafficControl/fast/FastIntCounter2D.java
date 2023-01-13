@@ -1,4 +1,4 @@
-package sprintBot.fast;
+package beforeTrafficControl.fast;
 
 public class FastIntCounter2D {
 	private int[][] array;
@@ -9,7 +9,7 @@ public class FastIntCounter2D {
 	public FastIntCounter2D(int width, int height) {
 		this.array = new int[width][];
 		this.base = 0;
-		this.counter = 1;
+		this.counter = 0;
 		this.width = width;
 		this.height = height;
 	}
