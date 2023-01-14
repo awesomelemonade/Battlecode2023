@@ -29,12 +29,15 @@ public class Headquarters implements RunnableBot {
 
     private static MapLocation[] shuffledLocations;
 
+    private static boolean hasSpaceForMiners = true;
+
     @Override
     public void init() throws GameActionException {
         // max robots = num hqs * num turns = 8 * 2000 = 16000
         // 4096 * 16 is well beyond that
         carrierTasks = new FastIntMap(4096 * 16);
         shuffledLocations = rc.getAllLocationsWithinRadiusSquared(Cache.MY_LOCATION, RobotType.HEADQUARTERS.actionRadiusSquared);
+        hasSpaceForMiners = hasSpaceForMiners();
     }
 
     public static int getNewTask() {
@@ -42,7 +45,7 @@ public class Headquarters implements RunnableBot {
         if (numAnchors > 0) {
             return Communication.CarrierTaskType.PICKUP_ANCHOR.id();
         }
-        return 0; // No Task
+        return Communication.CarrierTaskType.NONE.id(); // No Task
 //        if (Cache.ENEMY_ROBOTS.length > 0) {
 //            return Communication.CarrierTaskType.MINE_MANA.id();
 //        }
@@ -81,6 +84,10 @@ public class Headquarters implements RunnableBot {
 
 //        Debug.println("adamantiumIncome: " + adamantiumIncome.average() + ", adamantiumDerivative: " + adamantiumDerivativeTracker.average());
 
+    }
+
+    @Override
+    public void postLoop() throws GameActionException {
         assignTasks();
         lastAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
         lastMana = rc.getResourceAmount(ResourceType.MANA);
@@ -89,6 +96,10 @@ public class Headquarters implements RunnableBot {
 
     public static void assignTasks() throws GameActionException {
         RobotInfo[] allies = rc.senseNearbyRobots(RobotType.CARRIER.visionRadiusSquared, Constants.ALLY_TEAM);
+        if (allies.length > 28) {
+            // pigeonhole principle
+            allies = rc.senseNearbyRobots(RobotType.HEADQUARTERS.actionRadiusSquared, Constants.ALLY_TEAM);
+        }
         int numHeadquarters = Communication.headquartersLocations == null ? 1 : Communication.headquartersLocations.length;
         int assignedCount = 0;
         for (int i = allies.length; --i >= 0; ) {
@@ -99,7 +110,7 @@ public class Headquarters implements RunnableBot {
                 if (weight == 0) {
                     // check if there is a task set
                     int task = carrierTasks.get(robotIndex);
-                    if (task == 0) {
+                    if (task == Communication.CARRIER_TASK_NONE_ID || task == Communication.CARRIER_TASK_ANCHOR_PICKUP_ID) {
                         // TODO: find new a task
                         int newTask = getNewTask();
                         task = newTask;
@@ -185,11 +196,35 @@ public class Headquarters implements RunnableBot {
     }
 
     public static boolean tryBuildRandom(RobotType type) {
+        if (type == RobotType.CARRIER && !hasSpaceForMiners) {
+            return false;
+        }
         for (int i = shuffledLocations.length; --i >= 0;) {
             if (Util.tryBuild(type, shuffledLocations[i])) {
                 return true;
             }
         }
         return false;
+    }
+
+    public static boolean hasSpaceForMiners() {
+        boolean passable = false;
+        for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
+            Direction direction = Constants.ORDINAL_DIRECTIONS[i];
+            MapLocation location = Cache.MY_LOCATION.add(direction);
+            // check for passable
+            try {
+                if (rc.onTheMap(location) && rc.sensePassability(location)) {
+                    RobotInfo robot = rc.senseRobotAtLocation(location);
+                    if (robot == null || robot.type != RobotType.HEADQUARTERS) {
+                        passable = true;
+                        break;
+                    }
+                }
+            } catch (GameActionException ex) {
+                Debug.failFast(ex);
+            }
+        }
+        return passable;
     }
 }

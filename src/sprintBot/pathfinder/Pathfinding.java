@@ -8,10 +8,13 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.function.Predicate;
 
+import sprintBot.fast.FastSort;
+
 import static sprintBot.util.Constants.rc;
 
 public class Pathfinding {
 	public static Predicate<MapLocation> predicate = location -> true;
+	private static int[] counters = new int[8];
 
 	public static int moveDistance(MapLocation a, MapLocation b) {
 		return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
@@ -40,8 +43,6 @@ public class Pathfinding {
 //		}
 		return executeNoReset(target);
 	}
-	private static int[] counters = new int[8];
-	private static Integer[] indices = new Integer[] {0, 1, 2, 3, 4, 5, 6, 7};
 	public static boolean executeNoReset(MapLocation target) {
 		MapLocation currentLocation = Cache.MY_LOCATION;
 		Debug.setIndicatorLine(Profile.PATHFINDING, currentLocation, target, 0, 0, 255);
@@ -79,10 +80,13 @@ public class Pathfinding {
 				counters[i] = Integer.MAX_VALUE;
 			}
 		}
-		Arrays.sort(indices, Comparator.comparingInt(i -> counters[i]));
+		int[] indices = FastSort.sort(counters);
 		for (int i = 0; i < indices.length; i++) {
 			Direction direction = directions[indices[i]];
 			MapLocation location = currentLocation.add(direction);
+			if (!Util.onTheMap(location)) {
+				continue;
+			}
 			if (!location.equals(target) && !predicate.test(location)) {
 				continue;
 			}

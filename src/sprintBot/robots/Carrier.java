@@ -14,6 +14,7 @@ public class Carrier implements RunnableBot {
     @Override
     public void init() throws GameActionException {
         blacklist = new FastIntSet2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
+        MapCache.init();
     }
 
     private static void debug_render() {
@@ -49,19 +50,19 @@ public class Carrier implements RunnableBot {
         if (tryKiteFromEnemies()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0;
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0 || MapCache.hasAdjacentUnpassable(location);
         if (tryMoveToPickupAnchor()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1;
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1 || MapCache.hasAdjacentUnpassable(location);
         if (tryMoveToPlaceAnchorOnIsland()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0;
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0 || MapCache.hasAdjacentUnpassable(location);
         if (tryMoveToTransferResourceToHQ()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1;
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1 || MapCache.hasAdjacentUnpassable(location);
         if (tryMoveToWell()) {
             return;
         }
@@ -289,6 +290,7 @@ public class Carrier implements RunnableBot {
             return false;
         }
         Util.tryPathfindingMoveAdjacent(hqLocation);
+        Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, hqLocation, 255, 255, 0); // yellow
         return true;
     }
 
@@ -307,7 +309,6 @@ public class Carrier implements RunnableBot {
         }
         int amount = rc.getResourceAmount(resource);
         tryTransfer(hqLocation, resource, amount);
-        Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, hqLocation, 255, 255, 0); // yellow
         return true;
     }
 
