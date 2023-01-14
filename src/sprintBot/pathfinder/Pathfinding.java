@@ -40,6 +40,8 @@ public class Pathfinding {
 //		}
 		return executeNoReset(target);
 	}
+	private static int[] counters = new int[8];
+	private static Integer[] indices = new Integer[] {0, 1, 2, 3, 4, 5, 6, 7};
 	public static boolean executeNoReset(MapLocation target) {
 		MapLocation currentLocation = Cache.MY_LOCATION;
 		Debug.setIndicatorLine(Profile.PATHFINDING, currentLocation, target, 0, 0, 255);
@@ -68,16 +70,14 @@ public class Pathfinding {
 			}
 		}
 		// We stuck bois - let's look for the lowest non-negative
-		int[] counters = new int[8];
-		Integer[] indices = new Integer[8];
 		for (int i = counters.length; --i >= 0;) {
-			MapLocation location = currentLocation.add(directions[i]);
+			Direction direction = directions[i];
+			MapLocation location = currentLocation.add(direction);
 			if (Util.onTheMap(location)) {
 				counters[i] = visitedSet.get(location.x, location.y);
 			} else {
 				counters[i] = Integer.MAX_VALUE;
 			}
-			indices[i] = i;
 		}
 		Arrays.sort(indices, Comparator.comparingInt(i -> counters[i]));
 		for (int i = 0; i < indices.length; i++) {

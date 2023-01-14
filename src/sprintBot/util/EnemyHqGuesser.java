@@ -12,133 +12,114 @@ import static sprintBot.util.Constants.rc;
 
 public class EnemyHqGuesser {
     private static boolean initialized = false;
-    private static Node head = null;
-    private static Node tail = null;
+    private static MapLocation[] predictions;
+    private static int invalidations; // commed invalidations - bit field
+    private static int invalidationsPending; // bit field
 
     public static void generateHQGuessList() {
         MapLocation[] hqLocations = Communication.headquartersLocations;
+        int numHqLocations = hqLocations.length;
+        predictions = new MapLocation[3 * numHqLocations];
+
         for (int i = hqLocations.length; --i >= 0; ) {
-            guessEnemyArchonLocations(hqLocations[i]);
-        }
-        // traverse and remove any that are the same location as our hqs
-        Node node = head;
-        while (node != null) {
-            MapLocation location = node.location;
-            for (int i = hqLocations.length; --i >= 0; ) {
-                if (location.equals(hqLocations[i])) {
-                    removeEnemyHeadquartersLocationGuess(node);
-                    break;
-                }
-            }
-            node = node.next;
+            guessEnemyArchonLocations(hqLocations[i], i);
         }
         initialized = true;
     }
 
-    public static void guessEnemyArchonLocations(MapLocation location) {
+    public static void guessEnemyArchonLocations(MapLocation location, int hqIndex) {
         int x = location.x;
         int y = location.y;
         int symX = Constants.MAP_WIDTH - x - 1;
         int symY = Constants.MAP_HEIGHT - y - 1;
-        addEnemyHeadquartersLocationGuess(new MapLocation(x, symY));
-        addEnemyHeadquartersLocationGuess(new MapLocation(symX, y));
-        addEnemyHeadquartersLocationGuess(new MapLocation(symX, symY));
+        predictions[hqIndex * 3] = new MapLocation(x, symY);
+        predictions[hqIndex * 3 + 1] = new MapLocation(symX, y);
+        predictions[hqIndex * 3 + 2] = new MapLocation(symX, symY);
     }
 
-    public static void addEnemyHeadquartersLocationGuess(MapLocation location) {
-        // add to linked list
-        Node node = new Node(location);
-        if (head == null) {
-            head = node;
-            tail = node;
-        } else {
-            tail.next = node;
-            node.prev = tail;
-            tail = node;
-        }
+    public static void invalidatePending(int index) {
+        invalidationsPending = invalidationsPending | (1 << index);
     }
 
-    public static void removeEnemyHeadquartersLocationGuess(Node node) {
-        // this code makes me very sad
-        if (head == node) {
-            head = head.next;
-            if (head == null) {
-                tail = null;
-            } else {
-                head.prev = null;
-            }
-        } else {
-            node.prev.next = node.next;
-            if (tail == node) {
-                tail = node.prev;
-            } else {
-                node.next.prev = node.prev;
-            }
-        }
+    public static boolean invalidated(int index) {
+        return ((invalidations | invalidationsPending) & (1 << index)) != 0;
     }
 
     public static void update() {
         if (!initialized) {
             return;
         }
+        // receive from communication
+        try {
+            invalidations = rc.readSharedArray(Communication.ENEMY_HQ_GUESSER_OFFSET);
+        } catch (GameActionException ex) {
+            Debug.failFast(ex);
+        }
+
         // traverse and remove any that are visible and not there
-        Node node = head;
-        while (node != null) {
-            // check if it's visible
-            MapLocation location = node.location;
-            if (rc.canSenseLocation(location)) {
+        for (int i = predictions.length; --i >= 0; ) {
+            if (invalidated(i)) {
+                continue;
+            }
+            MapLocation prediction = predictions[i];
+            if (rc.canSenseLocation(prediction)) {
                 try {
-                    RobotInfo robot = rc.senseRobotAtLocation(location);
+                    RobotInfo robot = rc.senseRobotAtLocation(prediction);
                     boolean hasEnemyHeadquarters = robot != null && robot.type == RobotType.HEADQUARTERS && robot.team == Constants.ENEMY_TEAM;
                     if (!hasEnemyHeadquarters) {
-                        removeEnemyHeadquartersLocationGuess(node);
+                        invalidatePending(i);
                     }
                 } catch (GameActionException ex) {
                     Debug.failFast(ex);
                 }
             }
-            node = node.next;
+        }
+
+        // write to communication
+        if (rc.canWriteSharedArray(0, 0)) {
+            try {
+                rc.writeSharedArray(Communication.ENEMY_HQ_GUESSER_OFFSET, invalidations | invalidationsPending);
+            } catch (GameActionException ex) {
+                Debug.failFast(ex);
+            }
         }
     }
 
     public static MapLocation getClosest() {
         return getClosest(location -> true);
     }
+
     public static MapLocation getClosest(Predicate<MapLocation> predicate) {
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MAX_VALUE;
-        Node node = head;
-        while (node != null) {
-            MapLocation location = node.location;
-            if (predicate.test(location)) {
-                int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
-                if (distanceSquared < bestDistanceSquared) {
-                    bestDistanceSquared = distanceSquared;
-                    bestLocation = location;
+        for (int i = predictions.length; --i >= 0; ) {
+            if (!invalidated(i)) {
+                MapLocation location = predictions[i];
+                if (predicate.test(location)) {
+                    int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
+                    if (distanceSquared < bestDistanceSquared) {
+                        bestDistanceSquared = distanceSquared;
+                        bestLocation = location;
+                    }
                 }
             }
-            node = node.next;
         }
         return bestLocation;
     }
 
     public static void forEach(Consumer<MapLocation> consumer) {
-        Node node = head;
-        while (node != null) {
-            MapLocation location = node.location;
-            consumer.accept(location);
-            node = node.next;
+        for (int i = predictions.length; --i >= 0; ) {
+            if ((invalidations & (1 << i)) == 0 && (invalidationsPending & (1 << i)) == 0) {
+                consumer.accept(predictions[i]);
+            }
         }
     }
 
-    static class Node {
-        Node prev;
-        Node next;
-        MapLocation location;
-
-        public Node(MapLocation location) {
-            this.next = null;
-            this.location = location;
+    public static void forEachPendingInvalidations(Consumer<MapLocation> consumer) {
+        for (int i = predictions.length; --i >= 0; ) {
+            if ((invalidations & (1 << i)) == 0 && (invalidationsPending & (1 << i)) != 0) {
+                consumer.accept(predictions[i]);
+            }
         }
     }
 }

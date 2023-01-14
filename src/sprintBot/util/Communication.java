@@ -19,7 +19,9 @@ public class Communication {
     public static final int WELL_LOCATIONS_LOCATION_BIT = 1;
     public static final int WELL_LOCATIONS_LOCATION_MASK = 0b111111_111111; // 12 bits, 6 bit per coordinate
 
-    public static final int CARRIER_TASK_OFFSET = 20; // 16 integers
+    public static final int ENEMY_HQ_GUESSER_OFFSET = 20;
+
+    public static final int CARRIER_TASK_OFFSET = 21; // 16 integers
     public static final int CARRIER_TASK_POSITION_BIT_OFFSET = 0;
     public static final int CARRIER_TASK_POSITION_BIT_MASK = 0b1111111; // 7 bits
     public static final int CARRIER_TASK_HQ_ID_BIT_OFFSET = 7;

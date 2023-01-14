@@ -17,6 +17,7 @@ public class Launcher implements RunnableBot {
     private static void debug_render() {
         if (Profile.ATTACKING.enabled()) {
             EnemyHqGuesser.forEach(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 0)); // black
+            EnemyHqGuesser.forEachPendingInvalidations(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 128, 128, 128)); // gray
             EnemyHqTracker.forEachPending(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 255, 255)); // cyan
             EnemyHqTracker.forEachKnown(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 255)); // blue
         }
