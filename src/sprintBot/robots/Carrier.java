@@ -90,31 +90,41 @@ public class Carrier implements RunnableBot {
         if (capacityLeft() <= 0) {
             return false;
         }
-        WellInfo well = getWell();
-        if (well == null) {
-            // go to commed well?
-            // look for well
-//                ResourceType targetResource = Communication.CarrierTask.getMineResourceType(currentTask);
-//                WellInfo well = targetResource == null ? getClosestWell() : getClosestWell(targetResource);
-//                    // go to commed well
-//                    MapLocation commedWell = targetResource == null ? WellTracker.getClosestKnownWell() : WellTracker.getClosestKnownWell(targetResource);
-//                    if (commedWell != null) {
-//                        Util.tryPathfindingMove(commedWell);
-//                    }
-            return false;
-        } else {
-            MapLocation wellLocation = well.getMapLocation();
-            if (!Cache.MY_LOCATION.isAdjacentTo(wellLocation)) {
-                if (Util.numAllyRobotsWithin(wellLocation, 5) >= 12) {
+        // go to commed well?
+        // look for well
+        ResourceType targetResource = Communication.CarrierTask.getMineResourceType(currentTask);
+//        WellInfo well = targetResource == null ? getClosestWell() : getClosestWell(targetResource);
+        // go to commed well
+        MapLocation commedWell = targetResource == null ?
+                WellTracker.getClosestKnownWell(location -> !blacklist.contains(location)) :
+                WellTracker.getClosestKnownWell(targetResource, location -> !blacklist.contains(location));
+        if (commedWell != null) {
+            if (!Cache.MY_LOCATION.isAdjacentTo(commedWell)) {
+                if (Util.numAllyRobotsWithin(commedWell, 5) >= 12) {
                     // blacklist from future
-                    blacklist.add(wellLocation);
+                    blacklist.add(commedWell);
                 }
             }
-            Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, wellLocation, 0, 128, 0); // dark green
-            // move towards well
-            Util.tryPathfindingMoveAdjacent(well.getMapLocation());
+            Util.tryPathfindingMoveAdjacent(commedWell);
             return true;
         }
+        return false;
+//        WellInfo well = getWell();
+//        if (well == null) {
+//            return false;
+//        } else {
+//            MapLocation wellLocation = well.getMapLocation();
+//            if (!Cache.MY_LOCATION.isAdjacentTo(wellLocation)) {
+//                if (Util.numAllyRobotsWithin(wellLocation, 5) >= 12) {
+//                    // blacklist from future
+//                    blacklist.add(wellLocation);
+//                }
+//            }
+//            Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, wellLocation, 0, 128, 0); // dark green
+//            // move towards well
+//            Util.tryPathfindingMoveAdjacent(well.getMapLocation());
+//            return true;
+//        }
     }
 
     public static boolean tryCollectResource() {
