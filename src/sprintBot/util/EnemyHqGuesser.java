@@ -86,21 +86,31 @@ public class EnemyHqGuesser {
     }
 
     public static MapLocation getClosest() {
-        return getClosest(location -> true);
-    }
-
-    public static MapLocation getClosest(Predicate<MapLocation> predicate) {
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MAX_VALUE;
         for (int i = predictions.length; --i >= 0; ) {
             if (!invalidated(i)) {
                 MapLocation location = predictions[i];
-                if (predicate.test(location)) {
-                    int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
-                    if (distanceSquared < bestDistanceSquared) {
-                        bestDistanceSquared = distanceSquared;
-                        bestLocation = location;
-                    }
+                int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
+                if (distanceSquared < bestDistanceSquared) {
+                    bestDistanceSquared = distanceSquared;
+                    bestLocation = location;
+                }
+            }
+        }
+        return bestLocation;
+    }
+
+    public static MapLocation getFarthest(MapLocation from) {
+        MapLocation bestLocation = null;
+        int bestDistanceSquared = Integer.MIN_VALUE;
+        for (int i = predictions.length; --i >= 0; ) {
+            if (!invalidated(i)) {
+                MapLocation location = predictions[i];
+                int distanceSquared = from.distanceSquaredTo(location);
+                if (distanceSquared > bestDistanceSquared) {
+                    bestDistanceSquared = distanceSquared;
+                    bestLocation = location;
                 }
             }
         }

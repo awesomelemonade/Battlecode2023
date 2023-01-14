@@ -6,6 +6,8 @@ import sprintBot.fast.FastIntMap;
 import sprintBot.fast.FastIntTracker;
 import sprintBot.util.*;
 
+import java.util.function.ToIntFunction;
+
 import static sprintBot.util.Constants.rc;
 
 public class Headquarters implements RunnableBot {
@@ -151,10 +153,10 @@ public class Headquarters implements RunnableBot {
                         return;
                     }
                 } else {
-                    if (tryBuildRandom(RobotType.CARRIER)) {
+                    if (tryBuildCarrier()) {
                         return;
                     }
-                    if (tryBuildRandom(RobotType.LAUNCHER)) {
+                    if (tryBuildLauncher()) {
                         return;
                     }
                     // what if there is nowhere to spawn units? let's just build anchors
@@ -166,15 +168,15 @@ public class Headquarters implements RunnableBot {
             // save to build anchor
         } else {
             if (Cache.ENEMY_ROBOTS.length > 0) {
-                if (tryBuildRandom(RobotType.LAUNCHER)) {
+                if (tryBuildLauncher()) {
                     return;
                 }
-                tryBuildRandom(RobotType.CARRIER);
+                tryBuildCarrier();
             } else {
-                if (tryBuildRandom(RobotType.CARRIER)) {
+                if (tryBuildCarrier()) {
                     return;
                 }
-                tryBuildRandom(RobotType.LAUNCHER);
+                tryBuildLauncher();
             }
         }
     }
@@ -195,16 +197,71 @@ public class Headquarters implements RunnableBot {
         return false;
     }
 
-    public static boolean tryBuildRandom(RobotType type) {
-        if (type == RobotType.CARRIER && !hasSpaceForMiners) {
+    public static boolean tryBuildCarrier() {
+        if (!hasSpaceForMiners) {
             return false;
         }
+        if (Cache.ALLY_ROBOTS.length == 0 && LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> Util.isAttacker(r.type))) {
+            return false;
+        }
+        MapLocation wellLocation = WellTracker.getClosestKnownWell();
+        return tryBuildByScore(RobotType.CARRIER, location -> {
+            // we want to be as close to a well as possible
+            // heuristic: just use the closest well
+            // in the future, we can consider separating adamantium vs mana carriers
+            if (wellLocation == null) {
+                return 0;
+            } else {
+                return location.distanceSquaredTo(wellLocation);
+            }
+        });
+    }
+
+    public static MapLocation getMacroAttackLocation() {
+        MapLocation ret = EnemyHqTracker.getClosest();
+        if (ret == null) {
+            // we should use furthest to be more stable?
+            ret = EnemyHqGuesser.getFarthest(Cache.MY_LOCATION);
+        }
+        return ret;
+    }
+
+    public static boolean tryBuildLauncher() {
+        MapLocation macroLocation = getMacroAttackLocation();
+        Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, macroLocation, 255, 128, 0);
+        return tryBuildByScore(RobotType.LAUNCHER, location -> {
+            if (macroLocation == null) {
+                return 0;
+            } else {
+                return location.distanceSquaredTo(macroLocation);
+            }
+        });
+    }
+
+    // minimize score
+    public static boolean tryBuildByScore(RobotType type, ToIntFunction<MapLocation> scorer) {
+        int bestScore = Integer.MAX_VALUE;
+        MapLocation bestLocation = null;
         for (int i = shuffledLocations.length; --i >= 0;) {
-            if (Util.tryBuild(type, shuffledLocations[i])) {
-                return true;
+            MapLocation location = shuffledLocations[i];
+            if (rc.canBuildRobot(type, location)) {
+                int score = scorer.applyAsInt(location);
+                if (score < bestScore) {
+                    bestLocation = location;
+                    bestScore = score;
+                }
             }
         }
-        return false;
+        if (bestLocation == null) {
+            return false;
+        } else {
+            try {
+                rc.buildRobot(type, bestLocation);
+            } catch (GameActionException ex) {
+                Debug.failFast(ex);
+            }
+            return true;
+        }
     }
 
     public static boolean hasSpaceForMiners() {

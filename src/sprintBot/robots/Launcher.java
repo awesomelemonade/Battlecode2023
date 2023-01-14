@@ -156,7 +156,7 @@ public class Launcher implements RunnableBot {
         for (int i = Constants.ALL_DIRECTIONS.length; --i >= 0; ) {
             Direction direction = Constants.ALL_DIRECTIONS[i];
             MapLocation location = Cache.MY_LOCATION.add(direction);
-            if (direction != Direction.CENTER && rc.canSenseRobotAtLocation(location)) {
+            if (direction != Direction.CENTER && !rc.canMove(direction)) {
                 // occupied
                 continue;
             }
@@ -185,6 +185,17 @@ public class Launcher implements RunnableBot {
         MapLocation enemyLocation = enemy.location;
 
         double score = 0;
+        // prefer non clouds if we're not in a cloud
+        try {
+            if (!rc.senseMapInfo(Cache.MY_LOCATION).hasCloud()) {
+                if (!rc.senseMapInfo(location).hasCloud()) {
+                    score += 2000000;
+                }
+            }
+        } catch (GameActionException ex) {
+            Debug.failFast(ex);
+        }
+
         // prefer squares that we can attack the enemy
         if (location.isWithinDistanceSquared(enemyLocation, Constants.ROBOT_TYPE.actionRadiusSquared)) {
             score += 1000000;
@@ -260,10 +271,16 @@ public class Launcher implements RunnableBot {
                 !blacklist.contains(robot.location.x, robot.location.y));
         MapLocation ret = closestVisibleEnemyHQ == null ? null : closestVisibleEnemyHQ.location;
         if (ret == null) {
-            ret = EnemyHqTracker.getClosest(location -> !blacklist.contains(location.x, location.y)); // check if within blacklist?
+            ret = EnemyHqTracker.getClosest(location -> !blacklist.contains(location.x, location.y));
         }
         if (ret == null) {
-            ret = EnemyHqGuesser.getClosest(location -> !blacklist.contains(location.x, location.y));
+            MapLocation lastHqLocation = WellTracker.lastHqLocation();
+            if (lastHqLocation != null) {
+                ret = EnemyHqGuesser.getFarthest(lastHqLocation);
+            }
+        }
+        if (ret == null) {
+            ret = EnemyHqGuesser.getClosest();
         }
         if (ret == null) {
             blacklist.reset();

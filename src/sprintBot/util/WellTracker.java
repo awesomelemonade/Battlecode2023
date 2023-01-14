@@ -14,6 +14,14 @@ public class WellTracker {
 
     private static int lastHqIndex = -1;
 
+    public static MapLocation lastHqLocation() {
+        if (lastHqIndex == -1) {
+            return null;
+        } else {
+            return Communication.headquartersLocations[lastHqIndex];
+        }
+    }
+
     public static void forEachKnown(Consumer<MapLocation> consumer) {
         for (int i = NUM_WELLS_TRACKED; --i >= 0; ) {
             MapLocation location = knownWells[i];
