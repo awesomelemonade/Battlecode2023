@@ -159,7 +159,23 @@ public class Carrier implements RunnableBot {
         if (getWeight() == 0 && currentTask != null
                 && currentTask.type == Communication.CarrierTaskType.PICKUP_ANCHOR) {
             MapLocation location = currentTask.hqLocation;
-            if (!Cache.MY_LOCATION.isAdjacentTo(location)) {
+            if (Cache.MY_LOCATION.isAdjacentTo(location)) {
+                // check if there's actually an anchor there
+                try {
+                    RobotInfo hq = rc.senseRobotAtLocation(location);
+                    if (hq == null) {
+                        Debug.failFast("Cannot find hq?");
+                    } else {
+                        if (hq.getTotalAnchors() == 0) {
+                            // no anchors?
+                            currentTask = null;
+                            return false;
+                        }
+                    }
+                } catch (GameActionException ex) {
+                    Debug.failFast(ex);
+                }
+            } else {
                 Util.tryPathfindingMoveAdjacent(location);
             }
             return true;
