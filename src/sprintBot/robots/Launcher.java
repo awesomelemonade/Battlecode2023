@@ -97,13 +97,24 @@ public class Launcher implements RunnableBot {
             Util.tryExplore();
         } else {
             // check if hq already has tons of ally units nearby
-            if (Util.numAllyRobotsWithin(location, 20) >= 10) {
+            if (numAllyAttackersWithin(location, 20) >= 10) {
                 blacklist.add(location.x, location.y);
             }
             // TODO - try to circle around it?
             Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, location, 0, 0, 0); // black
             Util.tryPathfindingMove(location);
         }
+    }
+
+    public static int numAllyAttackersWithin(MapLocation location, int distanceSquared) {
+        int count = 0;
+        for (int i = Cache.ALLY_ROBOTS.length; --i >= 0; ) {
+            RobotInfo robot = Cache.ALLY_ROBOTS[i];
+            if (Util.isAttacker(robot.type) && robot.location.isWithinDistanceSquared(location, distanceSquared)) {
+                count++;
+            }
+        }
+        return count;
     }
 
     public static boolean executeMicro() {

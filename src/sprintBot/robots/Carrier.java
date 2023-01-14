@@ -290,6 +290,7 @@ public class Carrier implements RunnableBot {
             return false;
         }
         Util.tryPathfindingMoveAdjacent(hqLocation);
+        Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, hqLocation, 255, 255, 0); // yellow
         return true;
     }
 
@@ -308,7 +309,6 @@ public class Carrier implements RunnableBot {
         }
         int amount = rc.getResourceAmount(resource);
         tryTransfer(hqLocation, resource, amount);
-        Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, hqLocation, 255, 255, 0); // yellow
         return true;
     }
 

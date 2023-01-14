@@ -48,6 +48,7 @@ public class RobotPlayer {
                     if (!Util.isBuilding(Constants.ROBOT_TYPE)) {
                         tryMultiMove(controller, bot);
                     }
+                    bot.postLoop();
 
                     Util.postLoop();
                     if (controller.getRoundNum() != currentTurn) {

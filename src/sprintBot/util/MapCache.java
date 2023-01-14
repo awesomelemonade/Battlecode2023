@@ -18,8 +18,11 @@ public class MapCache {
 
     public static boolean isPassable(MapLocation location) {
         try {
-            if (rc.onTheMap(location)) {
+            if (rc.canSenseLocation(location)) {
                 return rc.sensePassability(location);
+            } else {
+                // we're either at the border of because of cloud
+                return false; // assume false
             }
         } catch (GameActionException ex) {
             Debug.failFast(ex);
