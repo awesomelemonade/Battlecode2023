@@ -278,9 +278,12 @@ public class Util {
     }
 
     public static boolean onTheMap(MapLocation location) {
-        int x = location.x;
-        int y = location.y;
-        return x >= 0 && y >= 0 && x < Constants.MAP_WIDTH && y < Constants.MAP_HEIGHT;
+        try {
+            return rc.onTheMap(location);
+        } catch (GameActionException ex) {
+            Debug.failFast(ex);
+            return false;
+        }
     }
 
     public static boolean isEmptyTerrain(MapLocation loc) {
