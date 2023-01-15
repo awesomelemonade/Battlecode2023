@@ -289,12 +289,7 @@ public class Util {
     }
 
     public static boolean onTheMap(MapLocation location) {
-        try {
-            return rc.onTheMap(location);
-        } catch (GameActionException ex) {
-            Debug.failFast(ex);
-            return false;
-        }
+        return rc.onTheMap(location);
     }
 
     public static boolean isEmptyTerrain(MapLocation loc) {
