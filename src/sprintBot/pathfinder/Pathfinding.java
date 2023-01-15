@@ -72,13 +72,8 @@ public class Pathfinding {
 		}
 		// We stuck bois - let's look for the lowest non-negative
 		for (int i = counters.length; --i >= 0;) {
-			Direction direction = directions[i];
-			MapLocation location = currentLocation.add(direction);
-			if (Util.onTheMap(location)) {
-				counters[i] = visitedSet.get(location.x, location.y);
-			} else {
-				counters[i] = Integer.MAX_VALUE;
-			}
+			MapLocation location = currentLocation.add(directions[i]);
+			counters[i] = Util.onTheMap(location) ? visitedSet.get(location.x, location.y) : Integer.MAX_VALUE;
 		}
 		int[] indices = FastSort.sort(counters);
 		for (int i = 0; i < indices.length; i++) {
