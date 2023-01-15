@@ -2,7 +2,6 @@ package sprintBot.util;
 
 import battlecode.common.*;
 
-import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -138,5 +137,19 @@ public class EnemyHqTracker {
         for (int i = numPendingLocations; --i >= 0; ) {
             consumer.accept(pendingLocations[i]);
         }
+    }
+
+    public static boolean allKnownAndPending(Predicate<MapLocation> predicate) {
+        for (int i = numKnownEnemyHeadquarterLocations; --i >= 0; ) {
+            if (!predicate.test(enemyHeadquartersLocations[i])) {
+                return false;
+            }
+        }
+        for (int i = numPendingLocations; --i >= 0; ) {
+            if (!predicate.test(pendingLocations[i])) {
+                return false;
+            }
+        }
+        return true;
     }
 }

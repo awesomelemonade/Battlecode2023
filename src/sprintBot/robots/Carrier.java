@@ -47,6 +47,7 @@ public class Carrier implements RunnableBot {
     @Override
     public void move() {
         Pathfinding.predicate = location -> true;
+        // TODO: tryMoveToAttack()
         if (tryKiteFromEnemies()) {
             return;
         }

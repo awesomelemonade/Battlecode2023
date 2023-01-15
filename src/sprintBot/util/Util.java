@@ -220,18 +220,23 @@ public class Util {
     }
 
     public static void tryKiteFrom(MapLocation location) {
-        int bestDist = Cache.MY_LOCATION.distanceSquaredTo(location);
-        Direction bestDir = null;
-        for (Direction d : Constants.ORDINAL_DIRECTIONS) {
-            MapLocation candidate = Cache.MY_LOCATION.add(d);
-            if (!isEmptyTerrain(candidate)) continue;
-            int dist = candidate.distanceSquaredTo(location);
-            if (dist > bestDist) {
-                bestDist = dist;
-                bestDir = d;
+        int bestDistanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
+        Direction bestDirection = null;
+        for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
+            Direction direction = Constants.ORDINAL_DIRECTIONS[i];
+            if (!rc.canMove(direction)) {
+                continue;
+            }
+            MapLocation candidate = Cache.MY_LOCATION.add(direction);
+            int distanceSquared = candidate.distanceSquaredTo(location);
+            if (distanceSquared > bestDistanceSquared) {
+                bestDistanceSquared = distanceSquared;
+                bestDirection = direction;
             }
         }
-        if (bestDir != null) tryMove(bestDir);
+        if (bestDirection != null) {
+            tryMove(bestDirection);
+        }
     }
 
     public static boolean tryExplore() {
@@ -290,19 +295,6 @@ public class Util {
 
     public static boolean onTheMap(MapLocation location) {
         return rc.onTheMap(location);
-    }
-
-    public static boolean isEmptyTerrain(MapLocation loc) {
-        if (!onTheMap(loc)) return false;
-        if (rc.canSenseLocation(loc)) {
-            try {
-                if (rc.sensePassability(loc) == false) return false;
-                if (rc.senseRobotAtLocation(loc) != null) return false;
-            } catch (GameActionException e) {
-                Debug.failFast(e);
-            }
-        }
-        return true;
     }
 
     public static int getWeight(RobotInfo robot) {
