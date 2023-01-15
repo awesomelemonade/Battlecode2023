@@ -165,18 +165,58 @@ public class Carrier implements RunnableBot {
 //        }
     }
 
+    // bigger score = better
+    public static double getImmediateWellMiningScore(WellInfo well) {
+        ResourceType wellResourceType = well.getResourceType();
+        double score = 0;
+        // prefer the resource you already have
+        score += rc.getResourceAmount(wellResourceType) * 1000;
+        // prefer the resource given by the task
+        if (currentTask != null && Communication.CarrierTask.getMineResourceType(currentTask) == wellResourceType) {
+            score += 100;
+        }
+        // prefer adamantium > mana > elixir
+        switch (wellResourceType) {
+            case ADAMANTIUM:
+                score += 3;
+                break;
+            case MANA:
+                score += 2;
+                break;
+            case ELIXIR:
+                score += 1;
+                break;
+            default:
+                Debug.failFast("Unknown well resource type: " + wellResourceType);
+        }
+        return score;
+    }
+
     public static boolean tryCollectResource() {
         if (capacityLeft() <= 0) {
             return false;
         }
-        // try mine
-        WellInfo well = getWell();
-        if (well != null) {
-            MapLocation wellLocation = well.getMapLocation();
-            if (Cache.MY_LOCATION.isAdjacentTo(wellLocation)) {
-                tryCollectResource(wellLocation, Math.min(well.getRate(), capacityLeft()));
+        try {
+            // only look at wells adjacent to you
+            WellInfo[] adjacentWells = rc.senseNearbyWells(2);
+            // get best well
+            double bestScore = -Double.MAX_VALUE;
+            WellInfo bestWell = null;
+            for (int i = adjacentWells.length; --i >= 0; ) {
+                WellInfo well = adjacentWells[i];
+                double score = getImmediateWellMiningScore(well);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestWell = well;
+                }
+            }
+            if (bestWell != null) {
+                MapLocation wellLocation = bestWell.getMapLocation();
+                tryCollectResource(wellLocation, Math.min(bestWell.getRate(), capacityLeft()));
                 return true;
             }
+        } catch (GameActionException ex) {
+            Debug.failFast(ex);
         }
         return false;
     }
