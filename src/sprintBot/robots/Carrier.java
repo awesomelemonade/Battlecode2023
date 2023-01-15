@@ -169,12 +169,12 @@ public class Carrier implements RunnableBot {
     public static double getImmediateWellMiningScore(WellInfo well) {
         ResourceType wellResourceType = well.getResourceType();
         double score = 0;
-        // prefer the resource you already have
-        score += rc.getResourceAmount(wellResourceType) * 1000;
         // prefer the resource given by the task
         if (currentTask != null && Communication.CarrierTask.getMineResourceType(currentTask) == wellResourceType) {
-            score += 100;
+            score += 1000000;
         }
+        // prefer the resource you already have
+        score += rc.getResourceAmount(wellResourceType) * 1000;
         // prefer adamantium > mana > elixir
         switch (wellResourceType) {
             case ADAMANTIUM:
@@ -383,7 +383,7 @@ public class Carrier implements RunnableBot {
 
     public static boolean tryMoveToTransferResourceToHQ() {
         try {
-            if (capacityLeft() > 0 || rc.getAnchor() != null) {
+            if (rc.getAnchor() != null) {
                 return false;
             }
         } catch (GameActionException ex) {
@@ -392,6 +392,15 @@ public class Carrier implements RunnableBot {
         MapLocation hqLocation = Util.getClosestAllyHeadquartersLocation(); // TODO: choose safe HQ?
         if (hqLocation == null) {
             return false;
+        }
+        if (Cache.MY_LOCATION.isAdjacentTo(hqLocation)) {
+            if (getWeight() == 0) { // we might as well wait a turn to transfer what's there
+                return false;
+            }
+        } else {
+            if (capacityLeft() > 0) {
+                return false;
+            }
         }
         Util.tryPathfindingMoveAdjacent(hqLocation);
         Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, hqLocation, 255, 255, 0); // yellow
