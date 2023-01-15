@@ -268,6 +268,17 @@ public class Util {
         return count;
     }
 
+    public static int numAllyAttackersWithin(MapLocation location, int distanceSquared) {
+        int count = 0;
+        for (int i = Cache.ALLY_ROBOTS.length; --i >= 0; ) {
+            RobotInfo robot = Cache.ALLY_ROBOTS[i];
+            if (Util.isAttacker(robot.type) && robot.location.isWithinDistanceSquared(location, distanceSquared)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     public static <T> void shuffle(T[] array) {
         for (int i = array.length; --i >= 0; ) {
             int index = (int) (Math.random() * i);

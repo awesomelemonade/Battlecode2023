@@ -78,6 +78,9 @@ public class Carrier implements RunnableBot {
         if (tryPlaceAnchorOnIsland()) {
             return;
         }
+        if (tryAttack()) {
+            return;
+        }
         if (tryCollectResource()) {
             return;
         }
@@ -122,6 +125,81 @@ public class Carrier implements RunnableBot {
         if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y - 2)); }
         if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y + 2)); }
         if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y + 2)); }
+    }
+
+    public static boolean willDie() {
+        // look at enemy launchers, add up damage, and see if it equals or exceeds our health
+        int totalDamage = 0;
+        for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
+            RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
+            if (enemy.type == RobotType.LAUNCHER) {
+                totalDamage += RobotType.LAUNCHER.damage;
+            }
+        }
+        if (totalDamage < rc.getHealth()) {
+            return false;
+        }
+        if (Cache.ALLY_ROBOTS.length >= 20
+                || Util.numAllyAttackersWithin(Cache.MY_LOCATION, RobotType.CARRIER.visionRadiusSquared) >= 5) {
+            // we probably won't die with this many allies
+            return false;
+        }
+        return true;
+    }
+
+    public static MapLocation getImmediateAttackTarget() {
+        double bestScore = Integer.MIN_VALUE;
+        MapLocation bestEnemyLocation = null;
+        for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
+            RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
+            if (!Util.isAttacker(enemy.type)) {
+                continue;
+            }
+            MapLocation enemyLocation = enemy.location;
+            if (!rc.canAttack(enemy.location)) {
+                continue;
+            }
+            double score = getImmediateAttackScore(enemy);
+            if (score > bestScore) {
+                bestScore = score;
+                bestEnemyLocation = enemyLocation;
+            }
+        }
+        return bestEnemyLocation;
+    }
+
+    public static double getImmediateAttackScore(RobotInfo enemy) {
+        int health = enemy.health;
+        int attacksForLaunchersToKill = ((health - (getWeight() / 5)) + RobotType.LAUNCHER.damage - 1) / RobotType.LAUNCHER.damage;
+
+        // prioritize launchers vs destabilizers, then attacksForLaunchToKill, then health
+        double score = 0;
+        if (enemy.type == RobotType.LAUNCHER) {
+            score += 1000000;
+        }
+        score -= attacksForLaunchersToKill * 1000;
+        score -= health;
+
+        return score;
+    }
+
+    public static boolean tryAttack() {
+        if (willDie() && rc.getWeight() >= 5) { // weight >= 5 is at least 1 damage
+            MapLocation target = getImmediateAttackTarget();
+            if (target != null) {
+                if (rc.canAttack(target)) {
+                    try {
+                        rc.attack(target);
+                        return true;
+                    } catch (GameActionException ex) {
+                        Debug.failFast(ex);
+                    }
+                } else {
+                    Debug.failFast("Cannot attack immediate target?");
+                }
+            }
+        }
+        return false;
     }
 
     public static boolean tryMoveToWell() {

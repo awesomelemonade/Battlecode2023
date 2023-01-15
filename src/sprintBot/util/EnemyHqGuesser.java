@@ -77,10 +77,13 @@ public class EnemyHqGuesser {
 
         // write to communication
         if (rc.canWriteSharedArray(0, 0)) {
-            try {
-                rc.writeSharedArray(Communication.ENEMY_HQ_GUESSER_OFFSET, invalidations | invalidationsPending);
-            } catch (GameActionException ex) {
-                Debug.failFast(ex);
+            int write = invalidations | invalidationsPending;
+            if (invalidations != write) {
+                try {
+                    rc.writeSharedArray(Communication.ENEMY_HQ_GUESSER_OFFSET, invalidations | invalidationsPending);
+                } catch (GameActionException ex) {
+                    Debug.failFast(ex);
+                }
             }
         }
     }
