@@ -86,49 +86,137 @@ public class Carrier implements RunnableBot {
         }
     }
 
+    @Override
+    public void postLoop() throws GameActionException {
+        // if we have bytecodes, just precalculate stuff
+        int x = Cache.MY_LOCATION.x;
+        int y = Cache.MY_LOCATION.y;
+        // each one takes ~250 bytecodes approximately
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 0, y + 0)); }
+        // ordinal directions
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 1, y + 0)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 0, y + 1)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 1, y + 0)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 0, y - 1)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 1, y + 1)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 1, y - 1)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 1, y - 1)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 1, y + 1)); }
+        // squares 2 away
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y + 0)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y + 0)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 0, y - 2)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 0, y + 2)); }
+
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y + 1)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y + 1)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 1, y - 2)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 1, y + 2)); }
+
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y - 1)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y - 1)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 1, y - 2)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 1, y + 2)); }
+
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y - 2)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y - 2)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y + 2)); }
+        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y + 2)); }
+    }
+
     public static boolean tryMoveToWell() {
         if (capacityLeft() <= 0) {
             return false;
         }
-        WellInfo well = getWell();
-        if (well == null) {
-            // go to commed well?
-            // look for well
-//                ResourceType targetResource = Communication.CarrierTask.getMineResourceType(currentTask);
-//                WellInfo well = targetResource == null ? getClosestWell() : getClosestWell(targetResource);
-//                    // go to commed well
-//                    MapLocation commedWell = targetResource == null ? WellTracker.getClosestKnownWell() : WellTracker.getClosestKnownWell(targetResource);
-//                    if (commedWell != null) {
-//                        Util.tryPathfindingMove(commedWell);
-//                    }
-            return false;
-        } else {
-            MapLocation wellLocation = well.getMapLocation();
-            if (!Cache.MY_LOCATION.isAdjacentTo(wellLocation)) {
-                if (Util.numAllyRobotsWithin(wellLocation, 5) >= 12) {
+        // go to commed well?
+        // look for well
+        ResourceType targetResource = Communication.CarrierTask.getMineResourceType(currentTask);
+//        WellInfo well = targetResource == null ? getClosestWell() : getClosestWell(targetResource);
+        // go to commed well
+        MapLocation commedWell = targetResource == null ?
+                WellTracker.getClosestKnownWell(location -> !blacklist.contains(location)) :
+                WellTracker.getClosestKnownWell(targetResource, location -> !blacklist.contains(location));
+        if (commedWell != null) {
+            if (!Cache.MY_LOCATION.isAdjacentTo(commedWell)) {
+                if (Util.numAllyRobotsWithin(commedWell, 5) >= 12) {
                     // blacklist from future
-                    blacklist.add(wellLocation);
+                    blacklist.add(commedWell);
                 }
             }
-            Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, wellLocation, 0, 128, 0); // dark green
-            // move towards well
-            Util.tryPathfindingMoveAdjacent(well.getMapLocation());
+            Util.tryPathfindingMoveAdjacent(commedWell);
             return true;
         }
+        return false;
+//        WellInfo well = getWell();
+//        if (well == null) {
+//            return false;
+//        } else {
+//            MapLocation wellLocation = well.getMapLocation();
+//            if (!Cache.MY_LOCATION.isAdjacentTo(wellLocation)) {
+//                if (Util.numAllyRobotsWithin(wellLocation, 5) >= 12) {
+//                    // blacklist from future
+//                    blacklist.add(wellLocation);
+//                }
+//            }
+//            Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, wellLocation, 0, 128, 0); // dark green
+//            // move towards well
+//            Util.tryPathfindingMoveAdjacent(well.getMapLocation());
+//            return true;
+//        }
+    }
+
+    // bigger score = better
+    public static double getImmediateWellMiningScore(WellInfo well) {
+        ResourceType wellResourceType = well.getResourceType();
+        double score = 0;
+        // prefer the resource given by the task
+        if (currentTask != null && Communication.CarrierTask.getMineResourceType(currentTask) == wellResourceType) {
+            score += 1000000;
+        }
+        // prefer the resource you already have
+        score += rc.getResourceAmount(wellResourceType) * 1000;
+        // prefer adamantium > mana > elixir
+        switch (wellResourceType) {
+            case ADAMANTIUM:
+                score += 3;
+                break;
+            case MANA:
+                score += 2;
+                break;
+            case ELIXIR:
+                score += 1;
+                break;
+            default:
+                Debug.failFast("Unknown well resource type: " + wellResourceType);
+        }
+        return score;
     }
 
     public static boolean tryCollectResource() {
         if (capacityLeft() <= 0) {
             return false;
         }
-        // try mine
-        WellInfo well = getWell();
-        if (well != null) {
-            MapLocation wellLocation = well.getMapLocation();
-            if (Cache.MY_LOCATION.isAdjacentTo(wellLocation)) {
-                tryCollectResource(wellLocation, Math.min(well.getRate(), capacityLeft()));
+        try {
+            // only look at wells adjacent to you
+            WellInfo[] adjacentWells = rc.senseNearbyWells(2);
+            // get best well
+            double bestScore = -Double.MAX_VALUE;
+            WellInfo bestWell = null;
+            for (int i = adjacentWells.length; --i >= 0; ) {
+                WellInfo well = adjacentWells[i];
+                double score = getImmediateWellMiningScore(well);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestWell = well;
+                }
+            }
+            if (bestWell != null) {
+                MapLocation wellLocation = bestWell.getMapLocation();
+                tryCollectResource(wellLocation, Math.min(bestWell.getRate(), capacityLeft()));
                 return true;
             }
+        } catch (GameActionException ex) {
+            Debug.failFast(ex);
         }
         return false;
     }
@@ -295,7 +383,7 @@ public class Carrier implements RunnableBot {
 
     public static boolean tryMoveToTransferResourceToHQ() {
         try {
-            if (capacityLeft() > 0 || rc.getAnchor() != null) {
+            if (rc.getAnchor() != null) {
                 return false;
             }
         } catch (GameActionException ex) {
@@ -304,6 +392,15 @@ public class Carrier implements RunnableBot {
         MapLocation hqLocation = Util.getClosestAllyHeadquartersLocation(); // TODO: choose safe HQ?
         if (hqLocation == null) {
             return false;
+        }
+        if (Cache.MY_LOCATION.isAdjacentTo(hqLocation)) {
+            if (getWeight() == 0) { // we might as well wait a turn to transfer what's there
+                return false;
+            }
+        } else {
+            if (capacityLeft() > 0) {
+                return false;
+            }
         }
         Util.tryPathfindingMoveAdjacent(hqLocation);
         Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, hqLocation, 255, 255, 0); // yellow

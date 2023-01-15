@@ -29,7 +29,7 @@ public class Launcher implements RunnableBot {
     }
 
     @Override
-    public void action() {
+    public void action() throws GameActionException {
         if (!rc.isActionReady()) {
             return;
         }
@@ -38,9 +38,56 @@ public class Launcher implements RunnableBot {
             MapLocation enemyLocation = enemy.location;
             tryAttack(enemyLocation);
         }
+        tryAttackCloud();
     }
 
-    public RobotInfo getBestImmediateAttackTarget() {
+    public static void tryAttackCloud() throws GameActionException {
+        if (!rc.isActionReady()) {
+            return;
+        }
+        int x = Cache.MY_LOCATION.x;
+        int y = Cache.MY_LOCATION.y;
+        do {
+            if (rc.canAttack(new MapLocation(x + 4, y + 0))) {rc.attack(new MapLocation(x + 4, y + 0));break;}
+            if (rc.canAttack(new MapLocation(x + 0, y + 4))) {rc.attack(new MapLocation(x + 0, y + 4));break;}
+            if (rc.canAttack(new MapLocation(x + 0, y + -4))) {rc.attack(new MapLocation(x + 0, y + -4));break;}
+            if (rc.canAttack(new MapLocation(x + -4, y + 0))) {rc.attack(new MapLocation(x + -4, y + 0));break;}
+            if (rc.canAttack(new MapLocation(x + 3, y + 2))) {rc.attack(new MapLocation(x + 3, y + 2));break;}
+            if (rc.canAttack(new MapLocation(x + 3, y + -2))) {rc.attack(new MapLocation(x + 3, y + -2));break;}
+            if (rc.canAttack(new MapLocation(x + 2, y + 3))) {rc.attack(new MapLocation(x + 2, y + 3));break;}
+            if (rc.canAttack(new MapLocation(x + 2, y + -3))) {rc.attack(new MapLocation(x + 2, y + -3));break;}
+            if (rc.canAttack(new MapLocation(x + -2, y + 3))) {rc.attack(new MapLocation(x + -2, y + 3));break;}
+            if (rc.canAttack(new MapLocation(x + -2, y + -3))) {rc.attack(new MapLocation(x + -2, y + -3));break;}
+            if (rc.canAttack(new MapLocation(x + -3, y + 2))) {rc.attack(new MapLocation(x + -3, y + 2));break;}
+            if (rc.canAttack(new MapLocation(x + -3, y + -2))) {rc.attack(new MapLocation(x + -3, y + -2));break;}
+            if (rc.canAttack(new MapLocation(x + 3, y + 1))) {rc.attack(new MapLocation(x + 3, y + 1));break;}
+            if (rc.canAttack(new MapLocation(x + 3, y + -1))) {rc.attack(new MapLocation(x + 3, y + -1));break;}
+            if (rc.canAttack(new MapLocation(x + 1, y + 3))) {rc.attack(new MapLocation(x + 1, y + 3));break;}
+            if (rc.canAttack(new MapLocation(x + 1, y + -3))) {rc.attack(new MapLocation(x + 1, y + -3));break;}
+            if (rc.canAttack(new MapLocation(x + -1, y + 3))) {rc.attack(new MapLocation(x + -1, y + 3));break;}
+            if (rc.canAttack(new MapLocation(x + -1, y + -3))) {rc.attack(new MapLocation(x + -1, y + -3));break;}
+            if (rc.canAttack(new MapLocation(x + -3, y + 1))) {rc.attack(new MapLocation(x + -3, y + 1));break;}
+            if (rc.canAttack(new MapLocation(x + -3, y + -1))) {rc.attack(new MapLocation(x + -3, y + -1));break;}
+            if (rc.canAttack(new MapLocation(x + 3, y + 0))) {rc.attack(new MapLocation(x + 3, y + 0));break;}
+            if (rc.canAttack(new MapLocation(x + 0, y + 3))) {rc.attack(new MapLocation(x + 0, y + 3));break;}
+            if (rc.canAttack(new MapLocation(x + 0, y + -3))) {rc.attack(new MapLocation(x + 0, y + -3));break;}
+            if (rc.canAttack(new MapLocation(x + -3, y + 0))) {rc.attack(new MapLocation(x + -3, y + 0));break;}
+            if (rc.canAttack(new MapLocation(x + 2, y + 2))) {rc.attack(new MapLocation(x + 2, y + 2));break;}
+            if (rc.canAttack(new MapLocation(x + 2, y + -2))) {rc.attack(new MapLocation(x + 2, y + -2));break;}
+            if (rc.canAttack(new MapLocation(x + -2, y + 2))) {rc.attack(new MapLocation(x + -2, y + 2));break;}
+            if (rc.canAttack(new MapLocation(x + -2, y + -2))) {rc.attack(new MapLocation(x + -2, y + -2));break;}
+            if (rc.canAttack(new MapLocation(x + 2, y + 1))) {rc.attack(new MapLocation(x + 2, y + 1));break;}
+            if (rc.canAttack(new MapLocation(x + 2, y + -1))) {rc.attack(new MapLocation(x + 2, y + -1));break;}
+            if (rc.canAttack(new MapLocation(x + 1, y + 2))) {rc.attack(new MapLocation(x + 1, y + 2));break;}
+            if (rc.canAttack(new MapLocation(x + 1, y + -2))) {rc.attack(new MapLocation(x + 1, y + -2));break;}
+            if (rc.canAttack(new MapLocation(x + -1, y + 2))) {rc.attack(new MapLocation(x + -1, y + 2));break;}
+            if (rc.canAttack(new MapLocation(x + -1, y + -2))) {rc.attack(new MapLocation(x + -1, y + -2));break;}
+            if (rc.canAttack(new MapLocation(x + -2, y + 1))) {rc.attack(new MapLocation(x + -2, y + 1));break;}
+            if (rc.canAttack(new MapLocation(x + -2, y + -1))) {rc.attack(new MapLocation(x + -2, y + -1));break;}
+        } while (false);
+    }
+
+    public static RobotInfo getBestImmediateAttackTarget() {
         RobotInfo bestEnemy = null;
         double bestScore = -Double.MAX_VALUE;
         for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
@@ -58,7 +105,7 @@ public class Launcher implements RunnableBot {
         return bestEnemy;
     }
 
-    public double getImmediateAttackScore(RobotInfo robot) {
+    public static double getImmediateAttackScore(RobotInfo robot) {
         // TODO: replace current behavior with this
         // out of robots we can kill:
         // score these and shoot the best

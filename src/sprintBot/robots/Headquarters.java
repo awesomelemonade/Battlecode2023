@@ -47,7 +47,12 @@ public class Headquarters implements RunnableBot {
         if (numAnchors > 0) {
             return Communication.CarrierTaskType.PICKUP_ANCHOR.id();
         }
-        return Communication.CarrierTaskType.NONE.id(); // No Task
+        if (Math.random() < 0.5) {
+            return Communication.CarrierTaskType.MINE_ADAMANTIUM.id();
+        } else {
+            return Communication.CarrierTaskType.MINE_MANA.id();
+        }
+//        return Communication.CarrierTaskType.NONE.id(); // No Task
 //        if (Cache.ENEMY_ROBOTS.length > 0) {
 //            return Communication.CarrierTaskType.MINE_MANA.id();
 //        }
@@ -118,6 +123,10 @@ public class Headquarters implements RunnableBot {
                         task = newTask;
                         carrierTasks.set(robotIndex, newTask);
                     }
+//                    int[] r = new int[] {255, 255, 255, 0, 0, 0};
+//                    int[] g = new int[] {0, 128, 255, 255, 255, 0};
+//                    int[] b = new int[] {0, 0, 0, 0, 255, 255};
+//                    Debug.setIndicatorDot(ally.location, r[task], g[task], b[task]);
                     Communication.addTask(ally.location, task);
                     assignedCount++;
                     if (assignedCount >= Communication.MAX_CARRIER_COMMED_TASKS / numHeadquarters + 1) {
@@ -204,7 +213,7 @@ public class Headquarters implements RunnableBot {
         if (Cache.ALLY_ROBOTS.length == 0 && LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> Util.isAttacker(r.type))) {
             return false;
         }
-        MapLocation wellLocation = WellTracker.getClosestKnownWell();
+        MapLocation wellLocation = WellTracker.getClosestKnownWell(location -> true);
         return tryBuildByScore(RobotType.CARRIER, location -> {
             // we want to be as close to a well as possible
             // heuristic: just use the closest well

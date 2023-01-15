@@ -3,6 +3,7 @@ package sprintBot.util;
 import battlecode.common.*;
 
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import static sprintBot.util.Constants.rc;
 
@@ -40,17 +41,19 @@ public class WellTracker {
         }
     }
 
-    public static MapLocation getClosestKnownWell() {
+    public static MapLocation getClosestKnownWell(Predicate<MapLocation> predicate) {
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MAX_VALUE;
         // look at wells in our vision radius
         WellInfo[] visionWells = rc.senseNearbyWells();
         for (int i = visionWells.length; --i >= 0; ) {
             MapLocation location = visionWells[i].getMapLocation();
-            int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
-            if (distanceSquared < bestDistanceSquared) {
-                bestDistanceSquared = distanceSquared;
-                bestLocation = location;
+            if (predicate.test(location)) {
+                int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
+                if (distanceSquared < bestDistanceSquared) {
+                    bestDistanceSquared = distanceSquared;
+                    bestLocation = location;
+                }
             }
         }
         for (int i = NUM_WELLS_TRACKED; --i >= 0; ) {
@@ -58,7 +61,7 @@ public class WellTracker {
                 continue;
             }
             MapLocation known = knownWells[i];
-            if (known != null) {
+            if (known != null && predicate.test(known)) {
                 int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(known);
                 if (distanceSquared < bestDistanceSquared) {
                     bestDistanceSquared = distanceSquared;
@@ -66,28 +69,30 @@ public class WellTracker {
                 }
             }
             MapLocation pending = pendingWells[i];
-            if (pending != null) {
+            if (pending != null && predicate.test(pending)) {
                 int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(pending);
                 if (distanceSquared < bestDistanceSquared) {
                     bestDistanceSquared = distanceSquared;
-                    bestLocation = known;
+                    bestLocation = pending;
                 }
             }
         }
         return bestLocation;
     }
 
-    public static MapLocation getClosestKnownWell(ResourceType type) {
+    public static MapLocation getClosestKnownWell(ResourceType type, Predicate<MapLocation> predicate) {
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MAX_VALUE;
         // look at wells in our vision radius
         WellInfo[] visionWells = rc.senseNearbyWells(type);
         for (int i = visionWells.length; --i >= 0; ) {
             MapLocation location = visionWells[i].getMapLocation();
-            int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
-            if (distanceSquared < bestDistanceSquared) {
-                bestDistanceSquared = distanceSquared;
-                bestLocation = location;
+            if (predicate.test(location)) {
+                int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
+                if (distanceSquared < bestDistanceSquared) {
+                    bestDistanceSquared = distanceSquared;
+                    bestLocation = location;
+                }
             }
         }
         if (bestLocation == null) {
@@ -98,7 +103,7 @@ public class WellTracker {
                     continue;
                 }
                 MapLocation known = knownWells[i];
-                if (known != null) {
+                if (known != null && predicate.test(known)) {
                     int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(known);
                     if (distanceSquared < bestDistanceSquared) {
                         bestDistanceSquared = distanceSquared;
@@ -106,11 +111,11 @@ public class WellTracker {
                     }
                 }
                 MapLocation pending = pendingWells[i];
-                if (pending != null) {
+                if (pending != null && predicate.test(pending)) {
                     int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(pending);
                     if (distanceSquared < bestDistanceSquared) {
                         bestDistanceSquared = distanceSquared;
-                        bestLocation = known;
+                        bestLocation = pending;
                     }
                 }
             }
@@ -157,7 +162,7 @@ public class WellTracker {
         if (Communication.headquartersLocations == null) {
             return;
         }
-        if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS) {
+        {
             // update lastHqIndex
             int bestIndex = -1;
             int bestDistanceSquared = RobotType.HEADQUARTERS.actionRadiusSquared + 1; // add 1 for inclusive
@@ -183,9 +188,16 @@ public class WellTracker {
             manaWells = new WellInfo[0];
             elixirWells = new WellInfo[0];
         } else {
-            adamantiumWells = rc.senseNearbyWells(2, ResourceType.ADAMANTIUM);
-            manaWells = rc.senseNearbyWells(2, ResourceType.MANA);
-            elixirWells = rc.senseNearbyWells(2, ResourceType.ELIXIR);
+            if (Constants.ROBOT_TYPE == RobotType.CARRIER) {
+                adamantiumWells = rc.senseNearbyWells(2, ResourceType.ADAMANTIUM);
+                manaWells = rc.senseNearbyWells(2, ResourceType.MANA);
+                elixirWells = rc.senseNearbyWells(2, ResourceType.ELIXIR);
+            } else {
+                adamantiumWells = Cache.ADAMANTIUM_WELLS;
+                manaWells = Cache.ADAMANTIUM_WELLS;
+                elixirWells = Cache.ADAMANTIUM_WELLS;
+                // TODO: we want to be careful to not include wells that are not accessible from lastHqIndex
+            }
         }
 
         for (int i = NUM_WELLS_TRACKED; --i >= 0; ) {

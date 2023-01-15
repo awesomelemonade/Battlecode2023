@@ -48,9 +48,9 @@ public class RobotPlayer {
                     if (!Util.isBuilding(Constants.ROBOT_TYPE)) {
                         tryMultiMove(controller, bot);
                     }
+                    Util.postLoop();
                     bot.postLoop();
 
-                    Util.postLoop();
                     if (controller.getRoundNum() != currentTurn) {
                         overBytecodes = true;
                         // We ran out of bytecodes!

@@ -16,13 +16,21 @@ public class MapCache {
         hasAdjacentUnpassable = new FastBooleanArray2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
     }
 
+    private static boolean becauseOfCloud = false; // ugly hack
+
     public static boolean isPassable(MapLocation location) {
         try {
             if (rc.canSenseLocation(location)) {
                 return rc.sensePassability(location);
             } else {
-                // we're either at the border of because of cloud
-                return false; // assume false
+                if (Util.onTheMap(location)) {
+                    // locations outside of map are not passable
+                    return false;
+                } else {
+                    becauseOfCloud = true;
+                    // because of cloud
+                    return false; // assume false
+                }
             }
         } catch (GameActionException ex) {
             Debug.failFast(ex);
@@ -30,24 +38,33 @@ public class MapCache {
         return false;
     }
 
+    public static void precalculate(MapLocation location) {
+        if (Util.onTheMap(location)) {
+            hasAdjacentUnpassable(location);
+        }
+    }
+
     public static boolean hasAdjacentUnpassable(MapLocation location) {
         // see if stored in cache
         if (cached.get(location)) {
             return hasAdjacentUnpassable.get(location);
         }
-        boolean hasAdjacentUnpassable = false;
-        for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
-            Direction direction = Constants.ORDINAL_DIRECTIONS[i];
-            MapLocation adjacentLocation = location.add(direction);
-            if (!isPassable(adjacentLocation)) {
-                hasAdjacentUnpassable = true;
-                break;
+        // save bytecodes!!!
+        becauseOfCloud = false;
+        boolean hasAdjacentUnpassable = !(isPassable(location.add(Direction.NORTH))
+                && isPassable(location.add(Direction.SOUTH))
+                && isPassable(location.add(Direction.WEST))
+                && isPassable(location.add(Direction.EAST))
+                && isPassable(location.add(Direction.NORTHEAST))
+                && isPassable(location.add(Direction.NORTHWEST))
+                && isPassable(location.add(Direction.SOUTHEAST))
+                && isPassable(location.add(Direction.SOUTHWEST)));
+        if (!becauseOfCloud) {
+            if (hasAdjacentUnpassable) {
+                MapCache.hasAdjacentUnpassable.setTrue(location);
             }
+            cached.setTrue(location);
         }
-        if (hasAdjacentUnpassable) {
-            MapCache.hasAdjacentUnpassable.setTrue(location);
-        }
-        cached.setTrue(location);
         return hasAdjacentUnpassable;
     }
 }

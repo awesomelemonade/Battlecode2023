@@ -122,6 +122,10 @@ public class Communication {
                 if (hqLocation != null) {
                     // read offset
                     int offset = (message >> CARRIER_TASK_POSITION_BIT_OFFSET) & CARRIER_TASK_POSITION_BIT_MASK;
+                    if (offset == 0) {
+                        // not possible
+                        continue;
+                    }
                     int offsetX = (offset / 9) - 4;
                     int offsetY = (offset % 9) - 4;
                     MapLocation referencedLocation = hqLocation.translate(offsetX, offsetY);
