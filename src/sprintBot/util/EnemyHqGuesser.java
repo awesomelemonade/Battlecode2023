@@ -6,11 +6,11 @@ import battlecode.common.RobotInfo;
 import battlecode.common.RobotType;
 
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 import static sprintBot.util.Constants.rc;
 
 public class EnemyHqGuesser {
+    private static final int NUM_POSSIBLE_SYMMETRIES = 3;
     private static boolean initialized = false;
     private static MapLocation[] predictions;
     private static int invalidations; // commed invalidations - bit field
@@ -19,7 +19,7 @@ public class EnemyHqGuesser {
     public static void generateHQGuessList() {
         MapLocation[] hqLocations = Communication.headquartersLocations;
         int numHqLocations = hqLocations.length;
-        predictions = new MapLocation[3 * numHqLocations];
+        predictions = new MapLocation[NUM_POSSIBLE_SYMMETRIES * numHqLocations];
 
         for (int i = hqLocations.length; --i >= 0; ) {
             guessEnemyArchonLocations(hqLocations[i], i);
@@ -32,9 +32,9 @@ public class EnemyHqGuesser {
         int y = location.y;
         int symX = Constants.MAP_WIDTH - x - 1;
         int symY = Constants.MAP_HEIGHT - y - 1;
-        predictions[hqIndex * 3] = new MapLocation(x, symY);
-        predictions[hqIndex * 3 + 1] = new MapLocation(symX, y);
-        predictions[hqIndex * 3 + 2] = new MapLocation(symX, symY);
+        predictions[hqIndex * NUM_POSSIBLE_SYMMETRIES] = new MapLocation(x, symY);
+        predictions[hqIndex * NUM_POSSIBLE_SYMMETRIES + 1] = new MapLocation(symX, y);
+        predictions[hqIndex * NUM_POSSIBLE_SYMMETRIES + 2] = new MapLocation(symX, symY);
     }
 
     public static void invalidatePending(int index) {
@@ -43,6 +43,27 @@ public class EnemyHqGuesser {
 
     public static boolean invalidated(int index) {
         return ((invalidations | invalidationsPending) & (1 << index)) != 0;
+    }
+
+    // symmetry = 0, 1, 2; representing index % 3
+    public static boolean isSymmetryPossible(int symmetry) {
+        for (int i = symmetry; i < predictions.length; i += NUM_POSSIBLE_SYMMETRIES) {
+            if (invalidated(i)) {
+                return false;
+            }
+        }
+        // look at all known enemy hq, see if all the known and pending enemy HQ locations exists in symmetry
+        return EnemyHqTracker.allKnownAndPending(location -> existsInSymmetry(location, symmetry));
+    }
+
+    public static boolean existsInSymmetry(MapLocation location, int symmetry) {
+        for (int i = symmetry; i < predictions.length; i += NUM_POSSIBLE_SYMMETRIES) {
+            MapLocation prediction = predictions[i];
+            if (location.equals(prediction)) {
+                return true;
+            }
+        }
+        return true;
     }
 
     public static void update() {
@@ -71,6 +92,28 @@ public class EnemyHqGuesser {
                     }
                 } catch (GameActionException ex) {
                     Debug.failFast(ex);
+                }
+            }
+        }
+
+        // eliminate symmetries - but don't do this in carriers to save bytecodes
+        if (Constants.ROBOT_TYPE != RobotType.CARRIER) {
+            int possibleSymmetry = -1;
+            int numPossibleSymmetries = 0;
+            for (int i = NUM_POSSIBLE_SYMMETRIES; --i >= 0; ) {
+                if (isSymmetryPossible(i)) {
+                    possibleSymmetry = i;
+                    numPossibleSymmetries++;
+                } else {
+                    for (int j = i; j < predictions.length; j += NUM_POSSIBLE_SYMMETRIES) {
+                        invalidatePending(j);
+                    }
+                }
+            }
+            // check if only one symmetry is possible
+            if (numPossibleSymmetries == 1) {
+                for (int j = possibleSymmetry; j < predictions.length; j += NUM_POSSIBLE_SYMMETRIES) {
+                    EnemyHqTracker.markKnownEnemyHQ(predictions[j]);
                 }
             }
         }
