@@ -162,7 +162,7 @@ public class WellTracker {
         if (Communication.headquartersLocations == null) {
             return;
         }
-        if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS) {
+        {
             // update lastHqIndex
             int bestIndex = -1;
             int bestDistanceSquared = RobotType.HEADQUARTERS.actionRadiusSquared + 1; // add 1 for inclusive
@@ -188,9 +188,16 @@ public class WellTracker {
             manaWells = new WellInfo[0];
             elixirWells = new WellInfo[0];
         } else {
-            adamantiumWells = rc.senseNearbyWells(2, ResourceType.ADAMANTIUM);
-            manaWells = rc.senseNearbyWells(2, ResourceType.MANA);
-            elixirWells = rc.senseNearbyWells(2, ResourceType.ELIXIR);
+            if (Constants.ROBOT_TYPE == RobotType.CARRIER) {
+                adamantiumWells = rc.senseNearbyWells(2, ResourceType.ADAMANTIUM);
+                manaWells = rc.senseNearbyWells(2, ResourceType.MANA);
+                elixirWells = rc.senseNearbyWells(2, ResourceType.ELIXIR);
+            } else {
+                adamantiumWells = Cache.ADAMANTIUM_WELLS;
+                manaWells = Cache.ADAMANTIUM_WELLS;
+                elixirWells = Cache.ADAMANTIUM_WELLS;
+                // TODO: we want to be careful to not include wells that are not accessible from lastHqIndex
+            }
         }
 
         for (int i = NUM_WELLS_TRACKED; --i >= 0; ) {
