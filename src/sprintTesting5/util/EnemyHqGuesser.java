@@ -6,6 +6,7 @@ import battlecode.common.RobotInfo;
 import battlecode.common.RobotType;
 
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import static sprintTesting5.util.Constants.rc;
 
@@ -17,7 +18,13 @@ public class EnemyHqGuesser {
     private static int invalidationsPending; // bit field
 
     public static void generateHQGuessList() {
+        if (initialized) {
+            return;
+        }
         MapLocation[] hqLocations = Communication.headquartersLocations;
+        if (hqLocations == null) {
+            return;
+        }
         int numHqLocations = hqLocations.length;
         predictions = new MapLocation[NUM_POSSIBLE_SYMMETRIES * numHqLocations];
 
@@ -67,6 +74,11 @@ public class EnemyHqGuesser {
     }
 
     public static void update() {
+        if (Constants.ROBOT_TYPE == RobotType.CARRIER && Cache.TURN_COUNT == 1) {
+            // save bytecodes
+            return;
+        }
+        generateHQGuessList();
         if (!initialized) {
             return;
         }
@@ -131,32 +143,42 @@ public class EnemyHqGuesser {
         }
     }
 
-    public static MapLocation getClosest() {
+    public static MapLocation getClosest(Predicate<MapLocation> predicate) {
+        if (!initialized) {
+            return null;
+        }
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MAX_VALUE;
         for (int i = predictions.length; --i >= 0; ) {
             if (!invalidated(i)) {
                 MapLocation location = predictions[i];
-                int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
-                if (distanceSquared < bestDistanceSquared) {
-                    bestDistanceSquared = distanceSquared;
-                    bestLocation = location;
+                if (predicate.test(location)) {
+                    int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
+                    if (distanceSquared < bestDistanceSquared) {
+                        bestDistanceSquared = distanceSquared;
+                        bestLocation = location;
+                    }
                 }
             }
         }
         return bestLocation;
     }
 
-    public static MapLocation getFarthest(MapLocation from) {
+    public static MapLocation getFarthest(MapLocation from, Predicate<MapLocation> predicate) {
+        if (!initialized) {
+            return null;
+        }
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MIN_VALUE;
         for (int i = predictions.length; --i >= 0; ) {
             if (!invalidated(i)) {
                 MapLocation location = predictions[i];
-                int distanceSquared = from.distanceSquaredTo(location);
-                if (distanceSquared > bestDistanceSquared) {
-                    bestDistanceSquared = distanceSquared;
-                    bestLocation = location;
+                if (predicate.test(location)) {
+                    int distanceSquared = from.distanceSquaredTo(location);
+                    if (distanceSquared > bestDistanceSquared) {
+                        bestDistanceSquared = distanceSquared;
+                        bestLocation = location;
+                    }
                 }
             }
         }

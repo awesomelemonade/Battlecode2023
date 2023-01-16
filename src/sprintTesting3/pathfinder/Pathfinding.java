@@ -4,8 +4,6 @@ import battlecode.common.*;
 import sprintTesting3.fast.FastIntCounter2D;
 import sprintTesting3.util.*;
 
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.function.Predicate;
 
 import sprintTesting3.fast.FastSort;
@@ -43,7 +41,14 @@ public class Pathfinding {
 //		}
 		return executeNoReset(target);
 	}
-	public static boolean executeNoReset(MapLocation target) {
+	public static boolean executeResetIfNotAdjacent(MapLocation target) {
+		if (lastTarget == null || !lastTarget.isAdjacentTo(target)) {
+			visitedSet.reset();
+		}
+		lastTarget = target;
+		return executeNoReset(target);
+	}
+	private static boolean executeNoReset(MapLocation target) {
 		MapLocation currentLocation = Cache.MY_LOCATION;
 		Debug.setIndicatorLine(Profile.PATHFINDING, currentLocation, target, 0, 0, 255);
 		if (!rc.isMovementReady()) {
@@ -71,9 +76,19 @@ public class Pathfinding {
 			}
 		}
 		// We stuck bois - let's look for the lowest non-negative
+		boolean hasNoMove = true;
 		for (int i = counters.length; --i >= 0;) {
-			MapLocation location = currentLocation.add(directions[i]);
-			counters[i] = Util.onTheMap(location) ? visitedSet.get(location.x, location.y) : Integer.MAX_VALUE;
+			Direction direction = directions[i];
+			if (rc.canMove(direction)) {
+				MapLocation location = currentLocation.add(direction);
+				counters[i] = visitedSet.get(location.x, location.y);
+				hasNoMove = false;
+			} else {
+				counters[i] = Integer.MAX_VALUE;
+			}
+		}
+		if (hasNoMove) {
+			return false;
 		}
 		int[] indices = FastSort.sort(counters);
 		for (int i = 0; i < indices.length; i++) {

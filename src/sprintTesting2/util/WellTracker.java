@@ -194,8 +194,8 @@ public class WellTracker {
                 elixirWells = rc.senseNearbyWells(2, ResourceType.ELIXIR);
             } else {
                 adamantiumWells = Cache.ADAMANTIUM_WELLS;
-                manaWells = Cache.ADAMANTIUM_WELLS;
-                elixirWells = Cache.ADAMANTIUM_WELLS;
+                manaWells = Cache.MANA_WELLS;
+                elixirWells = Cache.ELIXIR_WELLS;
                 // TODO: we want to be careful to not include wells that are not accessible from lastHqIndex
             }
         }

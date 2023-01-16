@@ -2,6 +2,7 @@ package sprintTesting2.robots;
 
 import battlecode.common.*;
 import sprintTesting2.fast.FastIntSet2D;
+import sprintTesting2.pathfinder.Pathfinding;
 import sprintTesting2.util.*;
 
 import java.util.function.ToDoubleFunction;
@@ -143,14 +144,34 @@ public class Launcher implements RunnableBot {
         if (location == null) {
             Util.tryExplore();
         } else {
+//            if (notGettingCloser && Cache.ALLY_ROBOTS.length >= 5) {
+//                blacklist.add(location.x, location.y);
+//            }
             // check if hq already has tons of ally units nearby
-            if (Util.numAllyAttackersWithin(location, 20) >= 10) {
+            int numAllyAttackers = Util.numAllyAttackersWithin(location, 20);
+            if (numAllyAttackers >= 10) {
                 blacklist.add(location.x, location.y);
             }
-            // TODO - try to circle around it?
-            Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, location, 0, 0, 0); // black
-            Util.tryPathfindingMove(location);
+            if (Profile.ATTACKING.enabled()) {
+                Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, location, 0, 0, 0); // black
+                Debug.setIndicatorString(Profile.ATTACKING, "Num: " + numAllyAttackers);
+            }
+            if (Cache.MY_LOCATION.isWithinDistanceSquared(location, 16)) {
+                // try to circle around it
+                tryPathfindingTangent(location);
+            } else {
+                Util.tryPathfindingMove(location);
+            }
         }
+    }
+
+    public static boolean tryPathfindingTangent(MapLocation target) {
+        double distance = 10;
+        double direction = Math.atan2(target.y - Cache.MY_LOCATION.y, target.x - Cache.MY_LOCATION.x);
+        double cos = Math.cos(direction);
+        double sin = Math.sin(direction);
+        MapLocation tangentTarget = Cache.MY_LOCATION.translate((int) (cos * distance), (int) (sin * distance));
+        return Pathfinding.executeResetIfNotAdjacent(tangentTarget);
     }
 
     public static boolean executeMicro() {
@@ -312,11 +333,11 @@ public class Launcher implements RunnableBot {
         if (ret == null) {
             MapLocation lastHqLocation = WellTracker.lastHqLocation();
             if (lastHqLocation != null) {
-                ret = EnemyHqGuesser.getFarthest(lastHqLocation);
+                ret = EnemyHqGuesser.getFarthest(lastHqLocation, location -> !blacklist.contains(location.x, location.y));
             }
         }
         if (ret == null) {
-            ret = EnemyHqGuesser.getClosest();
+            ret = EnemyHqGuesser.getClosest(location -> !blacklist.contains(location.x, location.y));
         }
         if (ret == null) {
             blacklist.reset();

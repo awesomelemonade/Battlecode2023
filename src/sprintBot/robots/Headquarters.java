@@ -61,11 +61,6 @@ public class Headquarters implements RunnableBot {
             return Communication.CarrierTaskType.MINE_MANA;
         }
         if (nearestEnemyHQ == null) {
-            if (Math.random() < 0.5) {
-                return Communication.CarrierTaskType.MINE_ADAMANTIUM;
-            } else {
-                return Communication.CarrierTaskType.MINE_MANA;
-            }
         } else {
             double distance = Math.sqrt(Cache.MY_LOCATION.distanceSquaredTo(nearestEnemyHQ));
             if (distance > 25 || Cache.ALLY_ROBOTS.length >= 20) {

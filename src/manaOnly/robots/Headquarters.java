@@ -42,16 +42,21 @@ public class Headquarters implements RunnableBot {
         hasSpaceForMiners = hasSpaceForMiners();
     }
 
+    public static MapLocation getNearestEnemyHQLocation() {
+        // use known, then fall back to predicted
+        MapLocation ret = EnemyHqTracker.getClosest();
+        if (ret == null) {
+            ret = EnemyHqGuesser.getClosest(l -> true);
+        }
+        return ret;
+    }
+
     public static Communication.CarrierTaskType getNewTask() {
         int numAnchors = rc.getNumAnchors(null);
         if (numAnchors > 0) {
             return Communication.CarrierTaskType.PICKUP_ANCHOR;
         }
-//        if (Math.random() < 0.5) {
-//            return Communication.CarrierTaskType.MINE_ADAMANTIUM;
-//        } else {
-            return Communication.CarrierTaskType.MINE_MANA;
-//        }
+        return Communication.CarrierTaskType.MINE_ADAMANTIUM;
 //        return Communication.CarrierTaskType.NONE.id(); // No Task
 //        if (Cache.ENEMY_ROBOTS.length > 0) {
 //            return Communication.CarrierTaskType.MINE_MANA.id();
@@ -245,7 +250,7 @@ public class Headquarters implements RunnableBot {
         MapLocation ret = EnemyHqTracker.getClosest();
         if (ret == null) {
             // we should use furthest to be more stable?
-            ret = EnemyHqGuesser.getFarthest(Cache.MY_LOCATION);
+            ret = EnemyHqGuesser.getFarthest(Cache.MY_LOCATION, l -> true);
         }
         return ret;
     }

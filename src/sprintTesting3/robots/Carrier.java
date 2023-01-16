@@ -153,9 +153,6 @@ public class Carrier implements RunnableBot {
         MapLocation bestEnemyLocation = null;
         for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
             RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
-            if (!Util.isAttacker(enemy.type)) {
-                continue;
-            }
             MapLocation enemyLocation = enemy.location;
             if (!rc.canAttack(enemy.location)) {
                 continue;
@@ -173,8 +170,11 @@ public class Carrier implements RunnableBot {
         int health = enemy.health;
         int attacksForLaunchersToKill = ((health - (getWeight() / 5)) + RobotType.LAUNCHER.damage - 1) / RobotType.LAUNCHER.damage;
 
-        // prioritize launchers vs destabilizers, then attacksForLaunchToKill, then health
+        // prioritize attackers, then launchers vs destabilizers, then attacksForLaunchToKill, then health
         double score = 0;
+        if (Util.isAttacker(enemy.type)) {
+            score += 10000000;
+        }
         if (enemy.type == RobotType.LAUNCHER) {
             score += 1000000;
         }
@@ -184,8 +184,50 @@ public class Carrier implements RunnableBot {
         return score;
     }
 
+    public static boolean shouldAttack() {
+        // if we see a lot of enemy units
+        return (Cache.ENEMY_ROBOTS.length >= 8 || willDie()) && rc.getWeight() >= 5; // weight >= 5 is at least 1 damage
+    }
+
+    public static boolean tryMoveToAttack() {
+        if (shouldAttack()) {
+            // find any location that allows us to be in range to attack
+            // TODO
+            RobotInfo enemyRobot = Util.getClosestEnemyRobot(r -> r.type != RobotType.HEADQUARTERS);
+            if (enemyRobot != null) {
+                Util.tryPathfindingMove(enemyRobot.location);
+                return true;
+            }
+//            MapLocation closestEnemyLocation = null;
+//            int closestEnemyDistanceSquared = Integer.MAX_VALUE;
+//            MapLocation closestEnemyLauncherLocation = null;
+//            int closestEnemyLauncherDistanceSquared = Integer.MAX_VALUE;
+//            for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
+//                RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
+//                MapLocation enemyLocation = enemy.location;
+//                int distanceSquared = enemyLocation.distanceSquaredTo(Cache.MY_LOCATION);
+//                switch (enemy.type) {
+//                    case HEADQUARTERS:
+//                        break;
+//                    case LAUNCHER:
+//                        if (distanceSquared < closestEnemyLauncherDistanceSquared) {
+//                            closestEnemyLauncherDistanceSquared = distanceSquared;
+//                            closestEnemyLauncherLocation = enemyLocation;
+//                        }
+//                        // don't break; on purpose
+//                    default:
+//                        if (distanceSquared < closestEnemyDistanceSquared) {
+//                            closestEnemyDistanceSquared = distanceSquared;
+//                            closestEnemyLocation = enemyLocation;
+//                        }
+//                }
+//            }
+        }
+        return false;
+    }
+
     public static boolean tryAttack() {
-        if (willDie() && rc.getWeight() >= 5) { // weight >= 5 is at least 1 damage
+        if (shouldAttack()) {
             MapLocation target = getImmediateAttackTarget();
             if (target != null) {
                 if (rc.canAttack(target)) {
@@ -216,6 +258,7 @@ public class Carrier implements RunnableBot {
                 WellTracker.getClosestKnownWell(location -> !blacklist.contains(location)) :
                 WellTracker.getClosestKnownWell(targetResource, location -> !blacklist.contains(location));
         if (commedWell != null) {
+            Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, commedWell, 0, 128, 0); // dark green
             if (!Cache.MY_LOCATION.isAdjacentTo(commedWell)) {
                 if (Util.numAllyRobotsWithin(commedWell, 5) >= 12) {
                     // blacklist from future
