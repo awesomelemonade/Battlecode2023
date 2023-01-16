@@ -434,7 +434,6 @@ public class Carrier implements RunnableBot {
             // TODO: go to commed islands?
             return false;
         } else {
-            Debug.setIndicatorLine(Cache.MY_LOCATION, islandLocation, 255, 0, 0);
             if (!islandLocation.equals(Cache.MY_LOCATION)) {
                 Util.tryPathfindingMove(islandLocation);
             }

@@ -168,22 +168,22 @@ public class EnemyHqGuesser {
         if (!initialized) {
             return null;
         }
-//        return getClosest(predicate);
-        MapLocation bestLocation = null;
-        int bestDistanceSquared = Integer.MIN_VALUE;
-        for (int i = predictions.length; --i >= 0; ) {
-            if (!invalidated(i)) {
-                MapLocation location = predictions[i];
-                if (predicate.test(location)) {
-                    int distanceSquared = from.distanceSquaredTo(location);
-                    if (distanceSquared > bestDistanceSquared) {
-                        bestDistanceSquared = distanceSquared;
-                        bestLocation = location;
-                    }
-                }
-            }
-        }
-        return bestLocation;
+        return getClosest(predicate);
+//        MapLocation bestLocation = null;
+//        int bestDistanceSquared = Integer.MIN_VALUE;
+//        for (int i = predictions.length; --i >= 0; ) {
+//            if (!invalidated(i)) {
+//                MapLocation location = predictions[i];
+//                if (predicate.test(location)) {
+//                    int distanceSquared = from.distanceSquaredTo(location);
+//                    if (distanceSquared > bestDistanceSquared) {
+//                        bestDistanceSquared = distanceSquared;
+//                        bestLocation = location;
+//                    }
+//                }
+//            }
+//        }
+//        return bestLocation;
     }
 
     public static void forEach(Consumer<MapLocation> consumer) {
