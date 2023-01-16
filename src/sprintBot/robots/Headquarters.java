@@ -42,15 +42,53 @@ public class Headquarters implements RunnableBot {
         hasSpaceForMiners = hasSpaceForMiners();
     }
 
+    public static MapLocation getNearestEnemyHQLocation() {
+        // use known, then fall back to predicted
+        MapLocation ret = EnemyHqTracker.getClosest();
+        if (ret == null) {
+            ret = EnemyHqGuesser.getClosest();
+        }
+        return ret;
+    }
+
     public static Communication.CarrierTaskType getNewTask() {
         int numAnchors = rc.getNumAnchors(null);
         if (numAnchors > 0) {
             return Communication.CarrierTaskType.PICKUP_ANCHOR;
         }
-        if (Math.random() < 0.5) {
-            return Communication.CarrierTaskType.MINE_ADAMANTIUM;
-        } else {
+        MapLocation nearestEnemyHQ = getNearestEnemyHQLocation();
+        if (LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> r.type != RobotType.HEADQUARTERS)) {
             return Communication.CarrierTaskType.MINE_MANA;
+        }
+        if (nearestEnemyHQ == null) {
+            if (Math.random() < 0.5) {
+                return Communication.CarrierTaskType.MINE_ADAMANTIUM;
+            } else {
+                return Communication.CarrierTaskType.MINE_MANA;
+            }
+        } else {
+            double distance = Math.sqrt(Cache.MY_LOCATION.distanceSquaredTo(nearestEnemyHQ));
+            if (distance > 25 || Cache.ALLY_ROBOTS.length >= 20) {
+                if (Math.random() < 0.5) {
+                    return Communication.CarrierTaskType.MINE_ADAMANTIUM;
+                } else {
+                    return Communication.CarrierTaskType.MINE_MANA;
+                }
+            } else {
+                // distance of 15 should result in 1000 rounds
+                // distance of 25 should result in 250 rounds
+                // map [15, 25] to [500, 150]
+                double numManaRounds = Math.max(150, Math.min(500, -35 * distance + 1025));
+                if (rc.getRoundNum() <= numManaRounds) {
+                    return Communication.CarrierTaskType.MINE_MANA;
+                } else {
+                    if (Math.random() < 0.5) {
+                        return Communication.CarrierTaskType.MINE_ADAMANTIUM;
+                    } else {
+                        return Communication.CarrierTaskType.MINE_MANA;
+                    }
+                }
+            }
         }
 //        return Communication.CarrierTaskType.NONE.id(); // No Task
 //        if (Cache.ENEMY_ROBOTS.length > 0) {

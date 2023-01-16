@@ -132,6 +132,9 @@ public class EnemyHqGuesser {
     }
 
     public static MapLocation getClosest() {
+        if (!initialized) {
+            return null;
+        }
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MAX_VALUE;
         for (int i = predictions.length; --i >= 0; ) {
@@ -148,6 +151,9 @@ public class EnemyHqGuesser {
     }
 
     public static MapLocation getFarthest(MapLocation from) {
+        if (!initialized) {
+            return null;
+        }
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MIN_VALUE;
         for (int i = predictions.length; --i >= 0; ) {
