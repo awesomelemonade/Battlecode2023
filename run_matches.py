@@ -12,7 +12,7 @@ emojiMap = {
 errors = []
 currentBot = 'sprintBot'
 
-bots = ['beforeBetterEnemyHqPredictions', 'beforeCarrierAttack', 'beforeBuildOrder', 'beforeBuildLocations', 'noCheckerboard', 'noCheckerboardNoAdjacent', 'beforeWellTracker2']
+bots = ['getClosest', 'beforeBetterEnemyHqPredictions', 'beforeCarrierAttack']
 #bots = ['manaOnly', 'sprintTesting1', 'sprintTesting2', 'sprintTesting3', 'sprintTesting5', 'sprintTesting8']
 botsSet = set(bots)
 maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall']

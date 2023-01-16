@@ -31,9 +31,10 @@ public class Util {
         if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS
                 && rc.getRoundNum() >= 1800
                 && Cache.ALLY_ROBOTS.length >= 20
-                && Cache.ENEMY_ROBOTS.length == 0) {
+                && Cache.ENEMY_ROBOTS.length == 0
+                && Cache.TURN_COUNT > 50) {
             boolean isCarrierWithAnchor = Constants.ROBOT_TYPE == RobotType.CARRIER && rc.getAnchor() != null;
-            if (!isCarrierWithAnchor && Math.random() < 0.2) {
+            if (!isCarrierWithAnchor && Math.random() < 0.1) {
                 rc.disintegrate();
             }
         }
