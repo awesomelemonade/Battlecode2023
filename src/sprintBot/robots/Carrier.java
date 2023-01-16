@@ -216,6 +216,7 @@ public class Carrier implements RunnableBot {
                 WellTracker.getClosestKnownWell(location -> !blacklist.contains(location)) :
                 WellTracker.getClosestKnownWell(targetResource, location -> !blacklist.contains(location));
         if (commedWell != null) {
+            Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, commedWell, 0, 128, 0); // dark green
             if (!Cache.MY_LOCATION.isAdjacentTo(commedWell)) {
                 if (Util.numAllyRobotsWithin(commedWell, 5) >= 12) {
                     // blacklist from future
