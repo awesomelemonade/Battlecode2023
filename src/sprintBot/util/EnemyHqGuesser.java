@@ -17,7 +17,13 @@ public class EnemyHqGuesser {
     private static int invalidationsPending; // bit field
 
     public static void generateHQGuessList() {
+        if (initialized) {
+            return;
+        }
         MapLocation[] hqLocations = Communication.headquartersLocations;
+        if (hqLocations == null) {
+            return;
+        }
         int numHqLocations = hqLocations.length;
         predictions = new MapLocation[NUM_POSSIBLE_SYMMETRIES * numHqLocations];
 
@@ -67,6 +73,11 @@ public class EnemyHqGuesser {
     }
 
     public static void update() {
+        if (Constants.ROBOT_TYPE == RobotType.CARRIER && Cache.TURN_COUNT == 1) {
+            // save bytecodes
+            return;
+        }
+        generateHQGuessList();
         if (!initialized) {
             return;
         }

@@ -4,8 +4,6 @@ import battlecode.common.*;
 import sprintBot.fast.FastIntCounter2D;
 import sprintBot.util.*;
 
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.function.Predicate;
 
 import sprintBot.fast.FastSort;
@@ -71,9 +69,19 @@ public class Pathfinding {
 			}
 		}
 		// We stuck bois - let's look for the lowest non-negative
+		boolean hasNoMove = true;
 		for (int i = counters.length; --i >= 0;) {
-			MapLocation location = currentLocation.add(directions[i]);
-			counters[i] = Util.onTheMap(location) ? visitedSet.get(location.x, location.y) : Integer.MAX_VALUE;
+			Direction direction = directions[i];
+			if (rc.canMove(direction)) {
+				MapLocation location = currentLocation.add(direction);
+				counters[i] = visitedSet.get(location.x, location.y);
+				hasNoMove = false;
+			} else {
+				counters[i] = Integer.MAX_VALUE;
+			}
+		}
+		if (hasNoMove) {
+			return false;
 		}
 		int[] indices = FastSort.sort(counters);
 		for (int i = 0; i < indices.length; i++) {
