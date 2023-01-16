@@ -213,7 +213,7 @@ public class Util {
                 }
             }
             if (bestLocation != null) {
-                Pathfinding.execute(bestLocation);
+                Pathfinding.executeResetIfNotAdjacent(bestLocation);
             }
         }
     }
