@@ -267,8 +267,10 @@ public class Headquarters implements RunnableBot {
         if (!hasSpaceForMiners) {
             return false;
         }
-        if (Cache.ALLY_ROBOTS.length == 0 && LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> Util.isAttacker(r.type))) {
-            return false;
+        if (LambdaUtil.arraysAllMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.HEADQUARTERS)) {
+            if (LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> Util.isAttacker(r.type))) {
+                return false;
+            }
         }
         MapLocation wellLocation = WellTracker.getClosestKnownWell(location -> true);
         return tryBuildByScore(RobotType.CARRIER, location -> {
@@ -293,7 +295,7 @@ public class Headquarters implements RunnableBot {
     }
 
     public static boolean tryBuildLauncher() {
-        if (Cache.ALLY_ROBOTS.length == 0) {
+        if (LambdaUtil.arraysAllMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.HEADQUARTERS)) {
             // if 2 or more enemy attackers within radius 16 OR 5 or more enemy attackers within vision radius
             if (Util.numEnemyAttackersWithin(Cache.MY_LOCATION, 16) >= 2
                     || Util.numEnemyAttackersWithin(Cache.MY_LOCATION, Constants.ROBOT_TYPE.visionRadiusSquared) >= 5) {
