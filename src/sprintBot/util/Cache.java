@@ -11,6 +11,7 @@ public class Cache { // Cache variables that are constant throughout a turn
     public static WellInfo[] ADAMANTIUM_WELLS;
     public static WellInfo[] MANA_WELLS;
     public static WellInfo[] ELIXIR_WELLS;
+    public static MapLocation NEAREST_ALLY_HQ;
 
     public static void init() {
         TURN_COUNT = 0;
@@ -35,5 +36,8 @@ public class Cache { // Cache variables that are constant throughout a turn
             throw new IllegalStateException(ex);
         }
         MY_LOCATION = rc.getLocation();
+        if (Constants.ROBOT_TYPE == RobotType.CARRIER) {
+            NEAREST_ALLY_HQ = Util.getClosestAllyHeadquartersLocation();
+        }
     }
 }

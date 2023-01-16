@@ -47,7 +47,9 @@ public class Carrier implements RunnableBot {
     @Override
     public void move() {
         Pathfinding.predicate = location -> true;
-        // TODO: tryMoveToAttack()
+        if (tryMoveToAttack()) {
+            return;
+        }
         if (tryKiteFromEnemies()) {
             return;
         }
@@ -319,6 +321,13 @@ public class Carrier implements RunnableBot {
             return false;
         }
         try {
+            MapLocation allyHqLocation = Cache.NEAREST_ALLY_HQ;
+            boolean adjacentToAllyHq = allyHqLocation != null && Cache.MY_LOCATION.isAdjacentTo(allyHqLocation);
+            boolean isEmpty = rc.getWeight() == 0;
+            boolean canMineAll = !adjacentToAllyHq || isEmpty;
+            boolean canMineAdamantium = canMineAll || rc.getResourceAmount(ResourceType.ADAMANTIUM) > 0;
+            boolean canMineMana = canMineAll || rc.getResourceAmount(ResourceType.MANA) > 0;
+            boolean canMineElixir = canMineAll || rc.getResourceAmount(ResourceType.ELIXIR) > 0;
             // only look at wells adjacent to you
             WellInfo[] adjacentWells = rc.senseNearbyWells(2);
             // get best well
@@ -326,6 +335,25 @@ public class Carrier implements RunnableBot {
             WellInfo bestWell = null;
             for (int i = adjacentWells.length; --i >= 0; ) {
                 WellInfo well = adjacentWells[i];
+                switch (well.getResourceType()) {
+                    case ADAMANTIUM:
+                        if (!canMineAdamantium) {
+                            continue;
+                        }
+                        break;
+                    case MANA:
+                        if (!canMineMana) {
+                            continue;
+                        }
+                        break;
+                    case ELIXIR:
+                        if (!canMineElixir) {
+                            continue;
+                        }
+                        break;
+                    default:
+                        Debug.failFast("Unknown resource in well");
+                }
                 double score = getImmediateWellMiningScore(well);
                 if (score > bestScore) {
                     bestScore = score;
@@ -511,7 +539,7 @@ public class Carrier implements RunnableBot {
         } catch (GameActionException ex) {
             Debug.failFast(ex);
         }
-        MapLocation hqLocation = Util.getClosestAllyHeadquartersLocation(); // TODO: choose safe HQ?
+        MapLocation hqLocation = Cache.NEAREST_ALLY_HQ; // TODO: choose safe HQ?
         if (hqLocation == null) {
             return false;
         }
@@ -530,16 +558,16 @@ public class Carrier implements RunnableBot {
     }
 
     public static boolean tryTransferResourceToHQ() {
-        MapLocation hqLocation = Util.getClosestAllyHeadquartersLocation();
+        MapLocation hqLocation = Cache.NEAREST_ALLY_HQ;
         if (hqLocation == null) {
-            return false;
-        }
-        ResourceType resource = getTransferToHQResource();
-        if (resource == ResourceType.NO_RESOURCE) {
             return false;
         }
         // see if in range
         if (!Cache.MY_LOCATION.isAdjacentTo(hqLocation)) {
+            return false;
+        }
+        ResourceType resource = getTransferToHQResource();
+        if (resource == ResourceType.NO_RESOURCE) {
             return false;
         }
         int amount = rc.getResourceAmount(resource);
