@@ -70,7 +70,7 @@ public class EnemyHqGuesser {
                 return true;
             }
         }
-        return true;
+        return false;
     }
 
     public static void update() {
