@@ -42,15 +42,15 @@ public class Headquarters implements RunnableBot {
         hasSpaceForMiners = hasSpaceForMiners();
     }
 
-    public static int getNewTask() {
+    public static Communication.CarrierTaskType getNewTask() {
         int numAnchors = rc.getNumAnchors(null);
         if (numAnchors > 0) {
-            return Communication.CarrierTaskType.PICKUP_ANCHOR.id();
+            return Communication.CarrierTaskType.PICKUP_ANCHOR;
         }
         if (Math.random() < 0.5) {
-            return Communication.CarrierTaskType.MINE_ADAMANTIUM.id();
+            return Communication.CarrierTaskType.MINE_ADAMANTIUM;
         } else {
-            return Communication.CarrierTaskType.MINE_MANA.id();
+            return Communication.CarrierTaskType.MINE_MANA;
         }
 //        return Communication.CarrierTaskType.NONE.id(); // No Task
 //        if (Cache.ENEMY_ROBOTS.length > 0) {
@@ -109,6 +109,10 @@ public class Headquarters implements RunnableBot {
         }
         int numHeadquarters = Communication.headquartersLocations == null ? 1 : Communication.headquartersLocations.length;
         int assignedCount = 0;
+        // new turn for the trackers
+        adamantiumMinerTracker.add(0);
+        manaMinerTracker.add(0);
+        elixirMinerTracker.add(0);
         for (int i = allies.length; --i >= 0; ) {
             RobotInfo ally = allies[i];
             if (ally.type == RobotType.CARRIER) {
@@ -119,9 +123,20 @@ public class Headquarters implements RunnableBot {
                     int task = carrierTasks.get(robotIndex);
                     if (task == Communication.CARRIER_TASK_NONE_ID || task == Communication.CARRIER_TASK_ANCHOR_PICKUP_ID) {
                         // TODO: find new a task
-                        int newTask = getNewTask();
-                        task = newTask;
-                        carrierTasks.set(robotIndex, newTask);
+                        Communication.CarrierTaskType newTask = getNewTask();
+                        switch (newTask) {
+                            case MINE_ADAMANTIUM:
+                                adamantiumMinerTracker.incrementLast();
+                                break;
+                            case MINE_MANA:
+                                manaMinerTracker.incrementLast();
+                                break;
+                            case MINE_ELIXIR:
+                                elixirMinerTracker.incrementLast();
+                                break;
+                        }
+                        task = newTask.id();
+                        carrierTasks.set(robotIndex, task);
                     }
 //                    int[] r = new int[] {255, 255, 255, 0, 0, 0};
 //                    int[] g = new int[] {0, 128, 255, 255, 255, 0};
@@ -134,7 +149,7 @@ public class Headquarters implements RunnableBot {
                     }
                 } else {
                     // reset the task
-                    carrierTasks.set(robotIndex, 0);
+                    carrierTasks.set(robotIndex, Communication.CARRIER_TASK_NONE_ID);
                 }
             }
         }

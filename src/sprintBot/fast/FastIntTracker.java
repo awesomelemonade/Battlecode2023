@@ -19,6 +19,11 @@ public class FastIntTracker {
         index = (index + 1) % size;
     }
 
+    public void incrementLast() {
+        sum++;
+        this.data[(index + (size - 1)) % size]++;
+    }
+
     public int sum() {
         return sum;
     }
