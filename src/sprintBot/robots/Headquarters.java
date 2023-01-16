@@ -293,7 +293,7 @@ public class Headquarters implements RunnableBot {
     }
 
     public static boolean tryBuildLauncher() {
-        if (Cache.ALLY_ROBOTS.length == 0) {
+        if (LambdaUtil.arraysAnyMatch(Cache.ALLY_ROBOTS, r -> r.type != RobotType.HEADQUARTERS)) {
             // if 2 or more enemy attackers within radius 16 OR 5 or more enemy attackers within vision radius
             if (Util.numEnemyAttackersWithin(Cache.MY_LOCATION, 16) >= 2
                     || Util.numEnemyAttackersWithin(Cache.MY_LOCATION, Constants.ROBOT_TYPE.visionRadiusSquared) >= 5) {
