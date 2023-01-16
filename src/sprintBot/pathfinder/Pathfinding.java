@@ -41,7 +41,14 @@ public class Pathfinding {
 //		}
 		return executeNoReset(target);
 	}
-	public static boolean executeNoReset(MapLocation target) {
+	public static boolean executeResetIfNotAdjacent(MapLocation target) {
+		if (lastTarget == null || !lastTarget.isAdjacentTo(target)) {
+			visitedSet.reset();
+		}
+		lastTarget = target;
+		return executeNoReset(target);
+	}
+	private static boolean executeNoReset(MapLocation target) {
 		MapLocation currentLocation = Cache.MY_LOCATION;
 		Debug.setIndicatorLine(Profile.PATHFINDING, currentLocation, target, 0, 0, 255);
 		if (!rc.isMovementReady()) {
