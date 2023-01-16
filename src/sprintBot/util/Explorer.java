@@ -80,14 +80,14 @@ public class Explorer {
             MapLocation target = getExploreLocation();
             Debug.setIndicatorLine(Profile.EXPLORER, Cache.MY_LOCATION, target, 255, 128, 0);
 //            return Util.tryPathfindingMove(target);
-            return Pathfinding.executeNoReset(target);
+            return Pathfinding.executeResetIfNotAdjacent(target);
         }
     }
 
     public static MapLocation getExploreLocation() {
         double cos = Math.cos(currentExploreDirection);
         double sin = Math.sin(currentExploreDirection);
-        return rc.getLocation().translate((int) (cos * 20.0), (int) (sin * 20.0));
+        return Cache.MY_LOCATION.translate((int) (cos * 20.0), (int) (sin * 20.0));
     }
 
     private static final Double[] onTheMapProbeLengths = { 2.0, 2.0, 2.0 };

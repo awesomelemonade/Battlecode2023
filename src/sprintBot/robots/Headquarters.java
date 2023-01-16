@@ -42,15 +42,53 @@ public class Headquarters implements RunnableBot {
         hasSpaceForMiners = hasSpaceForMiners();
     }
 
-    public static int getNewTask() {
+    public static MapLocation getNearestEnemyHQLocation() {
+        // use known, then fall back to predicted
+        MapLocation ret = EnemyHqTracker.getClosest();
+        if (ret == null) {
+            ret = EnemyHqGuesser.getClosest(l -> true);
+        }
+        return ret;
+    }
+
+    public static Communication.CarrierTaskType getNewTask() {
         int numAnchors = rc.getNumAnchors(null);
         if (numAnchors > 0) {
-            return Communication.CarrierTaskType.PICKUP_ANCHOR.id();
+            return Communication.CarrierTaskType.PICKUP_ANCHOR;
         }
-        if (Math.random() < 0.5) {
-            return Communication.CarrierTaskType.MINE_ADAMANTIUM.id();
+        MapLocation nearestEnemyHQ = getNearestEnemyHQLocation();
+        if (LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> r.type != RobotType.HEADQUARTERS)) {
+            return Communication.CarrierTaskType.MINE_MANA;
+        }
+        if (nearestEnemyHQ == null) {
+            if (Math.random() < 0.5) {
+                return Communication.CarrierTaskType.MINE_ADAMANTIUM;
+            } else {
+                return Communication.CarrierTaskType.MINE_MANA;
+            }
         } else {
-            return Communication.CarrierTaskType.MINE_MANA.id();
+            double distance = Math.sqrt(Cache.MY_LOCATION.distanceSquaredTo(nearestEnemyHQ));
+            if (distance > 25 || Cache.ALLY_ROBOTS.length >= 20) {
+                if (Math.random() < 0.5) {
+                    return Communication.CarrierTaskType.MINE_ADAMANTIUM;
+                } else {
+                    return Communication.CarrierTaskType.MINE_MANA;
+                }
+            } else {
+                // distance of 15 should result in 1000 rounds
+                // distance of 25 should result in 250 rounds
+                // map [15, 25] to [500, 150]
+                double numManaRounds = Math.max(150, Math.min(500, -35 * distance + 1025));
+                if (rc.getRoundNum() <= numManaRounds) {
+                    return Communication.CarrierTaskType.MINE_MANA;
+                } else {
+                    if (Math.random() < 0.5) {
+                        return Communication.CarrierTaskType.MINE_ADAMANTIUM;
+                    } else {
+                        return Communication.CarrierTaskType.MINE_MANA;
+                    }
+                }
+            }
         }
 //        return Communication.CarrierTaskType.NONE.id(); // No Task
 //        if (Cache.ENEMY_ROBOTS.length > 0) {
@@ -109,6 +147,10 @@ public class Headquarters implements RunnableBot {
         }
         int numHeadquarters = Communication.headquartersLocations == null ? 1 : Communication.headquartersLocations.length;
         int assignedCount = 0;
+        // new turn for the trackers
+        adamantiumMinerTracker.add(0);
+        manaMinerTracker.add(0);
+        elixirMinerTracker.add(0);
         for (int i = allies.length; --i >= 0; ) {
             RobotInfo ally = allies[i];
             if (ally.type == RobotType.CARRIER) {
@@ -119,9 +161,20 @@ public class Headquarters implements RunnableBot {
                     int task = carrierTasks.get(robotIndex);
                     if (task == Communication.CARRIER_TASK_NONE_ID || task == Communication.CARRIER_TASK_ANCHOR_PICKUP_ID) {
                         // TODO: find new a task
-                        int newTask = getNewTask();
-                        task = newTask;
-                        carrierTasks.set(robotIndex, newTask);
+                        Communication.CarrierTaskType newTask = getNewTask();
+                        switch (newTask) {
+                            case MINE_ADAMANTIUM:
+                                adamantiumMinerTracker.incrementLast();
+                                break;
+                            case MINE_MANA:
+                                manaMinerTracker.incrementLast();
+                                break;
+                            case MINE_ELIXIR:
+                                elixirMinerTracker.incrementLast();
+                                break;
+                        }
+                        task = newTask.id();
+                        carrierTasks.set(robotIndex, task);
                     }
 //                    int[] r = new int[] {255, 255, 255, 0, 0, 0};
 //                    int[] g = new int[] {0, 128, 255, 255, 255, 0};
@@ -134,7 +187,7 @@ public class Headquarters implements RunnableBot {
                     }
                 } else {
                     // reset the task
-                    carrierTasks.set(robotIndex, 0);
+                    carrierTasks.set(robotIndex, Communication.CARRIER_TASK_NONE_ID);
                 }
             }
         }
@@ -191,6 +244,10 @@ public class Headquarters implements RunnableBot {
     }
 
     public static boolean tryBuildAnchor(Anchor anchorType) {
+        // don't build more than 2 anchors
+        if (rc.getNumAnchors(null) >= 2) {
+            return false;
+        }
         // do not build anchors if we don't have an ally carrier nearby
         // we can save mana for the tiebreaker
         if (LambdaUtil.arraysAnyMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.CARRIER)) {
@@ -230,12 +287,19 @@ public class Headquarters implements RunnableBot {
         MapLocation ret = EnemyHqTracker.getClosest();
         if (ret == null) {
             // we should use furthest to be more stable?
-            ret = EnemyHqGuesser.getFarthest(Cache.MY_LOCATION);
+            ret = EnemyHqGuesser.getFarthest(Cache.MY_LOCATION, l -> true);
         }
         return ret;
     }
 
     public static boolean tryBuildLauncher() {
+        if (Cache.ALLY_ROBOTS.length == 0) {
+            // if 2 or more enemy attackers within radius 16 OR 5 or more enemy attackers within vision radius
+            if (Util.numEnemyAttackersWithin(Cache.MY_LOCATION, 16) >= 2
+                    || Util.numEnemyAttackersWithin(Cache.MY_LOCATION, Constants.ROBOT_TYPE.visionRadiusSquared) >= 5) {
+                return false;
+            }
+        }
         MapLocation macroLocation = getMacroAttackLocation();
         Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, macroLocation, 255, 128, 0);
         return tryBuildByScore(RobotType.LAUNCHER, location -> {

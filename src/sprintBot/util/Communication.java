@@ -160,7 +160,7 @@ public class Communication {
         numTasksWritten = 0;
     }
 
-    public static void addTask(MapLocation location, int taskId) {
+    public static boolean addTask(MapLocation location, int taskId) {
         if (Constants.DEBUG_FAIL_FAST) {
             if (!Cache.MY_LOCATION.isWithinDistanceSquared(location, RobotType.CARRIER.visionRadiusSquared)) {
                 Debug.failFast("Should not add task to location this far out: " + location);
@@ -178,7 +178,7 @@ public class Communication {
         int message = (packed << CARRIER_TASK_POSITION_BIT_OFFSET)
                 | (headquartersSharedIndex << CARRIER_TASK_HQ_ID_BIT_OFFSET)
                 | (taskId << CARRIER_TASK_ID_BIT_OFFSET);
-        writeTask(message);
+        return writeTask(message);
     }
 
     public static boolean writeTask(int message) {
@@ -264,8 +264,6 @@ public class Communication {
                         headquartersLocations[i] = unpack((value >> HEADQUARTERS_LOCATIONS_LOCATION_BIT) & HEADQUARTERS_LOCATIONS_LOCATION_MASK);
                     }
                 }
-                // Guess enemy hqs
-                EnemyHqGuesser.generateHQGuessList();
             }
             // TODO: broadcast whether the headquarters is safe (for carriers to deposit resources)
         }

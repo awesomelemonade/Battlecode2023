@@ -47,7 +47,9 @@ public class Carrier implements RunnableBot {
     @Override
     public void move() {
         Pathfinding.predicate = location -> true;
-        // TODO: tryMoveToAttack()
+        if (tryMoveToAttack()) {
+            return;
+        }
         if (tryKiteFromEnemies()) {
             return;
         }
@@ -153,9 +155,6 @@ public class Carrier implements RunnableBot {
         MapLocation bestEnemyLocation = null;
         for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
             RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
-            if (!Util.isAttacker(enemy.type)) {
-                continue;
-            }
             MapLocation enemyLocation = enemy.location;
             if (!rc.canAttack(enemy.location)) {
                 continue;
@@ -173,8 +172,11 @@ public class Carrier implements RunnableBot {
         int health = enemy.health;
         int attacksForLaunchersToKill = ((health - (getWeight() / 5)) + RobotType.LAUNCHER.damage - 1) / RobotType.LAUNCHER.damage;
 
-        // prioritize launchers vs destabilizers, then attacksForLaunchToKill, then health
+        // prioritize attackers, then launchers vs destabilizers, then attacksForLaunchToKill, then health
         double score = 0;
+        if (Util.isAttacker(enemy.type)) {
+            score += 10000000;
+        }
         if (enemy.type == RobotType.LAUNCHER) {
             score += 1000000;
         }
@@ -184,8 +186,50 @@ public class Carrier implements RunnableBot {
         return score;
     }
 
+    public static boolean shouldAttack() {
+        // if we see a lot of enemy units
+        return (Cache.ENEMY_ROBOTS.length >= 8 || willDie()) && rc.getWeight() >= 5; // weight >= 5 is at least 1 damage
+    }
+
+    public static boolean tryMoveToAttack() {
+        if (shouldAttack()) {
+            // find any location that allows us to be in range to attack
+            // TODO
+            RobotInfo enemyRobot = Util.getClosestEnemyRobot(r -> r.type != RobotType.HEADQUARTERS);
+            if (enemyRobot != null) {
+                Util.tryPathfindingMove(enemyRobot.location);
+                return true;
+            }
+//            MapLocation closestEnemyLocation = null;
+//            int closestEnemyDistanceSquared = Integer.MAX_VALUE;
+//            MapLocation closestEnemyLauncherLocation = null;
+//            int closestEnemyLauncherDistanceSquared = Integer.MAX_VALUE;
+//            for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
+//                RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
+//                MapLocation enemyLocation = enemy.location;
+//                int distanceSquared = enemyLocation.distanceSquaredTo(Cache.MY_LOCATION);
+//                switch (enemy.type) {
+//                    case HEADQUARTERS:
+//                        break;
+//                    case LAUNCHER:
+//                        if (distanceSquared < closestEnemyLauncherDistanceSquared) {
+//                            closestEnemyLauncherDistanceSquared = distanceSquared;
+//                            closestEnemyLauncherLocation = enemyLocation;
+//                        }
+//                        // don't break; on purpose
+//                    default:
+//                        if (distanceSquared < closestEnemyDistanceSquared) {
+//                            closestEnemyDistanceSquared = distanceSquared;
+//                            closestEnemyLocation = enemyLocation;
+//                        }
+//                }
+//            }
+        }
+        return false;
+    }
+
     public static boolean tryAttack() {
-        if (willDie() && rc.getWeight() >= 5) { // weight >= 5 is at least 1 damage
+        if (shouldAttack()) {
             MapLocation target = getImmediateAttackTarget();
             if (target != null) {
                 if (rc.canAttack(target)) {
@@ -216,6 +260,7 @@ public class Carrier implements RunnableBot {
                 WellTracker.getClosestKnownWell(location -> !blacklist.contains(location)) :
                 WellTracker.getClosestKnownWell(targetResource, location -> !blacklist.contains(location));
         if (commedWell != null) {
+            Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, commedWell, 0, 128, 0); // dark green
             if (!Cache.MY_LOCATION.isAdjacentTo(commedWell)) {
                 if (Util.numAllyRobotsWithin(commedWell, 5) >= 12) {
                     // blacklist from future
@@ -276,6 +321,13 @@ public class Carrier implements RunnableBot {
             return false;
         }
         try {
+            MapLocation allyHqLocation = Cache.NEAREST_ALLY_HQ;
+            boolean adjacentToAllyHq = allyHqLocation != null && Cache.MY_LOCATION.isAdjacentTo(allyHqLocation);
+            boolean isEmpty = rc.getWeight() == 0;
+            boolean canMineAll = !adjacentToAllyHq || isEmpty;
+            boolean canMineAdamantium = canMineAll || rc.getResourceAmount(ResourceType.ADAMANTIUM) > 0;
+            boolean canMineMana = canMineAll || rc.getResourceAmount(ResourceType.MANA) > 0;
+            boolean canMineElixir = canMineAll || rc.getResourceAmount(ResourceType.ELIXIR) > 0;
             // only look at wells adjacent to you
             WellInfo[] adjacentWells = rc.senseNearbyWells(2);
             // get best well
@@ -283,6 +335,25 @@ public class Carrier implements RunnableBot {
             WellInfo bestWell = null;
             for (int i = adjacentWells.length; --i >= 0; ) {
                 WellInfo well = adjacentWells[i];
+                switch (well.getResourceType()) {
+                    case ADAMANTIUM:
+                        if (!canMineAdamantium) {
+                            continue;
+                        }
+                        break;
+                    case MANA:
+                        if (!canMineMana) {
+                            continue;
+                        }
+                        break;
+                    case ELIXIR:
+                        if (!canMineElixir) {
+                            continue;
+                        }
+                        break;
+                    default:
+                        Debug.failFast("Unknown resource in well");
+                }
                 double score = getImmediateWellMiningScore(well);
                 if (score > bestScore) {
                     bestScore = score;
@@ -350,7 +421,7 @@ public class Carrier implements RunnableBot {
         return false;
     }
 
-    public static boolean tryPlaceAnchorOnIsland() {
+    public static boolean tryMoveToPlaceAnchorOnIsland() {
         try {
             if (rc.getAnchor() == null) {
                 return false;
@@ -363,16 +434,15 @@ public class Carrier implements RunnableBot {
             // TODO: go to commed islands?
             return false;
         } else {
-            if (islandLocation.equals(Cache.MY_LOCATION)) {
-                tryPlaceAnchor();
-            } else {
+            Debug.setIndicatorLine(Cache.MY_LOCATION, islandLocation, 255, 0, 0);
+            if (!islandLocation.equals(Cache.MY_LOCATION)) {
                 Util.tryPathfindingMove(islandLocation);
             }
             return true;
         }
     }
 
-    public static boolean tryMoveToPlaceAnchorOnIsland() {
+    public static boolean tryPlaceAnchorOnIsland() {
         try {
             if (rc.getAnchor() == null) {
                 return false;
@@ -428,7 +498,7 @@ public class Carrier implements RunnableBot {
                     MapLocation[] locations = rc.senseNearbyIslandLocations(islandId);
                     for (int j = locations.length; --j >= 0; ) {
                         MapLocation location = locations[j];
-                        if (location.equals(Cache.MY_LOCATION) || rc.isLocationOccupied(location)) {
+                        if (location.equals(Cache.MY_LOCATION) || !rc.canSenseRobotAtLocation(location)) {
                             int distanceSquared = location.distanceSquaredTo(Cache.MY_LOCATION);
                             if (distanceSquared < bestDistanceSquared) {
                                 bestDistanceSquared = distanceSquared;
@@ -468,7 +538,7 @@ public class Carrier implements RunnableBot {
         } catch (GameActionException ex) {
             Debug.failFast(ex);
         }
-        MapLocation hqLocation = Util.getClosestAllyHeadquartersLocation(); // TODO: choose safe HQ?
+        MapLocation hqLocation = Cache.NEAREST_ALLY_HQ; // TODO: choose safe HQ?
         if (hqLocation == null) {
             return false;
         }
@@ -487,16 +557,16 @@ public class Carrier implements RunnableBot {
     }
 
     public static boolean tryTransferResourceToHQ() {
-        MapLocation hqLocation = Util.getClosestAllyHeadquartersLocation();
+        MapLocation hqLocation = Cache.NEAREST_ALLY_HQ;
         if (hqLocation == null) {
-            return false;
-        }
-        ResourceType resource = getTransferToHQResource();
-        if (resource == ResourceType.NO_RESOURCE) {
             return false;
         }
         // see if in range
         if (!Cache.MY_LOCATION.isAdjacentTo(hqLocation)) {
+            return false;
+        }
+        ResourceType resource = getTransferToHQResource();
+        if (resource == ResourceType.NO_RESOURCE) {
             return false;
         }
         int amount = rc.getResourceAmount(resource);
