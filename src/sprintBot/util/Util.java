@@ -26,6 +26,17 @@ public class Util {
 
     public static void postLoop() throws GameActionException {
         Communication.postLoop();
+
+        // consider disintegrating in the late game
+        if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS
+                && rc.getRoundNum() >= 1800
+                && Cache.ALLY_ROBOTS.length >= 20
+                && Cache.ENEMY_ROBOTS.length == 0) {
+            boolean isCarrierWithAnchor = Constants.ROBOT_TYPE == RobotType.CARRIER && rc.getAnchor() != null;
+            if (!isCarrierWithAnchor && Math.random() < 0.2) {
+                rc.disintegrate();
+            }
+        }
     }
 
     public static Direction random(Direction[] directions) {

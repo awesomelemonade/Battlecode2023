@@ -244,6 +244,10 @@ public class Headquarters implements RunnableBot {
     }
 
     public static boolean tryBuildAnchor(Anchor anchorType) {
+        // don't build more than 2 anchors
+        if (rc.getNumAnchors(null) >= 2) {
+            return false;
+        }
         // do not build anchors if we don't have an ally carrier nearby
         // we can save mana for the tiebreaker
         if (LambdaUtil.arraysAnyMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.CARRIER)) {

@@ -421,7 +421,7 @@ public class Carrier implements RunnableBot {
         return false;
     }
 
-    public static boolean tryPlaceAnchorOnIsland() {
+    public static boolean tryMoveToPlaceAnchorOnIsland() {
         try {
             if (rc.getAnchor() == null) {
                 return false;
@@ -434,16 +434,15 @@ public class Carrier implements RunnableBot {
             // TODO: go to commed islands?
             return false;
         } else {
-            if (islandLocation.equals(Cache.MY_LOCATION)) {
-                tryPlaceAnchor();
-            } else {
+            Debug.setIndicatorLine(Cache.MY_LOCATION, islandLocation, 255, 0, 0);
+            if (!islandLocation.equals(Cache.MY_LOCATION)) {
                 Util.tryPathfindingMove(islandLocation);
             }
             return true;
         }
     }
 
-    public static boolean tryMoveToPlaceAnchorOnIsland() {
+    public static boolean tryPlaceAnchorOnIsland() {
         try {
             if (rc.getAnchor() == null) {
                 return false;
@@ -499,7 +498,7 @@ public class Carrier implements RunnableBot {
                     MapLocation[] locations = rc.senseNearbyIslandLocations(islandId);
                     for (int j = locations.length; --j >= 0; ) {
                         MapLocation location = locations[j];
-                        if (location.equals(Cache.MY_LOCATION) || rc.isLocationOccupied(location)) {
+                        if (location.equals(Cache.MY_LOCATION) || !rc.canSenseRobotAtLocation(location)) {
                             int distanceSquared = location.distanceSquaredTo(Cache.MY_LOCATION);
                             if (distanceSquared < bestDistanceSquared) {
                                 bestDistanceSquared = distanceSquared;
