@@ -149,8 +149,10 @@ public class Launcher implements RunnableBot {
 //            }
             // check if hq already has tons of ally units nearby
             int numAllyAttackers = Util.numAllyAttackersWithin(location, 20);
-            if (numAllyAttackers >= 10) {
-                blacklist.add(location.x, location.y);
+            if (numAllyAttackers >= 5) {
+                if (!Cache.MY_LOCATION.isAdjacentTo(location)) {
+                    blacklist.add(location.x, location.y);
+                }
             }
             if (Profile.ATTACKING.enabled()) {
                 Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, location, 0, 0, 0); // black

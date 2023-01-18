@@ -12,10 +12,11 @@ emojiMap = {
 errors = []
 currentBot = 'sprintBot'
 
-bots = ['beforeBetterEnemyHqPredictions', 'beforeCarrierAttack', 'beforeBuildOrder', 'beforeBuildLocations', 'noCheckerboard', 'noCheckerboardNoAdjacent', 'beforeWellTracker2']
+bots = ['originalBuildOrder', 'beforeBetterEnemyHqPredictions']
 #bots = ['manaOnly', 'sprintTesting1', 'sprintTesting2', 'sprintTesting3', 'sprintTesting5', 'sprintTesting8']
 botsSet = set(bots)
 maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall']
+#maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall', 'generated_captain_america', 'generated_chalice', 'generated_charge', 'generated_chessboard', 'generated_cobra', 'generated_collaboration', 'generated_colosseum', 'generated_deer', 'generated_defenseless']
 mapsSet = set(maps)
 
 matches = set(product(bots, maps))

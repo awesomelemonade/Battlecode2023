@@ -147,6 +147,16 @@ public class LambdaUtil {
         return false;
     }
 
+    // Replacement for Arrays.stream(array).allMatch(predicate)
+    public static <T> boolean arraysAllMatch(T[] array, Predicate<T> predicate) {
+        for (int i = array.length; --i >= 0; ) {
+            if (!predicate.test(array[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // Java 8 doesn't have Optional.or()
     @SafeVarargs
     public static <T> Optional<T> or(Supplier<Optional<T>>... suppliers) {

@@ -11,16 +11,12 @@ public class Debug {
     public static void failFast(GameActionException ex) {
         if (Constants.DEBUG_FAIL_FAST) {
             throw new IllegalStateException(ex);
-        } else {
-            Debug.setIndicatorDot(Profile.PATHFINDING, Cache.MY_LOCATION, 255, 0, 0);
         }
     }
 
     public static void failFast(String message) {
         if (Constants.DEBUG_FAIL_FAST) {
             throw new IllegalStateException(message);
-        } else {
-            Debug.setIndicatorDot(Profile.PATHFINDING, Cache.MY_LOCATION, 255, 0, 0);
         }
     }
 
