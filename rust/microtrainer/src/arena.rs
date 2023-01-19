@@ -99,7 +99,7 @@ where F1: Fn(&mut GameState, u32) -> (),
     for _ in 0..samples {
         let state = gen_random_starting_state();
         let mut manager = GameManager::new(state.clone(), wrap_micro(&micro1), wrap_micro(&micro2));
-        while !manager.state.is_game_over() {
+        while !manager.state.is_game_over() && manager.state.turn_count < 200 {
             manager.step_game();
         }
         let winner = manager.state.get_outcome();
