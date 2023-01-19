@@ -1,8 +1,11 @@
+use crate::game::{Direction, GameManager, GameState, Position, Team};
 use rand::Rng;
-use crate::game::{GameState, Direction, Team, Position, GameManager};
+use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
 pub fn wrap_micro<F>(micro: F) -> impl Fn(&mut GameState, u32) -> ()
-where F: Fn(&mut GameState, u32) -> () {
+where
+    F: Fn(&mut GameState, u32) -> (),
+{
     fn try_attack(state: &mut GameState, id: u32) {
         let robot = state.robots.get(&id).expect("Invalid id");
 
@@ -71,57 +74,67 @@ pub fn gen_random_starting_state() -> GameState {
     let num_robots = rng.gen_range(3..=15);
     for _ in 0..num_robots {
         let mut x = rng.gen_range(0..state.width);
-        let mut y = rng.gen_range(0..state.height/3);
+        let mut y = rng.gen_range(0..state.height / 3);
         while state.map[x as usize][y as usize] != -1 {
             x = rng.gen_range(0..state.width);
-            y = rng.gen_range(0..state.height/3);
+            y = rng.gen_range(0..state.height / 3);
         }
-        state.place_robot(Team::Red, Position{x, y});
+        state.place_robot(Team::Red, Position { x, y });
     }
     for _ in 0..num_robots {
         let mut x = rng.gen_range(0..state.width);
-        let mut y = state.height-1 - rng.gen_range(0..state.height/3);
+        let mut y = state.height - 1 - rng.gen_range(0..state.height / 3);
         while state.map[x as usize][y as usize] != -1 {
             x = rng.gen_range(0..state.width);
-            y = state.height-1 - rng.gen_range(0..state.height/3);
+            y = state.height - 1 - rng.gen_range(0..state.height / 3);
         }
-        state.place_robot(Team::Blue, Position{x, y});
+        state.place_robot(Team::Blue, Position { x, y });
     }
-        
+
     state
 }
 
 pub fn get_score<F1, F2>(micro1: F1, micro2: F2, samples: u32) -> f32
-where F1: Fn(&mut GameState, u32) -> (),
-      F2: Fn(&mut GameState, u32) -> () {
-    let mut total_health_1 = 0.0;
-    let mut total_health_2 = 0.0;
-    for _ in 0..samples {
-        let state = gen_random_starting_state();
-        let mut manager = GameManager::new(state.clone(), wrap_micro(&micro1), wrap_micro(&micro2));
-        while !manager.state.is_game_over() && manager.state.turn_count < 200 {
-            manager.step_game();
-        }
-        for (_, robot) in &manager.state.robots {
-            if robot.team == Team::Red {
-                total_health_1 += robot.health as f32;
-            } else {
-                total_health_2 += robot.health as f32;
+where
+    F1: Fn(&mut GameState, u32) -> () + Sync,
+    F2: Fn(&mut GameState, u32) -> () + Sync,
+{
+    let total_healths: Vec<_> = (0..samples)
+        .into_par_iter()
+        .map(|_| {
+            let mut total_health_1 = 0.0;
+            let mut total_health_2 = 0.0;
+            let state = gen_random_starting_state();
+            let mut manager =
+                GameManager::new(state.clone(), wrap_micro(&micro1), wrap_micro(&micro2));
+            while !manager.state.is_game_over() && manager.state.turn_count < 200 {
+                manager.step_game();
             }
-        }
-
-        let mut manager = GameManager::new(state.clone(), wrap_micro(&micro2), wrap_micro(&micro1));
-        while !manager.state.is_game_over() {
-            manager.step_game();
-        }
-        for (_, robot) in &manager.state.robots {
-            if robot.team == Team::Blue {
-                total_health_1 += robot.health as f32;
-            } else {
-                total_health_2 += robot.health as f32;
+            for (_, robot) in &manager.state.robots {
+                if robot.team == Team::Red {
+                    total_health_1 += robot.health as f32;
+                } else {
+                    total_health_2 += robot.health as f32;
+                }
             }
-        }
-    }
 
+            let mut manager =
+                GameManager::new(state.clone(), wrap_micro(&micro2), wrap_micro(&micro1));
+            while !manager.state.is_game_over() && manager.state.turn_count < 200 {
+                manager.step_game();
+            }
+            for (_, robot) in &manager.state.robots {
+                if robot.team == Team::Blue {
+                    total_health_1 += robot.health as f32;
+                } else {
+                    total_health_2 += robot.health as f32;
+                }
+            }
+            (total_health_1, total_health_2)
+        })
+        .collect();
+    let (total_health_1, total_health_2): (Vec<_>, Vec<_>) = total_healths.into_iter().unzip();
+    let total_health_1: f32 = total_health_1.iter().sum();
+    let total_health_2: f32 = total_health_2.iter().sum();
     total_health_1 / (total_health_1 + total_health_2)
 }
