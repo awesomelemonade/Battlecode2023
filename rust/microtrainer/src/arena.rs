@@ -102,30 +102,24 @@ where F1: Fn(&mut GameState, u32) -> (),
         while !manager.state.is_game_over() && manager.state.turn_count < 200 {
             manager.step_game();
         }
-        let winner = manager.state.get_outcome();
-        let mut total_health = 0.0;
         for (_, robot) in &manager.state.robots {
-            total_health += robot.health as f32;
-        }
-        if winner == Team::Red {
-            total_health_1 += total_health;
-        } else {
-            total_health_2 += total_health;
+            if robot.team == Team::Red {
+                total_health_1 += robot.health as f32;
+            } else {
+                total_health_2 += robot.health as f32;
+            }
         }
 
         let mut manager = GameManager::new(state.clone(), wrap_micro(&micro2), wrap_micro(&micro1));
         while !manager.state.is_game_over() {
             manager.step_game();
         }
-        let winner = manager.state.get_outcome();
-        let mut total_health = 0.0;
         for (_, robot) in &manager.state.robots {
-            total_health += robot.health as f32;
-        }
-        if winner == Team::Red {
-            total_health_2 += total_health;
-        } else {
-            total_health_1 += total_health;
+            if robot.team == Team::Blue {
+                total_health_1 += robot.health as f32;
+            } else {
+                total_health_2 += robot.health as f32;
+            }
         }
     }
 
