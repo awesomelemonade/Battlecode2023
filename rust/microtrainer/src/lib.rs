@@ -65,20 +65,26 @@ fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, state: &GameState) {
     }
 }
 
-pub fn run() {
-    // raylib::core::logging::set_trace_log(raylib::ffi::TraceLogLevel::LOG_ERROR);
-    // let (mut rl, thread) = raylib::init()
-    //     .title("Micro Trainer")
-    //     .build();
+fn show_game<F1, F2>(micro1: F1, micro2: F2)
+where F1: Fn(&mut GameState, u32) -> (),
+      F2: Fn(&mut GameState, u32) -> () {
+    raylib::core::logging::set_trace_log(raylib::ffi::TraceLogLevel::LOG_ERROR);
+    let (mut rl, thread) = raylib::init()
+        .title("Micro Trainer")
+        .build();
 
-    simulated_annealing::train(0.025, 1000);
-    // let state = arena::gen_random_starting_state();
-    // let scored_micro = get_scored_micro([-1.0, 1.0, 0.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
-    // let mut manager = GameManager::new(state, crate::arena::wrap_micro(micro::sprint_micro), crate::arena::wrap_micro(scored_micro));
+    let state = arena::gen_random_starting_state();
+    let mut manager = GameManager::new(state, crate::arena::wrap_micro(micro1), crate::arena::wrap_micro(micro2));
      
-    // while !rl.window_should_close() && !manager.state.is_game_over() {
-    //     draw(&mut rl, &thread, &manager.state);
-    //     manager.step_game();
-    //     thread::sleep(time::Duration::from_millis(5));
-    // }
+    while !rl.window_should_close() && !manager.state.is_game_over() {
+        draw(&mut rl, &thread, &manager.state);
+        manager.step_game();
+        thread::sleep(time::Duration::from_millis(5));
+    }
+}
+
+pub fn run() {
+    // let scored_micro = get_scored_micro([-1.0, 1.0, 0.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    // show_game(micro::sprint_micro, scored_micro);
+    simulated_annealing::train(0.025, 1000);
 }
