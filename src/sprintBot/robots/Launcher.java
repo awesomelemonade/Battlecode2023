@@ -71,13 +71,13 @@ public class Launcher implements RunnableBot {
         double score = 0;
         switch (robot.type) {
             case LAUNCHER:
-                score += 100000;
+                score += 1000000;
                 break;
         }
         if (robot.health <= Constants.ROBOT_TYPE.damage) {
-            score += 10000;
+            score += 100000;
         }
-        score -= robot.health * 100; // max health is 40
+        score -= robot.health * 100; // max health is 400
         score -= robot.location.distanceSquaredTo(Cache.MY_LOCATION);
         return score;
     }

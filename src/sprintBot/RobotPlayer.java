@@ -69,6 +69,9 @@ public class RobotPlayer {
                 Debug.println(Profile.ERROR_STATE, controller.getLocation() + " errored: " + Cache.TURN_COUNT);
                 ex.printStackTrace();
                 errored = true;
+                if (Constants.DEBUG_RESIGN) {
+                    controller.resign();
+                }
                 Clock.yield();
             }
         }

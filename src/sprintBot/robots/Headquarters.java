@@ -4,6 +4,7 @@ import battlecode.common.*;
 import sprintBot.fast.FastDoubleTracker;
 import sprintBot.fast.FastIntMap;
 import sprintBot.fast.FastIntTracker;
+import sprintBot.pathfinder.BFSVision;
 import sprintBot.util.*;
 
 import java.util.function.ToIntFunction;
@@ -40,6 +41,7 @@ public class Headquarters implements RunnableBot {
         carrierTasks = new FastIntMap(4096 * 16);
         shuffledLocations = rc.getAllLocationsWithinRadiusSquared(Cache.MY_LOCATION, RobotType.HEADQUARTERS.actionRadiusSquared);
         hasSpaceForMiners = hasSpaceForMiners();
+        BFSVision.debug_init();
     }
 
     public static MapLocation getNearestEnemyHQLocation() {
@@ -64,8 +66,24 @@ public class Headquarters implements RunnableBot {
 
     private static double lastAdamantiumIncome = 0;
 
+    public static void debug_render() {
+        if (rc.getRoundNum() >= 50) {
+            rc.resign();
+        }
+//        for (int i = 0; i < Constants.MAP_WIDTH; i++) {
+//            for (int j = 0; j < Constants.MAP_HEIGHT; j++) {
+//                if (i % 3 == 1 && j % 3 == 1) {
+//                    MapLocation location = new MapLocation(i, j);
+//                    Debug.setIndicatorDot(location, 0, 255, 0);
+//                }
+//            }
+//        }
+    }
+
     @Override
     public void loop() throws GameActionException {
+        debug_render();
+
         Util.shuffle(shuffledLocations);
         int currentAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
         int currentMana = rc.getResourceAmount(ResourceType.MANA);
@@ -88,6 +106,7 @@ public class Headquarters implements RunnableBot {
         lastAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
         lastMana = rc.getResourceAmount(ResourceType.MANA);
         lastElixir = rc.getResourceAmount(ResourceType.ELIXIR);
+        BFSVision.postLoop();
     }
 
     public static void assignTasks() throws GameActionException {

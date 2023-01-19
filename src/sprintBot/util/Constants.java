@@ -5,7 +5,7 @@ import battlecode.common.*;
 public class Constants {
     // TODO: CHECK BEFORE SUBMITTING
     public static final boolean DEBUG_PROFILES = false;
-    public static final boolean DEBUG_RESIGN = false;
+    public static final boolean DEBUG_RESIGN = true;
     public static final boolean DEBUG_FAIL_FAST = false;
 
     public static Team ALLY_TEAM;
@@ -15,6 +15,7 @@ public class Constants {
     public static RobotType ROBOT_TYPE;
     public static final int MAX_MAP_SIZE = 60;
     public static final int MAX_DISTANCE_SQUARED = (MAX_MAP_SIZE - 1) * (MAX_MAP_SIZE - 1);
+    public static final int MAX_VISION_SQUARES = 128; // 34 vision radius = 109 squares. this var must be greater.
     public static MapLocation SPAWN;
 
     public static final int ROBOT_STARTING_ID = 10000;
@@ -36,6 +37,13 @@ public class Constants {
             Direction.EAST,
             Direction.SOUTH,
             Direction.WEST,
+    };
+
+    public static final Direction[] DIAGONAL_DIRECTIONS = {
+            Direction.NORTHEAST,
+            Direction.NORTHWEST,
+            Direction.SOUTHWEST,
+            Direction.SOUTHEAST,
     };
 
     public static final Direction[] ORDINAL_DIRECTIONS = {
