@@ -159,14 +159,6 @@ impl GameState {
         !has_red || !has_blue
     }
 
-    pub fn get_outcome(&self) -> Team {
-        assert!(self.is_game_over());
-        for (_, robot) in &(self.robots) {
-            return robot.team;
-        }
-        panic!("wtf");
-    }
-
     pub fn in_bounds(&self, pos: Position) -> bool {
         0 <= pos.x && pos.x < self.width && 0 <= pos.y && pos.y < self.height
     }
