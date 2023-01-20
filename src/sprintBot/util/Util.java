@@ -18,7 +18,7 @@ public class Util {
         Communication.init();
         Explorer.init();
         Pathfinding.init();
-        BFSVision.debug_init();
+        BFSVision.init();
     }
 
     public static void loop() throws GameActionException {

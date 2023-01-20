@@ -1,7 +1,9 @@
 package sprintBot.pathfinder;
 
 import battlecode.common.*;
+import sprintBot.fast.FastGrid;
 import sprintBot.fast.FastIntGrid;
+import sprintBot.fast.FastMapLocationGridWithDefault;
 import sprintBot.fast.FastMapLocationQueue;
 import sprintBot.util.Cache;
 import sprintBot.util.Debug;
@@ -10,7 +12,6 @@ import sprintBot.util.Constants;
 import static sprintBot.util.Constants.rc;
 
 public class BFSVisionTemplate {
-    private static MapLocation[][] currentDestinations;
 
     private static int[] r = new int[] {255, 255, 255, 0, 0, 0, 128, 255, 255};
     private static int[] g = new int[] {0, 128, 255, 255, 255, 0, 0, 0, 128};
@@ -21,17 +22,13 @@ public class BFSVisionTemplate {
     private FastIntGrid distances;
     private boolean completed = false;
 
-    private static BFSVisionTemplate[][] allBFS;
+    private static FastGrid<BFSVisionTemplate> allBFS;
+    private static FastMapLocationGridWithDefault currentDestinations;
 
 
-    public static void debug_init() {
-        allBFS = new BFSVisionTemplate[Constants.MAP_WIDTH][Constants.MAP_HEIGHT];
-        currentDestinations = new MapLocation[Constants.MAP_WIDTH][Constants.MAP_HEIGHT];
-        for (int i = 0; i < Constants.MAP_WIDTH; i++) {
-            for (int j = 0; j < Constants.MAP_HEIGHT; j++) {
-                currentDestinations[i][j] = new MapLocation(i, j);
-            }
-        }
+    public static void init() {
+        allBFS = new FastGrid<BFSVisionTemplate>(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
+        currentDestinations = new FastMapLocationGridWithDefault(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
     }
 
     public static void postLoop() throws GameActionException {
@@ -39,13 +36,15 @@ public class BFSVisionTemplate {
             MapInfo[] infos = rc.senseNearbyMapInfos();
             for (int i = infos.length; --i >= 0; ) {
                 MapInfo info = infos[i];
-                MapLocation location = info.getMapLocation();
-                currentDestinations[location.x][location.y] = location.add(info.getCurrentDirection());
+                if (info.getCurrentDirection() != Direction.CENTER) {
+                    MapLocation location = info.getMapLocation();
+                    currentDestinations.set(location, location.add(info.getCurrentDirection()));
+                }
             }
-            BFSVisionTemplate currentBfsVision = allBFS[Cache.MY_LOCATION.x][Cache.MY_LOCATION.y];
+            BFSVisionTemplate currentBfsVision = allBFS.get(Cache.MY_LOCATION);
             if (currentBfsVision == null) {
                 currentBfsVision = new BFSVisionTemplate();
-                allBFS[Cache.MY_LOCATION.x][Cache.MY_LOCATION.y] = currentBfsVision;
+                allBFS.set(Cache.MY_LOCATION, currentBfsVision);
             }
             currentBfsVision.bfs();
             debug_render(currentBfsVision);
@@ -53,14 +52,14 @@ public class BFSVisionTemplate {
     }
 
     public static BFSVisionTemplate getBFSIfCompleted() {
-        if (Cache.TURN_COUNT <= 1) {
+        if (Cache.TURN_COUNT <= 2) {
             // save bytecodes
             return null;
         }
-        BFSVisionTemplate currentBfsVision = allBFS[Cache.MY_LOCATION.x][Cache.MY_LOCATION.y];
+        BFSVisionTemplate currentBfsVision = allBFS.get(Cache.MY_LOCATION);
         if (currentBfsVision == null) {
             currentBfsVision = new BFSVisionTemplate();
-            allBFS[Cache.MY_LOCATION.x][Cache.MY_LOCATION.y] = currentBfsVision;
+            allBFS.set(Cache.MY_LOCATION, currentBfsVision);
         }
         return currentBfsVision.completed ? currentBfsVision : null;
     }
@@ -78,7 +77,7 @@ public class BFSVisionTemplate {
         for (Direction direction : Constants.ORDINAL_DIRECTIONS) {
             MapLocation neighbor = Cache.MY_LOCATION.add(direction);
             if (rc.onTheMap(neighbor)) {
-                neighbor = currentDestinations[neighbor.x][neighbor.y];
+                neighbor = currentDestinations.get(neighbor);
                 // should never be out of bounds because currents should never put a robot out of the map
                 queue.add(neighbor); // TODO: theoretically we can just unroll this
                 // the following theoretically can be set beforehand during the reset phase
@@ -126,7 +125,7 @@ public class BFSVisionTemplate {
                 ---
                 MapLocation neighbor = location.add(direction);
                 if (rc.onTheMap(neighbor)) {
-                    neighbor = currentDestinations[neighbor.x][neighbor.y];
+                    neighbor = currentDestinations.get(neighbor);
                     // should never be out of bounds because currents should never put a robot out of the map
                     int neighborDistance = distances.get(neighbor);
                     if (moveDirections.get(neighbor) == 0) {
