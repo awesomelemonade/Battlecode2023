@@ -15,6 +15,7 @@ public class Util {
         Constants.init(controller);
         Random.init();
         Cache.init();
+        PassabilityCache.init();
         Communication.init();
         Explorer.init();
         Pathfinding.init();

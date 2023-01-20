@@ -17,13 +17,14 @@ public class BFSVisionTemplate {
     private static int[] g = new int[] {0, 128, 255, 255, 255, 0, 0, 0, 128};
     private static int[] b = new int[] {0, 0, 0, 0, 255, 255, 255, 255, 255};
 
+    private static FastGrid<BFSVisionTemplate> allBFS;
+    private static FastMapLocationGridWithDefault currentDestinations;
+
     private FastMapLocationQueue queue;
     private FastIntGrid moveDirections;
     private FastIntGrid distances;
     private boolean completed = false;
-
-    private static FastGrid<BFSVisionTemplate> allBFS;
-    private static FastMapLocationGridWithDefault currentDestinations;
+    private MapLocation origin;
 
 
     public static void init() {
@@ -43,7 +44,7 @@ public class BFSVisionTemplate {
             }
             BFSVisionTemplate currentBfsVision = allBFS.get(Cache.MY_LOCATION);
             if (currentBfsVision == null) {
-                currentBfsVision = new BFSVisionTemplate();
+                currentBfsVision = new BFSVisionTemplate(Cache.MY_LOCATION);
                 allBFS.set(Cache.MY_LOCATION, currentBfsVision);
             }
             currentBfsVision.bfs();
@@ -58,24 +59,25 @@ public class BFSVisionTemplate {
         }
         BFSVisionTemplate currentBfsVision = allBFS.get(Cache.MY_LOCATION);
         if (currentBfsVision == null) {
-            currentBfsVision = new BFSVisionTemplate();
+            currentBfsVision = new BFSVisionTemplate(Cache.MY_LOCATION);
             allBFS.set(Cache.MY_LOCATION, currentBfsVision);
         }
         return currentBfsVision.completed ? currentBfsVision : null;
     }
 
-    public BFSVisionTemplate() {
+    public BFSVisionTemplate(MapLocation origin) {
+        this.origin = origin;
         moveDirections = new FastIntGrid(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
         distances = new FastIntGrid(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
         queue = new FastMapLocationQueue(Constants.MAX_VISION_SQUARES); // MAX_VISION_SQUARES
         // locate currents
         // should only return locations that can be fully sensable (even with clouds)
 
-        moveDirections.set(Cache.MY_LOCATION, -1);
+        moveDirections.set(origin, -1);
 
         // TODO: unroll
         for (Direction direction : Constants.ORDINAL_DIRECTIONS) {
-            MapLocation neighbor = Cache.MY_LOCATION.add(direction);
+            MapLocation neighbor = origin.add(direction);
             if (rc.onTheMap(neighbor)) {
                 neighbor = currentDestinations.get(neighbor);
                 // should never be out of bounds because currents should never put a robot out of the map
@@ -87,7 +89,23 @@ public class BFSVisionTemplate {
     }
 
     public static void debug_render(BFSVisionTemplate bfs) {
-        bfs.render();
+//        renderAllBfs();
+//        bfs.render();
+    }
+
+    public static void renderAllBfs() {
+        for (int i = 0; i < Constants.MAP_WIDTH; i++) {
+            for (int j = 0; j < Constants.MAP_HEIGHT; j++) {
+                BFSVisionTemplate bfs = allBFS.get(i, j);
+                if (bfs != null) {
+                    if (bfs.completed) {
+                        Debug.setIndicatorDot(new MapLocation(i, j), 0, 255, 0);
+                    } else {
+                        Debug.setIndicatorDot(new MapLocation(i, j), 255, 255, 0);
+                    }
+                }
+            }
+        }
     }
 
     private static int renderCount = 0;
@@ -115,6 +133,8 @@ public class BFSVisionTemplate {
         // idk why but while loop breaks the profiler
         for (int i = 50; --i >= 0 && !queue.isEmpty() && Clock.getBytecodesLeft() > 1200; ) {
             MapLocation location = queue.poll();
+            // TODO: handle clouds
+//            if (origin.isWithinDistanceSquared(location, Constants.ROBOT_TYPE.visionRadiusSquared) && sensePassable(location)) {
             if (rc.canSenseLocation(location) && sensePassable(location)) {
                 int distance_plus_1 = distances.get(location) + 1;
                 int moveDirection = moveDirections.get(location);
@@ -156,5 +176,9 @@ public class BFSVisionTemplate {
             }
         }
         return null;
+    }
+
+    public boolean hasMoveDirection(MapLocation target) {
+        return moveDirections.get(target) != 0;
     }
 }

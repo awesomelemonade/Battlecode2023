@@ -65,9 +65,9 @@ public class Headquarters implements RunnableBot {
     private static double lastAdamantiumIncome = 0;
 
     public static void debug_render() {
-        if (rc.getRoundNum() >= 50) {
-            rc.resign();
-        }
+//        if (rc.getRoundNum() >= 50) {
+//            rc.resign();
+//        }
 //        for (int i = 0; i < Constants.MAP_WIDTH; i++) {
 //            for (int j = 0; j < Constants.MAP_HEIGHT; j++) {
 //                if (i % 3 == 1 && j % 3 == 1) {

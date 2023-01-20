@@ -4,11 +4,7 @@ import battlecode.common.Direction;
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 import battlecode.common.RobotType;
-import sprintBot.util.Debug;
-import sprintBot.util.Cache;
-import sprintBot.util.Communication;
-import sprintBot.util.Constants;
-import sprintBot.util.Util;
+import sprintBot.util.*;
 
 import static sprintBot.util.Constants.rc;
 
@@ -25,11 +21,17 @@ public class Checkpoints {
     private static final int MASK_8 = 0b1111_1111; // 8 bits
 
     public static void debug_render() {
-//        for (int i = 0; i < SIZE; i++) {
-//            for (int j = 0; j < SIZE; j++) {
-//                Debug.setIndicatorDot(chunkToMapLocation(new ChunkCoord(i, j)), 0, 255, 0);
-//            }
-//        }
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                ChunkCoord chunk = new ChunkCoord(i, j);
+                int checkpoint = checkpoints[chunk.chunkX * SIZE + chunk.chunkY];
+                if (checkpoint != 0) {
+                    Debug.setIndicatorDot(chunkToMapLocation(chunk), 0, 255, 0);
+                } else {
+                    Debug.setIndicatorDot(chunkToMapLocation(chunk), 255, 0, 0);
+                }
+            }
+        }
 //        for (int i = 0; i < Constants.MAP_WIDTH; i++) {
 //            for (int j = 0; j < Constants.MAP_HEIGHT; j++) {
 //                Debug.setIndicatorDot(chunkToMapLocation(getNearestChunkCoord(new MapLocation(i, j))), 0, 0, 255);
@@ -73,17 +75,17 @@ public class Checkpoints {
         // TODO
         BFSVision bfs = BFSVision.getBFSIfCompleted();
         if (bfs != null) {
-            ChunkCoord currentChunkCoord = getNearestChunkCoord(Cache.MY_LOCATION);
-            if (bfsCanReachChunk(bfs, currentChunkCoord)) {
+            ChunkCoord unexplored = getNearestUnexplored(bfs);
+            if (unexplored != null) {
                 int checkpoint = 0;
                 for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
-                    ChunkCoord neighborChunk = currentChunkCoord.add(Constants.ORDINAL_DIRECTIONS[i]);
+                    ChunkCoord neighborChunk = unexplored.add(Constants.ORDINAL_DIRECTIONS[i]);
                     if (chunkIsOnTheMap(neighborChunk) && bfsCanReachChunk(bfs, neighborChunk)) {
                         // assumed: i = direction.ordinal()
                         checkpoint |= (1 << i);
                     }
                 }
-                addPendingCheckpoint(currentChunkCoord, checkpoint);
+                addPendingCheckpoint(unexplored, checkpoint);
             }
         }
         // flush pending
@@ -100,6 +102,24 @@ public class Checkpoints {
                 Debug.println("Warning: Out of space to write pending checkpoints");
             }
         }
+    }
+
+    static int[] dx = new int[] {-1, 1, 0, 0, -1, 1, -1, 1};
+    static int[] dy = new int[] {0, 0, -1, 1, -1, -1, 1, 1};
+    public static ChunkCoord getNearestUnexplored(BFSVision bfs) {
+        ChunkCoord currentChunkCoord = getNearestChunkCoord(Cache.MY_LOCATION);
+        if (bfsCanReachChunk(bfs, currentChunkCoord) && chunkIsUnexplored(currentChunkCoord)) {
+            return currentChunkCoord;
+        }
+        for (int i = dx.length; --i >= 0; ) {
+            ChunkCoord chunk = currentChunkCoord.translate(dx[i], dy[i]);
+            if (chunkIsOnTheMap(chunk)) {
+                if (bfsCanReachChunk(bfs, chunk) && chunkIsUnexplored(chunk)) {
+                    return chunk;
+                }
+            }
+        }
+        return null;
     }
 
     public static void addPendingCheckpoint(ChunkCoord chunk, int direction) {
@@ -135,31 +155,19 @@ public class Checkpoints {
         }
         return Util.trimArray(buffer, length);
     }
-//    public static boolean chunkIsExplored(ChunkCoord chunk) {
-//        //
-//    }
+
+    public static boolean chunkIsUnexplored(ChunkCoord chunk) {
+        // TODO: dedicated explored array?
+        return checkpoints[chunk.chunkX * SIZE + chunk.chunkY] == 0;
+    }
 
     public static boolean bfsCanReachChunk(BFSVision bfs, ChunkCoord chunk) {
         MapLocation location = chunkToMapLocation(chunk);
-        return isPassable(location) && bfs.getImmediateMoveDirection(location) != null;
+        return bfs.hasMoveDirection(location) && PassabilityCache.isPassableOrFalse(location); // TODO: check hq location?
     }
 
     public static boolean chunkIsOnTheMap(ChunkCoord chunk) {
         return chunk.chunkX >= 0 && chunk.chunkY >= 0 && chunk.chunkX < SIZE && chunk.chunkY < SIZE;
-    }
-
-    public static boolean isPassable(MapLocation location) {
-        // isPassable and not HQ location
-        try {
-            return rc.sensePassability(location); // TODO: check hq locations
-        } catch (GameActionException ex) {
-            Debug.failFast(ex);
-            return false;
-        }
-    }
-
-    public static boolean chunkIsPassable(ChunkCoord chunk) {
-        return isPassable(chunkToMapLocation(chunk));
     }
 
     public static MapLocation chunkToMapLocation(ChunkCoord chunk) {
@@ -179,6 +187,9 @@ public class Checkpoints {
         }
         public ChunkCoord add(Direction direction) {
             return new ChunkCoord(chunkX + direction.dx, chunkY + direction.dy);
+        }
+        public ChunkCoord translate(int dx, int dy) {
+            return new ChunkCoord(chunkX + dx, chunkY + dy);
         }
     }
 }

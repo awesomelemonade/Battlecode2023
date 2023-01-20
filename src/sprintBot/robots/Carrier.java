@@ -14,7 +14,7 @@ public class Carrier implements RunnableBot {
     @Override
     public void init() throws GameActionException {
         blacklist = new FastIntSet2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
-        MapCache.init();
+        HasAdjacentUnpassableCache.init();
     }
 
     private static void debug_render() {
@@ -53,19 +53,19 @@ public class Carrier implements RunnableBot {
         if (tryKiteFromEnemies()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0 || MapCache.hasAdjacentUnpassable(location);
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
         if (tryMoveToPickupAnchor()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1 || MapCache.hasAdjacentUnpassable(location);
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
         if (tryMoveToPlaceAnchorOnIsland()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0 || MapCache.hasAdjacentUnpassable(location);
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
         if (tryMoveToTransferResourceToHQ()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1 || MapCache.hasAdjacentUnpassable(location);
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
         if (tryMoveToWell()) {
             return;
         }
