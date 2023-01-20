@@ -40,7 +40,16 @@ public class BFSVisionTemplate {
             allBFS[Cache.MY_LOCATION.x][Cache.MY_LOCATION.y] = currentBfsVision;
         }
         currentBfsVision.bfs();
-        debug_render(currentBfsVision);
+//        debug_render(currentBfsVision);
+    }
+
+    public static BFSVisionTemplate getBFSIfCompleted() {
+        BFSVisionTemplate currentBfsVision = allBFS[Cache.MY_LOCATION.x][Cache.MY_LOCATION.y];
+        if (currentBfsVision == null) {
+            currentBfsVision = new BFSVisionTemplate();
+            allBFS[Cache.MY_LOCATION.x][Cache.MY_LOCATION.y] = currentBfsVision;
+        }
+        return currentBfsVision.completed ? currentBfsVision : null;
     }
 
     public BFSVisionTemplate() {
@@ -134,6 +143,9 @@ public class BFSVisionTemplate {
     }
 
     public Direction getImmediateMoveDirection(MapLocation target) {
+        if (Cache.MY_LOCATION.equals(target)) {
+            return Direction.CENTER;
+        }
         int moveDirection = moveDirections[target.x][target.y];
         for (Direction direction : Constants.getAttemptOrder(Cache.MY_LOCATION.directionTo(target))) {
             if (rc.canMove(direction) && (moveDirection & (1 << direction.ordinal())) != 0) {

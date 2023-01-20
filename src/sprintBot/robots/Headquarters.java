@@ -4,7 +4,6 @@ import battlecode.common.*;
 import sprintBot.fast.FastDoubleTracker;
 import sprintBot.fast.FastIntMap;
 import sprintBot.fast.FastIntTracker;
-import sprintBot.pathfinder.BFSVision;
 import sprintBot.util.*;
 
 import java.util.function.ToIntFunction;
@@ -41,7 +40,6 @@ public class Headquarters implements RunnableBot {
         carrierTasks = new FastIntMap(4096 * 16);
         shuffledLocations = rc.getAllLocationsWithinRadiusSquared(Cache.MY_LOCATION, RobotType.HEADQUARTERS.actionRadiusSquared);
         hasSpaceForMiners = hasSpaceForMiners();
-        BFSVision.debug_init();
     }
 
     public static MapLocation getNearestEnemyHQLocation() {
@@ -106,7 +104,6 @@ public class Headquarters implements RunnableBot {
         lastAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
         lastMana = rc.getResourceAmount(ResourceType.MANA);
         lastElixir = rc.getResourceAmount(ResourceType.ELIXIR);
-        BFSVision.postLoop();
     }
 
     public static void assignTasks() throws GameActionException {
