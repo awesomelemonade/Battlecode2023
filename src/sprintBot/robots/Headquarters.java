@@ -231,6 +231,9 @@ public class Headquarters implements RunnableBot {
     }
 
     public static boolean tryBuildCarrier() {
+        if (rc.getResourceAmount(ResourceType.ADAMANTIUM) < RobotType.CARRIER.buildCostAdamantium) {
+            return false;
+        }
         if (!hasSpaceForMiners) {
             return false;
         }
@@ -262,6 +265,9 @@ public class Headquarters implements RunnableBot {
     }
 
     public static boolean tryBuildLauncher() {
+        if (rc.getResourceAmount(ResourceType.MANA) < RobotType.LAUNCHER.buildCostMana) {
+            return false;
+        }
         if (LambdaUtil.arraysAllMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.HEADQUARTERS)) {
             // if 2 or more enemy attackers within radius 16 OR 5 or more enemy attackers within vision radius
             if (Util.numEnemyAttackersWithin(Cache.MY_LOCATION, 16) >= 2

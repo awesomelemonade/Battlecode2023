@@ -1,6 +1,7 @@
 package sprintBot.pathfinder;
 
 import battlecode.common.*;
+import sprintBot.fast.FastIntGrid;
 import sprintBot.fast.FastMapLocationQueue;
 import sprintBot.util.Cache;
 import sprintBot.util.Debug;
@@ -17,8 +18,8 @@ public class BFSVision {
     private static int[] b = new int[] {0, 0, 0, 0, 255, 255, 255, 255, 255};
 
     private FastMapLocationQueue queue;
-    private int[][] moveDirections;
-    private int[][] distances;
+    private FastIntGrid moveDirections;
+    private FastIntGrid distances;
     private boolean completed = false;
 
     private static BFSVision[][] allBFS;
@@ -35,16 +36,28 @@ public class BFSVision {
     }
 
     public static void postLoop() throws GameActionException {
-        BFSVision currentBfsVision = allBFS[Cache.MY_LOCATION.x][Cache.MY_LOCATION.y];
-        if (currentBfsVision == null) {
-            currentBfsVision = new BFSVision();
-            allBFS[Cache.MY_LOCATION.x][Cache.MY_LOCATION.y] = currentBfsVision;
+        if (Cache.TURN_COUNT > 1) { // save bytecodes on turn 1
+            MapInfo[] infos = rc.senseNearbyMapInfos();
+            for (int i = infos.length; --i >= 0; ) {
+                MapInfo info = infos[i];
+                MapLocation location = info.getMapLocation();
+                currentDestinations[location.x][location.y] = location.add(info.getCurrentDirection());
+            }
+            BFSVision currentBfsVision = allBFS[Cache.MY_LOCATION.x][Cache.MY_LOCATION.y];
+            if (currentBfsVision == null) {
+                currentBfsVision = new BFSVision();
+                allBFS[Cache.MY_LOCATION.x][Cache.MY_LOCATION.y] = currentBfsVision;
+            }
+            currentBfsVision.bfs();
+            debug_render(currentBfsVision);
         }
-        currentBfsVision.bfs();
-//        debug_render(currentBfsVision);
     }
 
     public static BFSVision getBFSIfCompleted() {
+        if (Cache.TURN_COUNT <= 1) {
+            // save bytecodes
+            return null;
+        }
         BFSVision currentBfsVision = allBFS[Cache.MY_LOCATION.x][Cache.MY_LOCATION.y];
         if (currentBfsVision == null) {
             currentBfsVision = new BFSVision();
@@ -54,12 +67,13 @@ public class BFSVision {
     }
 
     public BFSVision() {
-        moveDirections = new int[Constants.MAP_WIDTH][Constants.MAP_HEIGHT];
-        distances = new int[Constants.MAP_WIDTH][Constants.MAP_HEIGHT];
+        moveDirections = new FastIntGrid(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
+        distances = new FastIntGrid(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
         queue = new FastMapLocationQueue(Constants.MAX_VISION_SQUARES); // MAX_VISION_SQUARES
-        resetAndReadMap();
+        // locate currents
+        // should only return locations that can be fully sensable (even with clouds)
 
-        moveDirections[Cache.MY_LOCATION.x][Cache.MY_LOCATION.y] = -1;
+        moveDirections.set(Cache.MY_LOCATION, -1);
 
         // TODO: unroll
         for (Direction direction : Constants.ORDINAL_DIRECTIONS) {
@@ -69,7 +83,7 @@ public class BFSVision {
                 // should never be out of bounds because currents should never put a robot out of the map
                 queue.add(neighbor); // TODO: theoretically we can just unroll this
                 // the following theoretically can be set beforehand during the reset phase
-                moveDirections[neighbor.x][neighbor.y] = (1 << direction.ordinal());
+                moveDirections.set(neighbor, 1 << direction.ordinal());
             }
         }
     }
@@ -85,7 +99,7 @@ public class BFSVision {
         for (int i = 0; i < Constants.MAP_WIDTH; i++) {
             for (int j = 0; j < Constants.MAP_HEIGHT; j++) {
                 for (Direction direction : directions) {
-                    if (moveDirections[i][j] != -1 && (moveDirections[i][j] & (1 << direction.ordinal())) != 0) {
+                    if (moveDirections.get(i, j) != -1 && (moveDirections.get(i, j) & (1 << direction.ordinal())) != 0) {
                         int index = direction.ordinal() % r.length;
                         MapLocation location = new MapLocation(i, j);
                         Debug.setIndicatorDot(location, r[index], g[index], b[index]);
@@ -95,42 +109,32 @@ public class BFSVision {
         }
     }
 
-    public void resetAndReadMap() {
-        // locate currents
-        // should only return locations that can be fully sensable (even with clouds)
-        MapInfo[] infos = rc.senseNearbyMapInfos();
-        for (MapInfo info : infos) {
-            MapLocation location = info.getMapLocation();
-            currentDestinations[location.x][location.y] = location.add(info.getCurrentDirection());
-        }
-    }
-
     public static boolean sensePassable(MapLocation location) throws GameActionException {
         return rc.sensePassability(location); // TODO: check for ally & enemy HQ. they should also be not passable
     }
 
     public void bfs() throws GameActionException  {
         // idk why but while loop breaks the profiler
-        for (int i = 50; --i >= 0 && !queue.isEmpty() && Clock.getBytecodesLeft() > 1000;) {
+        for (int i = 50; --i >= 0 && !queue.isEmpty() && Clock.getBytecodesLeft() > 1200; ) {
             MapLocation location = queue.poll();
             if (rc.canSenseLocation(location) && sensePassable(location)) {
-                int distance_plus_1 = distances[location.x][location.y] + 1;
-                int moveDirection = moveDirections[location.x][location.y];
+                int distance_plus_1 = distances.get(location) + 1;
+                int moveDirection = moveDirections.get(location);
                 // get neighbors
                 {
                     MapLocation neighbor = location.add(Direction.NORTH);
                     if (rc.onTheMap(neighbor)) {
                         neighbor = currentDestinations[neighbor.x][neighbor.y];
                         // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances[neighbor.x][neighbor.y];
-                        if (moveDirections[neighbor.x][neighbor.y] == 0) {
+                        int neighborDistance = distances.get(neighbor);
+                        if (moveDirections.get(neighbor) == 0) {
                             // unvisited square
                             queue.add(neighbor);
-                            moveDirections[neighbor.x][neighbor.y] = moveDirection;
-                            distances[neighbor.x][neighbor.y] = distance_plus_1;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
+                            distances.set(neighbor, distance_plus_1);
                         } else if (neighborDistance == distance_plus_1) {
                             // visited square with the same distance
-                            moveDirections[neighbor.x][neighbor.y] |= moveDirection;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
                         }
                     }
                 }
@@ -139,15 +143,15 @@ public class BFSVision {
                     if (rc.onTheMap(neighbor)) {
                         neighbor = currentDestinations[neighbor.x][neighbor.y];
                         // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances[neighbor.x][neighbor.y];
-                        if (moveDirections[neighbor.x][neighbor.y] == 0) {
+                        int neighborDistance = distances.get(neighbor);
+                        if (moveDirections.get(neighbor) == 0) {
                             // unvisited square
                             queue.add(neighbor);
-                            moveDirections[neighbor.x][neighbor.y] = moveDirection;
-                            distances[neighbor.x][neighbor.y] = distance_plus_1;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
+                            distances.set(neighbor, distance_plus_1);
                         } else if (neighborDistance == distance_plus_1) {
                             // visited square with the same distance
-                            moveDirections[neighbor.x][neighbor.y] |= moveDirection;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
                         }
                     }
                 }
@@ -156,15 +160,15 @@ public class BFSVision {
                     if (rc.onTheMap(neighbor)) {
                         neighbor = currentDestinations[neighbor.x][neighbor.y];
                         // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances[neighbor.x][neighbor.y];
-                        if (moveDirections[neighbor.x][neighbor.y] == 0) {
+                        int neighborDistance = distances.get(neighbor);
+                        if (moveDirections.get(neighbor) == 0) {
                             // unvisited square
                             queue.add(neighbor);
-                            moveDirections[neighbor.x][neighbor.y] = moveDirection;
-                            distances[neighbor.x][neighbor.y] = distance_plus_1;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
+                            distances.set(neighbor, distance_plus_1);
                         } else if (neighborDistance == distance_plus_1) {
                             // visited square with the same distance
-                            moveDirections[neighbor.x][neighbor.y] |= moveDirection;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
                         }
                     }
                 }
@@ -173,15 +177,15 @@ public class BFSVision {
                     if (rc.onTheMap(neighbor)) {
                         neighbor = currentDestinations[neighbor.x][neighbor.y];
                         // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances[neighbor.x][neighbor.y];
-                        if (moveDirections[neighbor.x][neighbor.y] == 0) {
+                        int neighborDistance = distances.get(neighbor);
+                        if (moveDirections.get(neighbor) == 0) {
                             // unvisited square
                             queue.add(neighbor);
-                            moveDirections[neighbor.x][neighbor.y] = moveDirection;
-                            distances[neighbor.x][neighbor.y] = distance_plus_1;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
+                            distances.set(neighbor, distance_plus_1);
                         } else if (neighborDistance == distance_plus_1) {
                             // visited square with the same distance
-                            moveDirections[neighbor.x][neighbor.y] |= moveDirection;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
                         }
                     }
                 }
@@ -190,15 +194,15 @@ public class BFSVision {
                     if (rc.onTheMap(neighbor)) {
                         neighbor = currentDestinations[neighbor.x][neighbor.y];
                         // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances[neighbor.x][neighbor.y];
-                        if (moveDirections[neighbor.x][neighbor.y] == 0) {
+                        int neighborDistance = distances.get(neighbor);
+                        if (moveDirections.get(neighbor) == 0) {
                             // unvisited square
                             queue.add(neighbor);
-                            moveDirections[neighbor.x][neighbor.y] = moveDirection;
-                            distances[neighbor.x][neighbor.y] = distance_plus_1;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
+                            distances.set(neighbor, distance_plus_1);
                         } else if (neighborDistance == distance_plus_1) {
                             // visited square with the same distance
-                            moveDirections[neighbor.x][neighbor.y] |= moveDirection;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
                         }
                     }
                 }
@@ -207,15 +211,15 @@ public class BFSVision {
                     if (rc.onTheMap(neighbor)) {
                         neighbor = currentDestinations[neighbor.x][neighbor.y];
                         // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances[neighbor.x][neighbor.y];
-                        if (moveDirections[neighbor.x][neighbor.y] == 0) {
+                        int neighborDistance = distances.get(neighbor);
+                        if (moveDirections.get(neighbor) == 0) {
                             // unvisited square
                             queue.add(neighbor);
-                            moveDirections[neighbor.x][neighbor.y] = moveDirection;
-                            distances[neighbor.x][neighbor.y] = distance_plus_1;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
+                            distances.set(neighbor, distance_plus_1);
                         } else if (neighborDistance == distance_plus_1) {
                             // visited square with the same distance
-                            moveDirections[neighbor.x][neighbor.y] |= moveDirection;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
                         }
                     }
                 }
@@ -224,15 +228,15 @@ public class BFSVision {
                     if (rc.onTheMap(neighbor)) {
                         neighbor = currentDestinations[neighbor.x][neighbor.y];
                         // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances[neighbor.x][neighbor.y];
-                        if (moveDirections[neighbor.x][neighbor.y] == 0) {
+                        int neighborDistance = distances.get(neighbor);
+                        if (moveDirections.get(neighbor) == 0) {
                             // unvisited square
                             queue.add(neighbor);
-                            moveDirections[neighbor.x][neighbor.y] = moveDirection;
-                            distances[neighbor.x][neighbor.y] = distance_plus_1;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
+                            distances.set(neighbor, distance_plus_1);
                         } else if (neighborDistance == distance_plus_1) {
                             // visited square with the same distance
-                            moveDirections[neighbor.x][neighbor.y] |= moveDirection;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
                         }
                     }
                 }
@@ -241,15 +245,15 @@ public class BFSVision {
                     if (rc.onTheMap(neighbor)) {
                         neighbor = currentDestinations[neighbor.x][neighbor.y];
                         // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances[neighbor.x][neighbor.y];
-                        if (moveDirections[neighbor.x][neighbor.y] == 0) {
+                        int neighborDistance = distances.get(neighbor);
+                        if (moveDirections.get(neighbor) == 0) {
                             // unvisited square
                             queue.add(neighbor);
-                            moveDirections[neighbor.x][neighbor.y] = moveDirection;
-                            distances[neighbor.x][neighbor.y] = distance_plus_1;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
+                            distances.set(neighbor, distance_plus_1);
                         } else if (neighborDistance == distance_plus_1) {
                             // visited square with the same distance
-                            moveDirections[neighbor.x][neighbor.y] |= moveDirection;
+                            moveDirections.bitwiseOr(neighbor, moveDirection);
                         }
                     }
                 }
@@ -260,15 +264,15 @@ public class BFSVision {
                 if (rc.onTheMap(neighbor)) {
                     neighbor = currentDestinations[neighbor.x][neighbor.y];
                     // should never be out of bounds because currents should never put a robot out of the map
-                    int neighborDistance = distances[neighbor.x][neighbor.y];
-                    if (moveDirections[neighbor.x][neighbor.y] == 0) {
+                    int neighborDistance = distances.get(neighbor);
+                    if (moveDirections.get(neighbor) == 0) {
                         // unvisited square
                         queue.add(neighbor);
-                        moveDirections[neighbor.x][neighbor.y] = moveDirection;
-                        distances[neighbor.x][neighbor.y] = distance_plus_1;
+                        moveDirections.bitwiseOr(neighbor, moveDirection);
+                        distances.set(neighbor, distance_plus_1);
                     } else if (neighborDistance == distance_plus_1) {
                         // visited square with the same distance
-                        moveDirections[neighbor.x][neighbor.y] |= moveDirection;
+                        moveDirections.bitwiseOr(neighbor, moveDirection);
                     }
                 }
                 ---
@@ -282,7 +286,7 @@ public class BFSVision {
         if (Cache.MY_LOCATION.equals(target)) {
             return Direction.CENTER;
         }
-        int moveDirection = moveDirections[target.x][target.y];
+        int moveDirection = moveDirections.get(target);
         for (Direction direction : Constants.getAttemptOrder(Cache.MY_LOCATION.directionTo(target))) {
             if (rc.canMove(direction) && (moveDirection & (1 << direction.ordinal())) != 0) {
                 return direction;
