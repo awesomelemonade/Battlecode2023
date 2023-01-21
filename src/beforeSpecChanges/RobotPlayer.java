@@ -48,7 +48,7 @@ public class RobotPlayer {
                                 controller.getRobotCount() <= Communication.headquartersLocations.length) {
                             controller.resign();
                         }
-                        if (currentTurn > 150 && Cache.ALLY_ROBOTS.length == 0 && Cache.ENEMY_ROBOTS.length > controller.getRobotCount()) {
+                        if (currentTurn > 150 && Cache.ALLY_ROBOTS.length == 0 && Cache.ENEMY_ROBOTS.length > controller.getRobotCount() + 5) {
                             controller.resign();
                         }
                     }
