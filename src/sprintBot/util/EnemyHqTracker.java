@@ -152,4 +152,18 @@ public class EnemyHqTracker {
         }
         return true;
     }
+
+    public static boolean anyKnownAndPending(Predicate<MapLocation> predicate) {
+        for (int i = numKnownEnemyHeadquarterLocations; --i >= 0; ) {
+            if (predicate.test(enemyHeadquartersLocations[i])) {
+                return true;
+            }
+        }
+        for (int i = numPendingLocations; --i >= 0; ) {
+            if (predicate.test(pendingLocations[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

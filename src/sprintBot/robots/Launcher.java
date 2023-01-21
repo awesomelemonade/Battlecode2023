@@ -84,6 +84,7 @@ public class Launcher implements RunnableBot {
 
     @Override
     public void move() {
+        Pathfinding.predicate = loc -> true;
         if (executeMicro()) {
             return;
         }
@@ -112,6 +113,10 @@ public class Launcher implements RunnableBot {
                 Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, location, 0, 0, 0); // black
                 Debug.setIndicatorString(Profile.ATTACKING, "Num: " + numAllyAttackers);
             }
+            // do not go to squares within 9 distance of hq
+            Pathfinding.predicate = loc -> {
+                return !EnemyHqTracker.anyKnownAndPending(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(loc, 9));
+            };
             if (Cache.MY_LOCATION.isWithinDistanceSquared(location, 16)) {
                 // try to circle around it
                 tryPathfindingTangent(location);

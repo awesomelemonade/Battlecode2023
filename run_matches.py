@@ -12,11 +12,17 @@ emojiMap = {
 errors = []
 currentBot = 'sprintBot'
 
-bots = ['originalBuildOrder', 'beforeBetterEnemyHqPredictions']
+bots = ['beforeSpecChanges', 'originalBuildOrder', 'beforeBetterEnemyHqPredictions']
 #bots = ['manaOnly', 'sprintTesting1', 'sprintTesting2', 'sprintTesting3', 'sprintTesting5', 'sprintTesting8']
 botsSet = set(bots)
-maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall']
+#maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall']
 #maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall', 'generated_captain_america', 'generated_chalice', 'generated_charge', 'generated_chessboard', 'generated_cobra', 'generated_collaboration', 'generated_colosseum', 'generated_deer', 'generated_defenseless']
+
+
+# sprint 1 maps
+maps = ['ArtistRendition', 'BatSignal', 'BowAndArrow', 'Cat', 'Clown', 'Diagonal', 'Eyelands', 'Frog', 'Grievance', 'Hah', 'Jail', 'KingdomRush', 'Minefield', 'Movepls', 'Orbit', 'Pathfind', 'Pit', 'Pizza', 'Quiet', 'Rectangle', 'Scatter', 'Sun', 'Tacocat']
+#maps = ['Eyelands']
+
 mapsSet = set(maps)
 
 matches = set(product(bots, maps))
@@ -50,11 +56,17 @@ def run_match(bot, map):
         winBString = '{} (B) wins'.format(currentBot)
         loseAString = '{} (B) wins'.format(bot)
         loseBString = '{} (A) wins'.format(bot)
+        resignedString = 'resigned'
         
         numWins = 0
         
         gameLengthA = retrieveGameLength(outputA)
+        gameAResigned = resignedString in outputA
         gameLengthB = retrieveGameLength(outputB)
+        gameBResigned = resignedString in outputB
+
+        gameAInfo = gameLengthA + ('*' if gameAResigned else '')
+        gameBInfo = gameLengthB + ('*' if gameBResigned else '')
         
         if winAString in outputA:
             numWins += 1
@@ -66,7 +78,7 @@ def run_match(bot, map):
         else:
             if not loseBString in outputB:
                 return 'Error'
-        return numWinsMapping[numWins] + ' (' + ', '.join([gameLengthA, gameLengthB]) + ')'
+        return numWinsMapping[numWins] + ' (' + ', '.join([gameAInfo, gameBInfo]) + ')'
 
 
 results = {}
