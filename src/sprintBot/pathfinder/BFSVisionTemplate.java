@@ -5,10 +5,7 @@ import sprintBot.fast.FastGrid;
 import sprintBot.fast.FastIntGrid;
 import sprintBot.fast.FastMapLocationGridWithDefault;
 import sprintBot.fast.FastMapLocationQueue;
-import sprintBot.util.Cache;
-import sprintBot.util.Debug;
-import sprintBot.util.Constants;
-import sprintBot.util.PassabilityCache;
+import sprintBot.util.*;
 
 import static sprintBot.util.Constants.rc;
 
@@ -146,9 +143,9 @@ public class BFSVisionTemplate {
                 BFSVisionTemplate bfs = allBFS.get(i, j);
                 if (bfs != null) {
                     if (bfs.completed) {
-                        Debug.setIndicatorDot(new MapLocation(i, j), 0, 255, 0);
+                        Debug.setIndicatorDot(Profile.BFS, new MapLocation(i, j), 0, 255, 0); // green
                     } else {
-                        Debug.setIndicatorDot(new MapLocation(i, j), 255, 255, 0);
+                        Debug.setIndicatorDot(Profile.BFS, new MapLocation(i, j), 255, 255, 0); // yellow
                     }
                 }
             }
@@ -165,7 +162,7 @@ public class BFSVisionTemplate {
                     if (moveDirections[i][j] != -1 && (moveDirections[i][j] & (1 << direction.ordinal())) != 0) {
                         int index = direction.ordinal() % r.length;
                         MapLocation location = new MapLocation(i, j);
-                        Debug.setIndicatorDot(location, r[index], g[index], b[index]);
+                        Debug.setIndicatorDot(Profile.BFS, location, r[index], g[index], b[index]);
                     }
                 }
             }

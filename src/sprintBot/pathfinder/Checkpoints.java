@@ -24,24 +24,33 @@ public class Checkpoints {
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
                 ChunkCoord chunk = new ChunkCoord(i, j);
+
+                boolean isPending = false;
+                for (int k = pendingSize; --k >= 0; ) {
+                    if (pending[k].equals(chunk)) {
+                        isPending = true;
+                        break;
+                    }
+                }
+
                 int checkpoint = checkpoints[chunk.chunkX * SIZE + chunk.chunkY];
+                MapLocation location = chunkToMapLocation(chunk);
                 if (checkpoint != 0) {
-                    Debug.setIndicatorDot(chunkToMapLocation(chunk), 0, 255, 0);
+                    if (isPending) {
+                        Debug.setIndicatorDot(Profile.CHECKPOINTS, location, 255, 255, 0); // yellow
+                    } else {
+                        Debug.setIndicatorDot(Profile.CHECKPOINTS, location, 0, 255, 0); // green
+                    }
                 } else {
-                    Debug.setIndicatorDot(chunkToMapLocation(chunk), 255, 0, 0);
+                    Debug.setIndicatorDot(Profile.CHECKPOINTS, location, 255, 0, 0); // red
                 }
             }
         }
-//        for (int i = 0; i < Constants.MAP_WIDTH; i++) {
-//            for (int j = 0; j < Constants.MAP_HEIGHT; j++) {
-//                Debug.setIndicatorDot(chunkToMapLocation(getNearestChunkCoord(new MapLocation(i, j))), 0, 0, 255);
-//            }
-//        }
     }
 
     public static void update() throws GameActionException {
+        debug_render();
         if (Constants.ROBOT_TYPE == RobotType.HEADQUARTERS) {
-            debug_render();
             // read from pending
             boolean isLastHq = Communication.headquartersLocations != null &&
                     Cache.MY_LOCATION.equals(Communication.headquartersLocations[Communication.headquartersLocations.length - 1]);
@@ -190,6 +199,14 @@ public class Checkpoints {
         }
         public ChunkCoord translate(int dx, int dy) {
             return new ChunkCoord(chunkX + dx, chunkY + dy);
+        }
+        @Override
+        public boolean equals(Object o) {
+            if (o instanceof ChunkCoord) {
+                ChunkCoord other = (ChunkCoord) o;
+                return chunkX == other.chunkX && chunkY == other.chunkY;
+            }
+            return false;
         }
     }
 }

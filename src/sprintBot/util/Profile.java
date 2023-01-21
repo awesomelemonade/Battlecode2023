@@ -6,7 +6,9 @@ public enum Profile {
     EXPLORER(false),
     MINING(false),
     ATTACKING(false),
-    REPEAT_MOVE(false);
+    REPEAT_MOVE(false),
+    CHECKPOINTS(false),
+    BFS(false);
 
     private final boolean enabled;
 
