@@ -34,7 +34,7 @@ public class BFSVisionTemplate {
 
 
     public static void init() {
-        allBFS = new FastGrid<BFSVisionTemplate>(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
+        allBFS = new FastGrid<>(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
         currentDestinations = new FastMapLocationGridWithDefault(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
     }
 

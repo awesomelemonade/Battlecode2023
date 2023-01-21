@@ -37,9 +37,9 @@ public class Communication {
 
     public static final int MAX_CARRIER_COMMED_TASKS = 16;
 
-    public static final int CHECKPOINTS_OFFSET = 37; // 23 ints
-    public static final int CHECKPOINTS_PENDING_OFFSET = 60;
-    public static final int CHECKPOINTS_PENDING_LENGTH = 4;
+    public static final int CHECKPOINTS_OFFSET = 37; // 19 ints
+    public static final int CHECKPOINTS_PENDING_OFFSET = 56;
+    public static final int CHECKPOINTS_PENDING_LENGTH = 8;
 
     public enum CarrierTaskType {
         NONE, PICKUP_ANCHOR, MINE_ADAMANTIUM, MINE_MANA, MINE_ELIXIR;

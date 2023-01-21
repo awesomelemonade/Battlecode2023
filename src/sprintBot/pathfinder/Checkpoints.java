@@ -11,10 +11,10 @@ import static sprintBot.util.Constants.rc;
 public class Checkpoints {
     // 15 x 15 grid of checkpoints. Each checkpoint requires 8 bits.
     private static final int SIZE = 15;
-    private static final int NUM_CYCLES = 5;
-    private static final int CYCLE_LENGTH = SIZE * SIZE / NUM_CYCLES; // number of checkpoints
-    private static final int CYCLE_LENGTH_COMM_INTS = (CYCLE_LENGTH + 1) / 2; // 2 checkpoints per comm int: 23 ints
-    private static int[] checkpoints = new int[SIZE * SIZE + 1]; // + 1 to avoid out of bounds and bound checking. last element is meaningless
+    private static final int CYCLES_PER_FULL_REFRESH = 6;
+    private static final int CHECKPOINTS_PER_CYCLE = (SIZE * SIZE + CYCLES_PER_FULL_REFRESH - 1) / CYCLES_PER_FULL_REFRESH; // number of checkpoints = 38
+    private static final int COMM_INTS_PER_CYCLE = (CHECKPOINTS_PER_CYCLE + 1) / 2; // 2 checkpoints per comm int: 19 ints
+    private static int[] checkpoints = new int[SIZE * SIZE + CYCLES_PER_FULL_REFRESH]; // + x to avoid out of bounds and bound checking. last elements are meaningless
     private static ChunkCoord[] pending = new ChunkCoord[20];
     private static int pendingSize = 0;
 
@@ -56,17 +56,17 @@ public class Checkpoints {
                 }
             }
             // write next cycle
-            int cycleIndex = rc.getRoundNum() % NUM_CYCLES;
-            for (int i = CYCLE_LENGTH_COMM_INTS; --i >= 0; ) {
-                int index = CYCLE_LENGTH * cycleIndex + i * 2;
+            int cycleIndex = rc.getRoundNum() % CYCLES_PER_FULL_REFRESH;
+            for (int i = COMM_INTS_PER_CYCLE; --i >= 0; ) {
+                int index = CHECKPOINTS_PER_CYCLE * cycleIndex + i * 2;
                 rc.writeSharedArray(i + Communication.CHECKPOINTS_OFFSET, (checkpoints[index + 1] << 8) | checkpoints[index]);
             }
         } else {
             // update checkpoints from comms
-            int cycleIndex = rc.getRoundNum() % NUM_CYCLES;
-            for (int i = CYCLE_LENGTH_COMM_INTS; --i >= 0;) {
+            int cycleIndex = rc.getRoundNum() % CYCLES_PER_FULL_REFRESH;
+            for (int i = COMM_INTS_PER_CYCLE; --i >= 0;) {
                 int read = rc.readSharedArray(i + Communication.CHECKPOINTS_OFFSET); // TODO
-                int index = CYCLE_LENGTH * cycleIndex + i * 2;
+                int index = CHECKPOINTS_PER_CYCLE * cycleIndex + i * 2;
                 checkpoints[index] |= read & MASK_8;
                 checkpoints[index + 1] |= (read >> 8) & MASK_8;
             }
