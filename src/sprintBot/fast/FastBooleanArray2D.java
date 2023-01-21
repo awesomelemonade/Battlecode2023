@@ -17,7 +17,7 @@ public class FastBooleanArray2D {
     }
 
     public boolean get(int x, int y) {
-        return (data[x] & (1L << y)) == 0;
+        return (data[x] & (1L << y)) != 0;
     }
 
     public void setTrue(MapLocation location) {

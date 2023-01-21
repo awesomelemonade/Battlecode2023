@@ -14,6 +14,18 @@ public class PassabilityCache {
         passable = new FastBooleanArray2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
     }
 
+    public static void debug_render() {
+        for (int i = 0; i < Constants.MAP_WIDTH; i++) {
+            for (int j = 0; j < Constants.MAP_HEIGHT; j++) {
+                if (cached.get(i, j)) {
+                    Debug.setIndicatorDot(Profile.BFS, new MapLocation(i, j), 0, 255, 0); // green
+                } else {
+                    Debug.setIndicatorDot(Profile.BFS, new MapLocation(i, j), 255, 0, 0); // red
+                }
+            }
+        }
+    }
+
     public static boolean isPassableOrFalse(MapLocation location) {
         if (cached.get(location)) {
             return passable.get(location);
