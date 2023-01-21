@@ -14,7 +14,7 @@ public class Carrier implements RunnableBot {
     @Override
     public void init() throws GameActionException {
         blacklist = new FastIntSet2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
-        MapCache.init();
+        HasAdjacentUnpassableCache.init();
     }
 
     private static void debug_render() {
@@ -53,19 +53,19 @@ public class Carrier implements RunnableBot {
         if (tryKiteFromEnemies()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0 || MapCache.hasAdjacentUnpassable(location);
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
         if (tryMoveToPickupAnchor()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1 || MapCache.hasAdjacentUnpassable(location);
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
         if (tryMoveToPlaceAnchorOnIsland()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0 || MapCache.hasAdjacentUnpassable(location);
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
         if (tryMoveToTransferResourceToHQ()) {
             return;
         }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1 || MapCache.hasAdjacentUnpassable(location);
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
         if (tryMoveToWell()) {
             return;
         }
@@ -94,40 +94,40 @@ public class Carrier implements RunnableBot {
 
     @Override
     public void postLoop() throws GameActionException {
-        // if we have bytecodes, just precalculate stuff
-        int x = Cache.MY_LOCATION.x;
-        int y = Cache.MY_LOCATION.y;
-        // each one takes ~250 bytecodes approximately
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 0, y + 0)); }
-        // ordinal directions
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 1, y + 0)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 0, y + 1)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 1, y + 0)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 0, y - 1)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 1, y + 1)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 1, y - 1)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 1, y - 1)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 1, y + 1)); }
-        // squares 2 away
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y + 0)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y + 0)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 0, y - 2)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 0, y + 2)); }
-
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y + 1)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y + 1)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 1, y - 2)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 1, y + 2)); }
-
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y - 1)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y - 1)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 1, y - 2)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 1, y + 2)); }
-
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y - 2)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y - 2)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y + 2)); }
-        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y + 2)); }
+//        // if we have bytecodes, just precalculate stuff
+//        int x = Cache.MY_LOCATION.x;
+//        int y = Cache.MY_LOCATION.y;
+//        // each one takes ~250 bytecodes approximately
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 0, y + 0)); }
+//        // ordinal directions
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 1, y + 0)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 0, y + 1)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 1, y + 0)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 0, y - 1)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 1, y + 1)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 1, y - 1)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 1, y - 1)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 1, y + 1)); }
+//        // squares 2 away
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y + 0)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y + 0)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 0, y - 2)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 0, y + 2)); }
+//
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y + 1)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y + 1)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 1, y - 2)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 1, y + 2)); }
+//
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y - 1)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y - 1)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 1, y - 2)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 1, y + 2)); }
+//
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y - 2)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y - 2)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y + 2)); }
+//        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y + 2)); }
     }
 
     public static boolean willDie() {

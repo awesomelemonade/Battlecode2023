@@ -7,12 +7,12 @@ import sprintBot.fast.FastBooleanArray2D;
 
 import static sprintBot.util.Constants.rc;
 
-public class MapCache {
-    private static FastBooleanArray2D cached;
+public class HasAdjacentUnpassableCache {
+    private static FastBooleanArray2D cachedHasAdjacentUnpassable;
     private static FastBooleanArray2D hasAdjacentUnpassable;
 
     public static void init() {
-        cached = new FastBooleanArray2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
+        cachedHasAdjacentUnpassable = new FastBooleanArray2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
         hasAdjacentUnpassable = new FastBooleanArray2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
     }
 
@@ -46,7 +46,7 @@ public class MapCache {
 
     public static boolean hasAdjacentUnpassable(MapLocation location) {
         // see if stored in cache
-        if (cached.get(location)) {
+        if (cachedHasAdjacentUnpassable.get(location)) {
             return hasAdjacentUnpassable.get(location);
         }
         // save bytecodes!!!
@@ -61,9 +61,9 @@ public class MapCache {
                 && isPassable(location.add(Direction.SOUTHWEST)));
         if (!becauseOfCloud) {
             if (hasAdjacentUnpassable) {
-                MapCache.hasAdjacentUnpassable.setTrue(location);
+                HasAdjacentUnpassableCache.hasAdjacentUnpassable.setTrue(location);
             }
-            cached.setTrue(location);
+            cachedHasAdjacentUnpassable.setTrue(location);
         }
         return hasAdjacentUnpassable;
     }

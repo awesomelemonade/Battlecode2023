@@ -64,8 +64,24 @@ public class Headquarters implements RunnableBot {
 
     private static double lastAdamantiumIncome = 0;
 
+    public static void debug_render() {
+//        if (rc.getRoundNum() >= 50) {
+//            rc.resign();
+//        }
+//        for (int i = 0; i < Constants.MAP_WIDTH; i++) {
+//            for (int j = 0; j < Constants.MAP_HEIGHT; j++) {
+//                if (i % 3 == 1 && j % 3 == 1) {
+//                    MapLocation location = new MapLocation(i, j);
+//                    Debug.setIndicatorDot(location, 0, 255, 0);
+//                }
+//            }
+//        }
+    }
+
     @Override
     public void loop() throws GameActionException {
+        debug_render();
+
         Util.shuffle(shuffledLocations);
         int currentAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
         int currentMana = rc.getResourceAmount(ResourceType.MANA);
@@ -215,6 +231,9 @@ public class Headquarters implements RunnableBot {
     }
 
     public static boolean tryBuildCarrier() {
+        if (rc.getResourceAmount(ResourceType.ADAMANTIUM) < RobotType.CARRIER.buildCostAdamantium) {
+            return false;
+        }
         if (!hasSpaceForMiners) {
             return false;
         }
@@ -246,6 +265,9 @@ public class Headquarters implements RunnableBot {
     }
 
     public static boolean tryBuildLauncher() {
+        if (rc.getResourceAmount(ResourceType.MANA) < RobotType.LAUNCHER.buildCostMana) {
+            return false;
+        }
         if (LambdaUtil.arraysAllMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.HEADQUARTERS)) {
             // if 2 or more enemy attackers within radius 16 OR 5 or more enemy attackers within vision radius
             if (Util.numEnemyAttackersWithin(Cache.MY_LOCATION, 16) >= 2

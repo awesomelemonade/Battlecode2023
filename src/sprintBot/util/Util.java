@@ -1,6 +1,7 @@
 package sprintBot.util;
 
 import battlecode.common.*;
+import sprintBot.pathfinder.BFSVision;
 import sprintBot.pathfinder.Pathfinding;
 
 import java.util.function.BiPredicate;
@@ -14,9 +15,11 @@ public class Util {
         Constants.init(controller);
         Random.init();
         Cache.init();
+        PassabilityCache.init();
         Communication.init();
         Explorer.init();
         Pathfinding.init();
+        BFSVision.init();
     }
 
     public static void loop() throws GameActionException {
@@ -26,6 +29,7 @@ public class Util {
 
     public static void postLoop() throws GameActionException {
         Communication.postLoop();
+        BFSVision.postLoop();
 
         // consider disintegrating in the late game
         if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS
@@ -50,6 +54,13 @@ public class Util {
 
     public static Direction randomAdjacentDirection() {
         return random(Constants.ORDINAL_DIRECTIONS);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> T[] trimArray(T[] array, int length) {
+        Object[] newArray = new Object[length];
+        System.arraycopy(array, 0, newArray, 0, length);
+        return (T[]) newArray;
     }
 
     public static boolean isAttacker(RobotType type) {

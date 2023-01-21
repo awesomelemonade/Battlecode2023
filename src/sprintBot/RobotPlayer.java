@@ -48,8 +48,8 @@ public class RobotPlayer {
                     if (!Util.isBuilding(Constants.ROBOT_TYPE)) {
                         tryMultiMove(controller, bot);
                     }
-                    Util.postLoop();
                     bot.postLoop();
+                    Util.postLoop();
 
                     if (controller.getRoundNum() != currentTurn) {
                         overBytecodes = true;
@@ -62,14 +62,29 @@ public class RobotPlayer {
                     }
                     if (overBytecodes) {
                         Debug.setIndicatorDot(Profile.ERROR_STATE, controller.getLocation(), 128, 0, 255); // purple
+//                        markProfiler(20);
                     }
                     Clock.yield();
+//                    if (overBytecodes) {
+//                        controller.resign();
+//                    }
                 }
             } catch (Exception ex) {
                 Debug.println(Profile.ERROR_STATE, controller.getLocation() + " errored: " + Cache.TURN_COUNT);
                 ex.printStackTrace();
                 errored = true;
+                if (Constants.DEBUG_RESIGN) {
+                    controller.resign();
+                }
                 Clock.yield();
+            }
+        }
+    }
+    public static void markProfiler(int x) {
+        if (x > 0) {
+            markProfiler(x - 1);
+            for (int i = 0; i < x; i++) {
+                i++;
             }
         }
     }
@@ -80,7 +95,7 @@ public class RobotPlayer {
         }
         int afterActionCooldown = controller.getActionCooldownTurns();
         // normally a while loop - but this is defensive code to prevent infinite loops that somehow might happen
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 5; i++) {
             if (afterActionCooldown > beforeActionCooldown && afterActionCooldown < GameConstants.COOLDOWN_LIMIT) {
                 beforeActionCooldown = controller.getActionCooldownTurns();
                 bot.action();
