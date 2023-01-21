@@ -34,4 +34,29 @@ public class PassabilityCache {
         }
         return false;
     }
+
+    public static final int UNPASSABLE = 0;
+    public static final int PASSABLE = 1;
+    public static final int UNKNOWN = 2;
+    // we gotta save bytecodes - so we return int instead of enum
+    public static int isPassable(MapLocation location) {
+        if (cached.get(location)) {
+            return passable.get(location) ? 1 : 0;
+        }
+        if (rc.canSenseLocation(location)) {
+            try {
+                if (rc.sensePassability(location)) {
+                    cached.setTrue(location);
+                    passable.setTrue(location);
+                    return PASSABLE;
+                } else {
+                    cached.setTrue(location);
+                    return UNPASSABLE;
+                }
+            } catch (GameActionException ex) {
+                Debug.failFast(ex);
+            }
+        }
+        return UNKNOWN;
+    }
 }

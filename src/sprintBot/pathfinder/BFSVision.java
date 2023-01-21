@@ -8,6 +8,7 @@ import sprintBot.fast.FastMapLocationQueue;
 import sprintBot.util.Cache;
 import sprintBot.util.Debug;
 import sprintBot.util.Constants;
+import sprintBot.util.PassabilityCache;
 
 import static sprintBot.util.Constants.rc;
 
@@ -20,6 +21,11 @@ public class BFSVision {
 
     private static FastGrid<BFSVision> allBFS;
     private static FastMapLocationGridWithDefault currentDestinations;
+
+    // queue for a heuristic for which BFSs to calculate
+    private static BFSVision[] bfsQueue = new BFSVision[10];
+    private static int bfsQueueIndex = 0;
+    private static int bfsQueueSize = 0;
 
     private FastMapLocationQueue queue;
     private FastIntGrid moveDirections;
@@ -43,13 +49,39 @@ public class BFSVision {
                     currentDestinations.set(location, location.add(info.getCurrentDirection()));
                 }
             }
-            BFSVision currentBfsVision = allBFS.get(Cache.MY_LOCATION);
-            if (currentBfsVision == null) {
-                currentBfsVision = new BFSVision(Cache.MY_LOCATION);
-                allBFS.set(Cache.MY_LOCATION, currentBfsVision);
+            BFSVision currentBfs = allBFS.get(Cache.MY_LOCATION);
+            if (currentBfs == null) {
+                currentBfs = new BFSVision(Cache.MY_LOCATION);
+                allBFS.set(Cache.MY_LOCATION, currentBfs);
             }
-            currentBfsVision.bfs();
-            debug_render(currentBfsVision);
+            currentBfs.bfs();
+
+            if (currentBfs.completed) {
+                // find bfs's to execute in queue
+                // in reverse order (most recent first)
+                for (int i = bfsQueueSize; --i >= 0; ) {
+                    BFSVision bfs = bfsQueue[(bfsQueueIndex + i) % bfsQueue.length];
+                    bfs.bfs();
+                }
+            } else {
+                if (bfsQueueSize > 0) {
+                    BFSVision lastBfs = bfsQueue[(bfsQueueIndex + bfsQueueSize + bfsQueue.length - 1) % bfsQueue.length];
+                    // check if it is the same as the last one so far
+                    if (currentBfs != lastBfs) {
+                        if (bfsQueueSize == bfsQueue.length) {
+                            // overwrite oldest
+                            bfsQueue[(bfsQueueIndex++) % bfsQueue.length] = currentBfs;
+                        } else {
+                            // add to queue
+                            bfsQueue[(bfsQueueIndex + bfsQueueSize++) % bfsQueue.length] = currentBfs;
+                        }
+                    }
+                } else {
+                    // add to queue
+                    bfsQueue[(bfsQueueIndex + bfsQueueSize++) % bfsQueue.length] = currentBfs;
+                }
+            }
+            debug_render(currentBfs);
         }
     }
 
@@ -131,17 +163,160 @@ public class BFSVision {
     }
 
     public void bfs() throws GameActionException  {
+        // this monstrosity is just to save bytecodes :(
         // idk why but while loop breaks the profiler
-        for (int i = 50; --i >= 0 && !queue.isEmpty() && Clock.getBytecodesLeft() > 1200; ) {
-            MapLocation location = queue.poll();
-            // TODO: handle clouds
-//            if (origin.isWithinDistanceSquared(location, Constants.ROBOT_TYPE.visionRadiusSquared) && sensePassable(location)) {
-            if (rc.canSenseLocation(location) && sensePassable(location)) {
-                int distance_plus_1 = distances.get(location) + 1;
-                int moveDirection = moveDirections.get(location);
-                // get neighbors
-                {
-                    MapLocation neighbor = location.add(Direction.NORTH);
+        loop: for (int i = 50; --i >= 0 && !queue.isEmpty() && Clock.getBytecodesLeft() > 1200; ) {
+            MapLocation location = queue.peek();
+            if (origin.isWithinDistanceSquared(location, Constants.ROBOT_TYPE.visionRadiusSquared)) {
+                switch (PassabilityCache.isPassable(location)) {
+                    case PassabilityCache.UNPASSABLE:
+                        queue.poll();
+                        break;
+                    case PassabilityCache.PASSABLE:
+                        queue.poll();
+                        int distance_plus_1 = distances.get(location) + 1;
+                        int moveDirection = moveDirections.get(location);
+                        // get neighbors
+                        {
+                            MapLocation neighbor = location.add(Direction.NORTH);
+                            if (rc.onTheMap(neighbor)) {
+                                neighbor = currentDestinations.get(neighbor);
+                                // should never be out of bounds because currents should never put a robot out of the map
+                                int neighborDistance = distances.get(neighbor);
+                                if (moveDirections.get(neighbor) == 0) {
+                                    // unvisited square
+                                    queue.add(neighbor);
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                    distances.set(neighbor, distance_plus_1);
+                                } else if (neighborDistance == distance_plus_1) {
+                                    // visited square with the same distance
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                }
+                            }
+                        }
+                        {
+                            MapLocation neighbor = location.add(Direction.SOUTH);
+                            if (rc.onTheMap(neighbor)) {
+                                neighbor = currentDestinations.get(neighbor);
+                                // should never be out of bounds because currents should never put a robot out of the map
+                                int neighborDistance = distances.get(neighbor);
+                                if (moveDirections.get(neighbor) == 0) {
+                                    // unvisited square
+                                    queue.add(neighbor);
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                    distances.set(neighbor, distance_plus_1);
+                                } else if (neighborDistance == distance_plus_1) {
+                                    // visited square with the same distance
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                }
+                            }
+                        }
+                        {
+                            MapLocation neighbor = location.add(Direction.EAST);
+                            if (rc.onTheMap(neighbor)) {
+                                neighbor = currentDestinations.get(neighbor);
+                                // should never be out of bounds because currents should never put a robot out of the map
+                                int neighborDistance = distances.get(neighbor);
+                                if (moveDirections.get(neighbor) == 0) {
+                                    // unvisited square
+                                    queue.add(neighbor);
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                    distances.set(neighbor, distance_plus_1);
+                                } else if (neighborDistance == distance_plus_1) {
+                                    // visited square with the same distance
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                }
+                            }
+                        }
+                        {
+                            MapLocation neighbor = location.add(Direction.WEST);
+                            if (rc.onTheMap(neighbor)) {
+                                neighbor = currentDestinations.get(neighbor);
+                                // should never be out of bounds because currents should never put a robot out of the map
+                                int neighborDistance = distances.get(neighbor);
+                                if (moveDirections.get(neighbor) == 0) {
+                                    // unvisited square
+                                    queue.add(neighbor);
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                    distances.set(neighbor, distance_plus_1);
+                                } else if (neighborDistance == distance_plus_1) {
+                                    // visited square with the same distance
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                }
+                            }
+                        }
+                        {
+                            MapLocation neighbor = location.add(Direction.NORTHWEST);
+                            if (rc.onTheMap(neighbor)) {
+                                neighbor = currentDestinations.get(neighbor);
+                                // should never be out of bounds because currents should never put a robot out of the map
+                                int neighborDistance = distances.get(neighbor);
+                                if (moveDirections.get(neighbor) == 0) {
+                                    // unvisited square
+                                    queue.add(neighbor);
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                    distances.set(neighbor, distance_plus_1);
+                                } else if (neighborDistance == distance_plus_1) {
+                                    // visited square with the same distance
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                }
+                            }
+                        }
+                        {
+                            MapLocation neighbor = location.add(Direction.NORTHEAST);
+                            if (rc.onTheMap(neighbor)) {
+                                neighbor = currentDestinations.get(neighbor);
+                                // should never be out of bounds because currents should never put a robot out of the map
+                                int neighborDistance = distances.get(neighbor);
+                                if (moveDirections.get(neighbor) == 0) {
+                                    // unvisited square
+                                    queue.add(neighbor);
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                    distances.set(neighbor, distance_plus_1);
+                                } else if (neighborDistance == distance_plus_1) {
+                                    // visited square with the same distance
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                }
+                            }
+                        }
+                        {
+                            MapLocation neighbor = location.add(Direction.SOUTHWEST);
+                            if (rc.onTheMap(neighbor)) {
+                                neighbor = currentDestinations.get(neighbor);
+                                // should never be out of bounds because currents should never put a robot out of the map
+                                int neighborDistance = distances.get(neighbor);
+                                if (moveDirections.get(neighbor) == 0) {
+                                    // unvisited square
+                                    queue.add(neighbor);
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                    distances.set(neighbor, distance_plus_1);
+                                } else if (neighborDistance == distance_plus_1) {
+                                    // visited square with the same distance
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                }
+                            }
+                        }
+                        {
+                            MapLocation neighbor = location.add(Direction.SOUTHEAST);
+                            if (rc.onTheMap(neighbor)) {
+                                neighbor = currentDestinations.get(neighbor);
+                                // should never be out of bounds because currents should never put a robot out of the map
+                                int neighborDistance = distances.get(neighbor);
+                                if (moveDirections.get(neighbor) == 0) {
+                                    // unvisited square
+                                    queue.add(neighbor);
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                    distances.set(neighbor, distance_plus_1);
+                                } else if (neighborDistance == distance_plus_1) {
+                                    // visited square with the same distance
+                                    moveDirections.bitwiseOr(neighbor, moveDirection);
+                                }
+                            }
+                        }
+                    /*
+                    macro! addNeighbor
+                    ---
+                    MapLocation neighbor = location.add(direction);
                     if (rc.onTheMap(neighbor)) {
                         neighbor = currentDestinations.get(neighbor);
                         // should never be out of bounds because currents should never put a robot out of the map
@@ -156,146 +331,16 @@ public class BFSVision {
                             moveDirections.bitwiseOr(neighbor, moveDirection);
                         }
                     }
+                    ---
+                     */
+                        break;
+                    case PassabilityCache.UNKNOWN:
+                        break loop;
+                    default:
+                        Debug.failFast("Unknown result from isPassable");
                 }
-                {
-                    MapLocation neighbor = location.add(Direction.SOUTH);
-                    if (rc.onTheMap(neighbor)) {
-                        neighbor = currentDestinations.get(neighbor);
-                        // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances.get(neighbor);
-                        if (moveDirections.get(neighbor) == 0) {
-                            // unvisited square
-                            queue.add(neighbor);
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
-                            distances.set(neighbor, distance_plus_1);
-                        } else if (neighborDistance == distance_plus_1) {
-                            // visited square with the same distance
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
-                        }
-                    }
-                }
-                {
-                    MapLocation neighbor = location.add(Direction.EAST);
-                    if (rc.onTheMap(neighbor)) {
-                        neighbor = currentDestinations.get(neighbor);
-                        // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances.get(neighbor);
-                        if (moveDirections.get(neighbor) == 0) {
-                            // unvisited square
-                            queue.add(neighbor);
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
-                            distances.set(neighbor, distance_plus_1);
-                        } else if (neighborDistance == distance_plus_1) {
-                            // visited square with the same distance
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
-                        }
-                    }
-                }
-                {
-                    MapLocation neighbor = location.add(Direction.WEST);
-                    if (rc.onTheMap(neighbor)) {
-                        neighbor = currentDestinations.get(neighbor);
-                        // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances.get(neighbor);
-                        if (moveDirections.get(neighbor) == 0) {
-                            // unvisited square
-                            queue.add(neighbor);
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
-                            distances.set(neighbor, distance_plus_1);
-                        } else if (neighborDistance == distance_plus_1) {
-                            // visited square with the same distance
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
-                        }
-                    }
-                }
-                {
-                    MapLocation neighbor = location.add(Direction.NORTHWEST);
-                    if (rc.onTheMap(neighbor)) {
-                        neighbor = currentDestinations.get(neighbor);
-                        // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances.get(neighbor);
-                        if (moveDirections.get(neighbor) == 0) {
-                            // unvisited square
-                            queue.add(neighbor);
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
-                            distances.set(neighbor, distance_plus_1);
-                        } else if (neighborDistance == distance_plus_1) {
-                            // visited square with the same distance
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
-                        }
-                    }
-                }
-                {
-                    MapLocation neighbor = location.add(Direction.NORTHEAST);
-                    if (rc.onTheMap(neighbor)) {
-                        neighbor = currentDestinations.get(neighbor);
-                        // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances.get(neighbor);
-                        if (moveDirections.get(neighbor) == 0) {
-                            // unvisited square
-                            queue.add(neighbor);
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
-                            distances.set(neighbor, distance_plus_1);
-                        } else if (neighborDistance == distance_plus_1) {
-                            // visited square with the same distance
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
-                        }
-                    }
-                }
-                {
-                    MapLocation neighbor = location.add(Direction.SOUTHWEST);
-                    if (rc.onTheMap(neighbor)) {
-                        neighbor = currentDestinations.get(neighbor);
-                        // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances.get(neighbor);
-                        if (moveDirections.get(neighbor) == 0) {
-                            // unvisited square
-                            queue.add(neighbor);
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
-                            distances.set(neighbor, distance_plus_1);
-                        } else if (neighborDistance == distance_plus_1) {
-                            // visited square with the same distance
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
-                        }
-                    }
-                }
-                {
-                    MapLocation neighbor = location.add(Direction.SOUTHEAST);
-                    if (rc.onTheMap(neighbor)) {
-                        neighbor = currentDestinations.get(neighbor);
-                        // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances.get(neighbor);
-                        if (moveDirections.get(neighbor) == 0) {
-                            // unvisited square
-                            queue.add(neighbor);
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
-                            distances.set(neighbor, distance_plus_1);
-                        } else if (neighborDistance == distance_plus_1) {
-                            // visited square with the same distance
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
-                        }
-                    }
-                }
-                /*
-                macro! addNeighbor
-                ---
-                MapLocation neighbor = location.add(direction);
-                if (rc.onTheMap(neighbor)) {
-                    neighbor = currentDestinations.get(neighbor);
-                    // should never be out of bounds because currents should never put a robot out of the map
-                    int neighborDistance = distances.get(neighbor);
-                    if (moveDirections.get(neighbor) == 0) {
-                        // unvisited square
-                        queue.add(neighbor);
-                        moveDirections.bitwiseOr(neighbor, moveDirection);
-                        distances.set(neighbor, distance_plus_1);
-                    } else if (neighborDistance == distance_plus_1) {
-                        // visited square with the same distance
-                        moveDirections.bitwiseOr(neighbor, moveDirection);
-                    }
-                }
-                ---
-                 */
+            } else {
+                queue.poll();
             }
         }
         completed = queue.isEmpty();

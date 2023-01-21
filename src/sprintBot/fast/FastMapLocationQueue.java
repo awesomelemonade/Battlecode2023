@@ -12,13 +12,20 @@ public class FastMapLocationQueue {
         this.queue = new MapLocation[maxSize];
         this.maxSize = maxSize;
     }
+
     public boolean isEmpty() {
         return size == 0;
     }
+
+    public MapLocation peek() {
+        return queue[index % maxSize];
+    }
+    
     public MapLocation poll() {
         size--;
         return queue[(index++) % maxSize];
     }
+
     public void add(MapLocation location) {
         queue[(index + size++) % maxSize] = location;
     }
