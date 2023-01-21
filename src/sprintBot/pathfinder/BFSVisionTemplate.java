@@ -22,13 +22,13 @@ public class BFSVisionTemplate {
     private static FastMapLocationGridWithDefault currentDestinations;
 
     // queue for a heuristic for which BFSs to calculate
-    private static BFSVisionTemplate[] bfsQueue = new BFSVisionTemplate[10];
+    private static BFSVisionTemplate[] bfsQueue = new BFSVisionTemplate[20];
     private static int bfsQueueIndex = 0;
     private static int bfsQueueSize = 0;
 
     private FastMapLocationQueue queue;
-    private FastIntGrid moveDirections;
-    private FastIntGrid distances;
+    private int[][] moveDirections;
+    private int[][] distances;
     private boolean completed = false;
     private MapLocation origin;
 
@@ -58,9 +58,8 @@ public class BFSVisionTemplate {
             if (currentBfs.completed) {
                 // find bfs's to execute in queue
                 // in reverse order (most recent first)
-                for (int i = bfsQueueSize; --i >= 0; ) {
-                    BFSVisionTemplate bfs = bfsQueue[(bfsQueueIndex + i) % bfsQueue.length];
-                    bfs.bfs();
+                for (int i = bfsQueueSize; --i >= 0 && Clock.getBytecodesLeft() > 1100; ) {
+                    bfsQueue[(bfsQueueIndex + i) % bfsQueue.length].bfs();
                 }
             } else {
                 if (bfsQueueSize > 0) {
@@ -99,23 +98,39 @@ public class BFSVisionTemplate {
 
     public BFSVisionTemplate(MapLocation origin) {
         this.origin = origin;
-        moveDirections = new FastIntGrid(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
-        distances = new FastIntGrid(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
+        moveDirections = new int[Constants.MAP_WIDTH][];
+        distances = new int[Constants.MAP_WIDTH][];
+        if (Constants.ROBOT_TYPE.visionRadiusSquared >= 34) {
+            // 11 rows
+            int start = Math.max(0, origin.x - 5);
+            int end = Math.min(Constants.MAP_WIDTH - 1, origin.x + 5);
+            for (int i = start; i <= end; i++) {
+                moveDirections[i] = new int[Constants.MAP_HEIGHT];
+                distances[i] = new int[Constants.MAP_HEIGHT];
+            }
+        } else {
+            // 9 rows
+            int start = Math.max(0, origin.x - 4);
+            int end = Math.min(Constants.MAP_WIDTH - 1, origin.x + 4);
+            for (int i = start; i <= end; i++) {
+                moveDirections[i] = new int[Constants.MAP_HEIGHT];
+                distances[i] = new int[Constants.MAP_HEIGHT];
+            }
+        }
+        // only create the relevant
         queue = new FastMapLocationQueue(Constants.MAX_VISION_SQUARES); // MAX_VISION_SQUARES
         // locate currents
         // should only return locations that can be fully sensable (even with clouds)
 
-        moveDirections.set(origin, -1);
+        moveDirections[origin.x][origin.y] = -1;
 
-        // TODO: unroll
-        for (Direction direction : Constants.ORDINAL_DIRECTIONS) {
-            MapLocation neighbor = origin.add(direction);
+        for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
+            MapLocation neighbor = origin.add(Constants.ORDINAL_DIRECTIONS[i]);
             if (rc.onTheMap(neighbor)) {
                 neighbor = currentDestinations.get(neighbor);
                 // should never be out of bounds because currents should never put a robot out of the map
-                queue.add(neighbor); // TODO: theoretically we can just unroll this
-                // the following theoretically can be set beforehand during the reset phase
-                moveDirections.set(neighbor, 1 << direction.ordinal());
+                queue.add(neighbor); // theoretically we can just unroll this
+                moveDirections[neighbor.x][neighbor.y] = 1 << i;
             }
         }
     }
@@ -147,7 +162,7 @@ public class BFSVisionTemplate {
         for (int i = 0; i < Constants.MAP_WIDTH; i++) {
             for (int j = 0; j < Constants.MAP_HEIGHT; j++) {
                 for (Direction direction : directions) {
-                    if (moveDirections.get(i, j) != -1 && (moveDirections.get(i, j) & (1 << direction.ordinal())) != 0) {
+                    if (moveDirections[i][j] != -1 && (moveDirections[i][j] & (1 << direction.ordinal())) != 0) {
                         int index = direction.ordinal() % r.length;
                         MapLocation location = new MapLocation(i, j);
                         Debug.setIndicatorDot(location, r[index], g[index], b[index]);
@@ -164,19 +179,18 @@ public class BFSVisionTemplate {
     public void bfs() throws GameActionException  {
         // this monstrosity is just to save bytecodes :(
         // idk why but while loop breaks the profiler
-        loop: for (int i = 50; --i >= 0 && !queue.isEmpty() && Clock.getBytecodesLeft() > 1200; ) {
+        loop: for (int i = 50; --i >= 0 && !queue.isEmpty() && Clock.getBytecodesLeft() > 1100; ) {
             MapLocation location = queue.peek();
-            if (origin.isWithinDistanceSquared(location, Constants.ROBOT_TYPE.visionRadiusSquared)) {
-                switch (PassabilityCache.isPassable(location)) {
-                    case PassabilityCache.UNPASSABLE:
-                        queue.poll();
-                        break;
-                    case PassabilityCache.PASSABLE:
-                        queue.poll();
-                        int distance_plus_1 = distances.get(location) + 1;
-                        int moveDirection = moveDirections.get(location);
-                        // get neighbors
-                        // unroll_ordinal_directions! addNeighbor direction
+            switch (PassabilityCache.isPassable(location)) {
+                case PassabilityCache.UNPASSABLE:
+                    queue.poll();
+                    break;
+                case PassabilityCache.PASSABLE:
+                    queue.poll();
+                    int distance_plus_1 = distances[location.x][location.y] + 1;
+                    int moveDirection = moveDirections[location.x][location.y];
+                    // get neighbors
+                    // unroll_ordinal_directions! addNeighbor direction
                     /*
                     macro! addNeighbor
                     ---
@@ -184,27 +198,25 @@ public class BFSVisionTemplate {
                     if (rc.onTheMap(neighbor)) {
                         neighbor = currentDestinations.get(neighbor);
                         // should never be out of bounds because currents should never put a robot out of the map
-                        int neighborDistance = distances.get(neighbor);
-                        if (moveDirections.get(neighbor) == 0) {
-                            // unvisited square
-                            queue.add(neighbor);
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
-                            distances.set(neighbor, distance_plus_1);
-                        } else if (neighborDistance == distance_plus_1) {
-                            // visited square with the same distance
-                            moveDirections.bitwiseOr(neighbor, moveDirection);
+                        if (origin.isWithinDistanceSquared(neighbor, Constants.ROBOT_TYPE.visionRadiusSquared)) {
+                            if (moveDirections[neighbor.x][neighbor.y] == 0) {
+                                // unvisited square
+                                queue.add(neighbor);
+                                moveDirections[neighbor.x][neighbor.y] |= moveDirection;
+                                distances[neighbor.x][neighbor.y] = distance_plus_1;
+                            } else if (distances[neighbor.x][neighbor.y] == distance_plus_1) {
+                                // visited square with the same distance
+                                moveDirections[neighbor.x][neighbor.y] |= moveDirection;
+                            }
                         }
                     }
                     ---
                      */
-                        break;
-                    case PassabilityCache.UNKNOWN:
-                        break loop;
-                    default:
-                        Debug.failFast("Unknown result from isPassable");
-                }
-            } else {
-                queue.poll();
+                    break;
+                case PassabilityCache.UNKNOWN:
+                    break loop;
+                default:
+                    Debug.failFast("Unknown result from isPassable");
             }
         }
         completed = queue.isEmpty();
@@ -214,7 +226,11 @@ public class BFSVisionTemplate {
         if (Cache.MY_LOCATION.equals(target)) {
             return Direction.CENTER;
         }
-        int moveDirection = moveDirections.get(target);
+        int[] array = moveDirections[target.x];
+        if (array == null) {
+            return null;
+        }
+        int moveDirection = moveDirections[target.x][target.y];
         for (Direction direction : Constants.getAttemptOrder(Cache.MY_LOCATION.directionTo(target))) {
             if (rc.canMove(direction) && (moveDirection & (1 << direction.ordinal())) != 0) {
                 return direction;
@@ -224,6 +240,7 @@ public class BFSVisionTemplate {
     }
 
     public boolean hasMoveDirection(MapLocation target) {
-        return moveDirections.get(target) != 0;
+        int[] array = moveDirections[target.x];
+        return array != null && array[target.y] != 0;
     }
 }

@@ -20,7 +20,7 @@ public class FastMapLocationQueue {
     public MapLocation peek() {
         return queue[index % maxSize];
     }
-    
+
     public MapLocation poll() {
         size--;
         return queue[(index++) % maxSize];
