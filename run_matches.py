@@ -20,7 +20,8 @@ botsSet = set(bots)
 
 
 # sprint 1 maps
-maps = ['ArtistRendition', 'BatSignal', 'BowAndArrow', 'Cat', 'Clown', 'Diagonal', 'Eyelands', 'Frog', 'Grievance', 'Hah', 'Jail', 'KingdomRush', 'Minefield', 'Movepls', 'Orbit', 'Pathfind', 'Pit', 'Pizza', 'Quiet', 'Rectangle', 'Scatter', 'Sun', 'Tacocat']
+#maps = ['ArtistRendition', 'BatSignal', 'BowAndArrow', 'Cat', 'Clown', 'Diagonal', 'Eyelands', 'Frog', 'Grievance', 'Hah', 'Jail', 'KingdomRush', 'Minefield', 'Movepls', 'Orbit', 'Pathfind', 'Pit', 'Pizza', 'Quiet', 'Rectangle', 'Scatter', 'Sun', 'Tacocat']
+maps = ['Eyelands']
 
 mapsSet = set(maps)
 
@@ -55,11 +56,17 @@ def run_match(bot, map):
         winBString = '{} (B) wins'.format(currentBot)
         loseAString = '{} (B) wins'.format(bot)
         loseBString = '{} (A) wins'.format(bot)
+        resignedString = 'resigned'
         
         numWins = 0
         
         gameLengthA = retrieveGameLength(outputA)
+        gameAResigned = resignedString in outputA
         gameLengthB = retrieveGameLength(outputB)
+        gameBResigned = resignedString in outputB
+
+        gameAInfo = gameLengthA + ('*' if gameAResigned else '')
+        gameBInfo = gameLengthB + ('*' if gameBResigned else '')
         
         if winAString in outputA:
             numWins += 1
@@ -71,7 +78,7 @@ def run_match(bot, map):
         else:
             if not loseBString in outputB:
                 return 'Error'
-        return numWinsMapping[numWins] + ' (' + ', '.join([gameLengthA, gameLengthB]) + ')'
+        return numWinsMapping[numWins] + ' (' + ', '.join([gameAInfo, gameBInfo]) + ')'
 
 
 results = {}
