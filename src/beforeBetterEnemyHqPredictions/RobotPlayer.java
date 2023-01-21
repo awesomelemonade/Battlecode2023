@@ -41,18 +41,20 @@ public class RobotPlayer {
             try {
                 while (true) {
                     currentTurn = controller.getRoundNum();
+                    Util.loop();
                     if (Constants.DEBUG_RESIGN &&
                             controller.getType() == RobotType.HEADQUARTERS) {
                         if (currentTurn > 50 &&
                                 Communication.headquartersLocations != null &&
-                                controller.getRobotCount() <= Communication.headquartersLocations.length) {
+                                controller.getRobotCount() <= Communication.headquartersLocations.length &&
+                                Cache.ALLY_ROBOTS.length == 0 &&
+                                Cache.ENEMY_ROBOTS.length > 2) {
                             controller.resign();
                         }
                         if (currentTurn > 150 && Cache.ALLY_ROBOTS.length == 0 && Cache.ENEMY_ROBOTS.length > controller.getRobotCount() + 5) {
                             controller.resign();
                         }
                     }
-                    Util.loop();
                     bot.loop();
 
                     tryMultiAction(controller, bot);
