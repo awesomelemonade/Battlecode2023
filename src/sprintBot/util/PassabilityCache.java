@@ -32,12 +32,11 @@ public class PassabilityCache {
         }
         if (rc.canSenseLocation(location)) {
             try {
+                cached.setTrue(location);
                 if (rc.sensePassability(location)) {
-                    cached.setTrue(location);
                     passable.setTrue(location);
                     return true;
                 } else {
-                    cached.setTrue(location);
                     return false;
                 }
             } catch (GameActionException ex) {
@@ -53,16 +52,15 @@ public class PassabilityCache {
     // we gotta save bytecodes - so we return int instead of enum
     public static int isPassable(MapLocation location) {
         if (cached.get(location)) {
-            return passable.get(location) ? 1 : 0;
+            return passable.get(location) ? PASSABLE : UNPASSABLE;
         }
         if (rc.canSenseLocation(location)) {
             try {
+                cached.setTrue(location);
                 if (rc.sensePassability(location)) {
-                    cached.setTrue(location);
                     passable.setTrue(location);
                     return PASSABLE;
                 } else {
-                    cached.setTrue(location);
                     return UNPASSABLE;
                 }
             } catch (GameActionException ex) {

@@ -158,10 +158,6 @@ public class BFSVisionTemplate {
         }
     }
 
-    public static boolean sensePassable(MapLocation location) throws GameActionException {
-        return rc.sensePassability(location); // TODO: check for ally & enemy HQ. they should also be not passable
-    }
-
     public void bfs() {
         boolean madeProgress = false;
         // this monstrosity is just to save bytecodes :(

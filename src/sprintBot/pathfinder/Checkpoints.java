@@ -21,28 +21,30 @@ public class Checkpoints {
     private static final int MASK_8 = 0b1111_1111; // 8 bits
 
     public static void debug_render() {
-        for (int i = 0; i < SIZE; i++) {
-            for (int j = 0; j < SIZE; j++) {
-                ChunkCoord chunk = new ChunkCoord(i, j);
+        if (Profile.CHECKPOINTS.enabled()) {
+            for (int i = 0; i < SIZE; i++) {
+                for (int j = 0; j < SIZE; j++) {
+                    ChunkCoord chunk = new ChunkCoord(i, j);
 
-                boolean isPending = false;
-                for (int k = pendingSize; --k >= 0; ) {
-                    if (pending[k].equals(chunk)) {
-                        isPending = true;
-                        break;
+                    boolean isPending = false;
+                    for (int k = pendingSize; --k >= 0; ) {
+                        if (pending[k].equals(chunk)) {
+                            isPending = true;
+                            break;
+                        }
                     }
-                }
 
-                int checkpoint = checkpoints[chunk.chunkX * SIZE + chunk.chunkY];
-                MapLocation location = chunkToMapLocation(chunk);
-                if (checkpoint != 0) {
-                    if (isPending) {
-                        Debug.setIndicatorDot(Profile.CHECKPOINTS, location, 255, 255, 0); // yellow
+                    int checkpoint = checkpoints[chunk.chunkX * SIZE + chunk.chunkY];
+                    MapLocation location = chunkToMapLocation(chunk);
+                    if (checkpoint != 0) {
+                        if (isPending) {
+                            Debug.setIndicatorDot(Profile.CHECKPOINTS, location, 255, 255, 0); // yellow
+                        } else {
+                            Debug.setIndicatorDot(Profile.CHECKPOINTS, location, 0, 255, 0); // green
+                        }
                     } else {
-                        Debug.setIndicatorDot(Profile.CHECKPOINTS, location, 0, 255, 0); // green
+                        Debug.setIndicatorDot(Profile.CHECKPOINTS, location, 255, 0, 0); // red
                     }
-                } else {
-                    Debug.setIndicatorDot(Profile.CHECKPOINTS, location, 255, 0, 0); // red
                 }
             }
         }
