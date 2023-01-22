@@ -59,6 +59,17 @@ public class Headquarters implements RunnableBot {
         if (LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> r.type != RobotType.HEADQUARTERS)) {
             return Communication.CarrierTaskType.MINE_MANA;
         }
+//        if (closestEnemyHq == null) {
+//
+//        } else {
+//            double distance = Math.sqrt(Cache.MY_LOCATION.distanceSquaredTo(closestEnemyHq));
+//        }
+//        double targetRatio = 0.5; // 0 = full adamantium, 1 = full mana
+//        if (currentMana * (1.0 - targetRatio) <= currentAdamantium * targetRatio) {
+//            return Communication.CarrierTaskType.MINE_MANA;
+//        } else {
+//            return Communication.CarrierTaskType.MINE_ADAMANTIUM;
+//        }
         if (currentMana <= currentAdamantium) {
             return Communication.CarrierTaskType.MINE_MANA;
         } else {
@@ -83,15 +94,14 @@ public class Headquarters implements RunnableBot {
     }
 
     public void debug_printInfo() {
-        Debug.println(String.format("[data] round: %d, adamantiumIncome: %f, manaIncome: %f, adamantiumMiners: %f, manaMiners: %f",
-                rc.getRoundNum(), adamantiumIncome.average(), manaIncome.average(), adamantiumMinerTracker.average(), manaMinerTracker.average()));
+//        Debug.println(String.format("[data] round: %d, adamantiumIncome: %f, manaIncome: %f, adamantiumMiners: %f, manaMiners: %f",
+//                rc.getRoundNum(), adamantiumIncome.average(), manaIncome.average(), adamantiumMinerTracker.average(), manaMinerTracker.average()));
     }
 
     @Override
     public void loop() throws GameActionException {
         debug_render();
 
-        Util.shuffle(shuffledLocations);
         int currentAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
         int currentMana = rc.getResourceAmount(ResourceType.MANA);
         int currentElixir = rc.getResourceAmount(ResourceType.ELIXIR);
@@ -114,11 +124,13 @@ public class Headquarters implements RunnableBot {
         lastElixir = rc.getResourceAmount(ResourceType.ELIXIR);
     }
 
+    private static MapLocation closestEnemyHq = null;
     private static double currentAdamantium = 0.0;
     private static double currentMana = 0.0;
     private static double adamantiumPerMiner = 0.0;
     private static double manaPerMiner = 0.0;
     public static void assignTasks() throws GameActionException {
+        closestEnemyHq = getNearestEnemyHQLocation();
         currentAdamantium = adamantiumIncome.average();
         currentMana = manaIncome.average();
         if (adamantiumMinerTracker.sum() == 0) {

@@ -49,17 +49,17 @@ public class BFSVisionTemplate {
                 lastLocation = Cache.MY_LOCATION;
             }
             BFSVisionTemplate currentBfs = allBFS.get(Cache.MY_LOCATION);
-            if (currentBfs == null && Clock.getBytecodesLeft() > 1500) { // creating new BFSVision() takes ~1300 bytecodes
+            if (currentBfs == null && Clock.getBytecodesLeft() > 2300) { // creating new BFSVision() takes up to ~2100 bytecodes on large maps
                 currentBfs = new BFSVisionTemplate(Cache.MY_LOCATION);
                 allBFS.set(Cache.MY_LOCATION, currentBfs);
             }
             if (currentBfs != null) {
-                currentBfs.bfs();
+                currentBfs.bfs(1100);
                 if (currentBfs.completed) {
                     // find bfs's to execute in queue - most recent first
                     bfsQueue.retain(x -> {
                         BFSVisionTemplate bfs = allBFS.get(x / Constants.MAX_MAP_SIZE, x % Constants.MAX_MAP_SIZE);
-                        bfs.bfs();
+                        bfs.bfs(1100);
                         return !bfs.completed;
                     }, 1100);
                 } else {
@@ -165,11 +165,11 @@ public class BFSVisionTemplate {
         }
     }
 
-    public void bfs() {
+    public void bfs(int bytecodeThreshold) {
         boolean madeProgress = false;
         // this monstrosity is just to save bytecodes :(
         // idk why but while loop breaks the profiler
-        loop: for (int i = 50; --i >= 0 && !queue.isEmpty() && Clock.getBytecodesLeft() > 1100; ) {
+        loop: for (int i = 50; --i >= 0 && !queue.isEmpty() && Clock.getBytecodesLeft() > bytecodeThreshold; ) {
             MapLocation location = queue.peek();
             switch (PassabilityCache.isPassable(location)) {
                 case PassabilityCache.UNPASSABLE:

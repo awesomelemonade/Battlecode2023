@@ -49,7 +49,7 @@ public class BFSVisionTemplate {
                 lastLocation = Cache.MY_LOCATION;
             }
             BFSVisionTemplate currentBfs = allBFS.get(Cache.MY_LOCATION);
-            if (currentBfs == null && Clock.getBytecodesLeft() > 1500) { // creating new BFSVision() takes ~1300 bytecodes
+            if (currentBfs == null && Clock.getBytecodesLeft() > 2300) { // creating new BFSVision() takes ~1300 bytecodes
                 currentBfs = new BFSVisionTemplate(Cache.MY_LOCATION);
                 allBFS.set(Cache.MY_LOCATION, currentBfs);
             }

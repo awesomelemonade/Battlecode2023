@@ -276,7 +276,7 @@ public class Communication {
         EnemyHqTracker.update();
         EnemyHqGuesser.update();
         WellTracker.update();
-        Checkpoints.update();
+        //Checkpoints.update();
     }
 
     public static void postLoop() {
