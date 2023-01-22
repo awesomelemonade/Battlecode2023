@@ -10,7 +10,7 @@ import static sprintBot.util.Constants.rc;
 
 public class Checkpoints {
     // 15 x 15 grid of checkpoints. Each checkpoint requires 8 bits.
-    private static final int SIZE = 15;
+    public static final int SIZE = 15;
     private static final int CYCLES_PER_FULL_REFRESH = 6;
     private static final int CHECKPOINTS_PER_CYCLE = (SIZE * SIZE + CYCLES_PER_FULL_REFRESH - 1) / CYCLES_PER_FULL_REFRESH; // number of checkpoints = 38
     private static final int COMM_INTS_PER_CYCLE = (CHECKPOINTS_PER_CYCLE + 1) / 2; // 2 checkpoints per comm int: 19 ints
@@ -91,7 +91,7 @@ public class Checkpoints {
                 int checkpoint = 0;
                 for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
                     ChunkCoord neighborChunk = unexplored.add(Constants.ORDINAL_DIRECTIONS[i]);
-                    if (chunkIsOnTheMap(neighborChunk) && bfsCanReachChunk(bfs, neighborChunk)) {
+                    if (bfsCanReachChunk(bfs, neighborChunk)) {
                         // assumed: i = direction.ordinal()
                         checkpoint |= (1 << i);
                     }
@@ -124,10 +124,8 @@ public class Checkpoints {
         }
         for (int i = dx.length; --i >= 0; ) {
             ChunkCoord chunk = currentChunkCoord.translate(dx[i], dy[i]);
-            if (chunkIsOnTheMap(chunk)) {
-                if (bfsCanReachChunk(bfs, chunk) && chunkIsUnexplored(chunk)) {
-                    return chunk;
-                }
+            if (bfsCanReachChunk(bfs, chunk) && chunkIsUnexplored(chunk)) {
+                return chunk;
             }
         }
         return null;
@@ -174,11 +172,7 @@ public class Checkpoints {
 
     public static boolean bfsCanReachChunk(BFSVision bfs, ChunkCoord chunk) {
         MapLocation location = chunkToMapLocation(chunk);
-        return bfs.hasMoveDirection(location) && PassabilityCache.isPassableOrFalse(location); // TODO: check hq location?
-    }
-
-    public static boolean chunkIsOnTheMap(ChunkCoord chunk) {
-        return chunk.chunkX >= 0 && chunk.chunkY >= 0 && chunk.chunkX < SIZE && chunk.chunkY < SIZE;
+        return rc.onTheMap(location) && bfs.hasMoveDirection(location) && PassabilityCache.isPassableOrFalse(location); // TODO: check hq location?
     }
 
     public static MapLocation chunkToMapLocation(ChunkCoord chunk) {

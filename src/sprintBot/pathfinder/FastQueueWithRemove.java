@@ -7215,6 +7215,7 @@ public class FastQueueWithRemove {
                 return "[XXXX]";
         }
     }
+    private static String s;
     private static int parse(String s) {
         switch (s) {
             case "[0000]":
@@ -9017,6 +9018,13 @@ public class FastQueueWithRemove {
                 return 898;
             case "[0899]":
                 return 899;
+            default:
+                FastQueueWithRemove.s = s;
+                return parse_900_1800();
+        }
+    }
+    private static int parse_900_1800() {
+        switch (s) {
             case "[0900]":
                 return 900;
             case "[0901]":
@@ -9617,12 +9625,6 @@ public class FastQueueWithRemove {
                 return 1198;
             case "[1199]":
                 return 1199;
-            default:
-                return parse_1200_2400(s);
-        }
-    }
-    private static int parse_1200_2400(String s) {
-        switch (s) {
             case "[1200]":
                 return 1200;
             case "[1201]":
@@ -10823,6 +10825,13 @@ public class FastQueueWithRemove {
                 return 1798;
             case "[1799]":
                 return 1799;
+            default:
+                return parse_1800_2700();
+        }
+    }
+
+    private static int parse_1800_2700() {
+        switch (s) {
             case "[1800]":
                 return 1800;
             case "[1801]":
@@ -12023,13 +12032,6 @@ public class FastQueueWithRemove {
                 return 2398;
             case "[2399]":
                 return 2399;
-            default:
-                return parse_2400_3600(s);
-        }
-    }
-
-    private static int parse_2400_3600(String s) {
-        switch (s) {
             case "[2400]":
                 return 2400;
             case "[2401]":
@@ -12630,6 +12632,12 @@ public class FastQueueWithRemove {
                 return 2698;
             case "[2699]":
                 return 2699;
+            default:
+                return parse_2700_3600();
+        }
+    }
+    private static int parse_2700_3600() {
+        switch (s) {
             case "[2700]":
                 return 2700;
             case "[2701]":

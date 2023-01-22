@@ -32,35 +32,43 @@ public class BFSVision {
         currentDestinations = new FastMapLocationGridWithDefault(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
     }
 
+    private static MapLocation lastLocation = new MapLocation(-1, -1);
+
     public static void postLoop() throws GameActionException {
         if (Cache.TURN_COUNT > 1) { // save bytecodes on turn 1
-            MapInfo[] infos = rc.senseNearbyMapInfos();
-            for (int i = infos.length; --i >= 0; ) {
-                MapInfo info = infos[i];
-                if (info.getCurrentDirection() != Direction.CENTER) {
+            if (!lastLocation.equals(Cache.MY_LOCATION)) {
+                // update passability and currents
+                MapInfo[] infos = rc.senseNearbyMapInfos();
+                for (int i = infos.length; --i >= 0; ) {
+                    MapInfo info = infos[i];
                     MapLocation location = info.getMapLocation();
-                    currentDestinations.set(location, location.add(info.getCurrentDirection()));
+                    currentDestinations.set(location.x, location.y, location.add(info.getCurrentDirection()));
+//                PassabilityCache.setPassable(location, info.isPassable()); // INLINED BELOW TO SAVE BYTECODES
+                    PassabilityCache.data.setCharAt(location.x * Constants.MAX_MAP_SIZE + location.y,
+                            info.isPassable() ? PassabilityCache.PASSABLE : PassabilityCache.UNPASSABLE);
                 }
+                lastLocation = Cache.MY_LOCATION;
             }
             BFSVision currentBfs = allBFS.get(Cache.MY_LOCATION);
-            if (currentBfs == null) {
+            if (currentBfs == null && Clock.getBytecodesLeft() > 1500) { // creating new BFSVision() takes ~1300 bytecodes
                 currentBfs = new BFSVision(Cache.MY_LOCATION);
                 allBFS.set(Cache.MY_LOCATION, currentBfs);
             }
-            currentBfs.bfs();
-
-            if (currentBfs.completed) {
-                // find bfs's to execute in queue - most recent first
-                bfsQueue.retain(x -> {
-                    BFSVision bfs = allBFS.get(x / Constants.MAX_MAP_SIZE, x % Constants.MAX_MAP_SIZE);
-                    bfs.bfs();
-                    return !bfs.completed;
-                }, 1100);
-            } else {
-                // add to queue
-                bfsQueue.addOrBringToFront(Cache.MY_LOCATION.x * Constants.MAX_MAP_SIZE + Cache.MY_LOCATION.y);
+            if (currentBfs != null) {
+                currentBfs.bfs();
+                if (currentBfs.completed) {
+                    // find bfs's to execute in queue - most recent first
+                    bfsQueue.retain(x -> {
+                        BFSVision bfs = allBFS.get(x / Constants.MAX_MAP_SIZE, x % Constants.MAX_MAP_SIZE);
+                        bfs.bfs();
+                        return !bfs.completed;
+                    }, 1100);
+                } else {
+                    // add to queue
+                    bfsQueue.addOrBringToFront(Cache.MY_LOCATION.x * Constants.MAX_MAP_SIZE + Cache.MY_LOCATION.y);
+                }
             }
-            debug_render(currentBfs);
+            debug_render();
         }
     }
 
@@ -70,11 +78,7 @@ public class BFSVision {
             return null;
         }
         BFSVision currentBfsVision = allBFS.get(Cache.MY_LOCATION);
-        if (currentBfsVision == null) {
-            currentBfsVision = new BFSVision(Cache.MY_LOCATION);
-            allBFS.set(Cache.MY_LOCATION, currentBfsVision);
-        }
-        return currentBfsVision.completed ? currentBfsVision : null;
+        return currentBfsVision != null && currentBfsVision.completed ? currentBfsVision : null;
     }
 
     public BFSVision(MapLocation origin) {
@@ -116,10 +120,13 @@ public class BFSVision {
         }
     }
 
-    public static void debug_render(BFSVision bfs) {
+    public static void debug_render() {
 //        renderAllBfs();
 //        PassabilityCache.debug_render();
-//        bfs.render();
+//        BFSVision bfs = allBFS.get(Cache.MY_LOCATION);
+//        if (bfs != null) {
+//            bfs.render();
+//        }
     }
 
     public static void renderAllBfs() {
