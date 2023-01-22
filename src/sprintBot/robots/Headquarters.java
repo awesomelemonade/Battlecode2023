@@ -64,17 +64,17 @@ public class Headquarters implements RunnableBot {
 //        } else {
 //            double distance = Math.sqrt(Cache.MY_LOCATION.distanceSquaredTo(closestEnemyHq));
 //        }
-//        double targetRatio = 0.5; // 0 = full adamantium, 1 = full mana
-//        if (currentMana * (1.0 - targetRatio) <= currentAdamantium * targetRatio) {
-//            return Communication.CarrierTaskType.MINE_MANA;
-//        } else {
-//            return Communication.CarrierTaskType.MINE_ADAMANTIUM;
-//        }
-        if (currentMana <= currentAdamantium) {
+        double targetRatio = 0.9; // 0 = full adamantium, 1 = full mana
+        if (currentMana * (1.0 - targetRatio) <= currentAdamantium * targetRatio) {
             return Communication.CarrierTaskType.MINE_MANA;
         } else {
             return Communication.CarrierTaskType.MINE_ADAMANTIUM;
         }
+//        if (currentMana <= currentAdamantium) {
+//            return Communication.CarrierTaskType.MINE_MANA;
+//        } else {
+//            return Communication.CarrierTaskType.MINE_ADAMANTIUM;
+//        }
     }
 
     private static double lastAdamantiumIncome = 0;
@@ -297,7 +297,7 @@ public class Headquarters implements RunnableBot {
         MapLocation ret = EnemyHqTracker.getClosest();
         if (ret == null) {
             // we should use furthest to be more stable?
-            ret = EnemyHqGuesser.getFarthest(Cache.MY_LOCATION, l -> true);
+            ret = EnemyHqGuesser.getClosestRotationalSymmetryFirst(l -> true);
         }
         return ret;
     }
