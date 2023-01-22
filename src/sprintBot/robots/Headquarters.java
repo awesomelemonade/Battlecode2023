@@ -59,7 +59,11 @@ public class Headquarters implements RunnableBot {
         if (LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> r.type != RobotType.HEADQUARTERS)) {
             return Communication.CarrierTaskType.MINE_MANA;
         }
-        return Communication.CarrierTaskType.MINE_MANA;
+        if (currentMana <= currentAdamantium) {
+            return Communication.CarrierTaskType.MINE_MANA;
+        } else {
+            return Communication.CarrierTaskType.MINE_ADAMANTIUM;
+        }
     }
 
     private static double lastAdamantiumIncome = 0;
@@ -78,6 +82,11 @@ public class Headquarters implements RunnableBot {
 //        }
     }
 
+    public void debug_printInfo() {
+        Debug.println(String.format("[data] round: %d, adamantiumIncome: %f, manaIncome: %f, adamantiumMiners: %f, manaMiners: %f",
+                rc.getRoundNum(), adamantiumIncome.average(), manaIncome.average(), adamantiumMinerTracker.average(), manaMinerTracker.average()));
+    }
+
     @Override
     public void loop() throws GameActionException {
         debug_render();
@@ -94,8 +103,7 @@ public class Headquarters implements RunnableBot {
         adamantiumDerivativeTracker.add(currentAdamantiumIncome - lastAdamantiumIncome);
         lastAdamantiumIncome = currentAdamantiumIncome;
 
-//        Debug.println("adamantiumIncome: " + adamantiumIncome.average() + ", adamantiumDerivative: " + adamantiumDerivativeTracker.average());
-
+        debug_printInfo();
     }
 
     @Override
@@ -106,7 +114,23 @@ public class Headquarters implements RunnableBot {
         lastElixir = rc.getResourceAmount(ResourceType.ELIXIR);
     }
 
+    private static double currentAdamantium = 0.0;
+    private static double currentMana = 0.0;
+    private static double adamantiumPerMiner = 0.0;
+    private static double manaPerMiner = 0.0;
     public static void assignTasks() throws GameActionException {
+        currentAdamantium = adamantiumIncome.average();
+        currentMana = manaIncome.average();
+        if (adamantiumMinerTracker.sum() == 0) {
+            adamantiumPerMiner = 1; // assume 1
+        } else {
+            adamantiumPerMiner = currentAdamantium / adamantiumMinerTracker.average();
+        }
+        if (manaMinerTracker.sum() == 0) {
+            manaPerMiner = 1; // assume 1
+        } else {
+            manaPerMiner = currentMana / manaMinerTracker.average();
+        }
         RobotInfo[] allies = rc.senseNearbyRobots(RobotType.CARRIER.visionRadiusSquared, Constants.ALLY_TEAM);
         if (allies.length > 28) {
             // pigeonhole principle
@@ -132,9 +156,11 @@ public class Headquarters implements RunnableBot {
                         switch (newTask) {
                             case MINE_ADAMANTIUM:
                                 adamantiumMinerTracker.incrementLast();
+                                currentAdamantium += adamantiumPerMiner;
                                 break;
                             case MINE_MANA:
                                 manaMinerTracker.incrementLast();
+                                currentMana += manaPerMiner;
                                 break;
                             case MINE_ELIXIR:
                                 elixirMinerTracker.incrementLast();
