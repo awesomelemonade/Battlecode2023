@@ -314,7 +314,11 @@ public class Headquarters implements RunnableBot {
             }
         }
         MapLocation macroLocation = getMacroAttackLocation();
-        Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, macroLocation, 255, 128, 0);
+        if (macroLocation == null) {
+            Debug.setIndicatorDot(Profile.ATTACKING, Cache.MY_LOCATION, 255, 128, 0); // orange
+        } else {
+            Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, macroLocation, 255, 128, 0); // orange
+        }
         return tryBuildByScore(RobotType.LAUNCHER, location -> {
             if (macroLocation == null) {
                 return 0;

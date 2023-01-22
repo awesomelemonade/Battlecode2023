@@ -170,7 +170,7 @@ public class Carrier implements RunnableBot {
 
     public static double getImmediateAttackScore(RobotInfo enemy) {
         int health = enemy.health;
-        int attacksForLaunchersToKill = ((health - (getWeight() / 5)) + RobotType.LAUNCHER.damage - 1) / RobotType.LAUNCHER.damage;
+        int attacksForLaunchersToKill = ((health - (5 * rc.getWeight() / 4)) + RobotType.LAUNCHER.damage - 1) / RobotType.LAUNCHER.damage;
 
         // prioritize attackers, then launchers vs destabilizers, then attacksForLaunchToKill, then health
         double score = 0;
@@ -188,7 +188,7 @@ public class Carrier implements RunnableBot {
 
     public static boolean shouldAttack() {
         // if we see a lot of enemy units
-        return (Cache.ENEMY_ROBOTS.length >= 8 || willDie()) && rc.getWeight() >= 5; // weight >= 5 is at least 1 damage
+        return (Cache.ENEMY_ROBOTS.length >= 8 || willDie()) && rc.getWeight() > 0;
     }
 
     public static boolean tryMoveToAttack() {

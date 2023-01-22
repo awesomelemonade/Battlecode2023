@@ -80,8 +80,11 @@ public class Launcher implements RunnableBot {
         }
         if (robot.health <= Constants.ROBOT_TYPE.damage) {
             score += 100000;
+            // attack the one with more health
+            score += robot.health * 100; // max health is 400
+        } else {
+            score -= robot.health * 100; // max health is 400
         }
-        score -= robot.health * 100; // max health is 400
         score -= robot.location.distanceSquaredTo(Cache.MY_LOCATION);
         return score;
     }
@@ -150,7 +153,7 @@ public class Launcher implements RunnableBot {
         if (Cache.ALLY_ROBOTS.length > 15) {
             Util.tryPathfindingMove(enemy.location);
         } else {
-            Direction direction = getMicroDirection();
+            Direction direction = getMicroDirection(enemy);
             Debug.setIndicatorString(Profile.ATTACKING, "Micro direction: " + direction);
             if (direction != Direction.CENTER) {
                 Util.tryMove(direction);
@@ -160,19 +163,40 @@ public class Launcher implements RunnableBot {
     }
 
     // TODO: remember the enemies of the previous turn?
-    public static Direction getMicroDirection() {
+    public static Direction getMicroDirection(RobotInfo closestEnemyAttacker) {
+        // assumption: there is an enemy attacker in vision
         if (rc.isActionReady()) {
             // must be seeing an enemy but not in attack radius
             RobotInfo enemy = getSingleAttackerOrNull();
-            if (enemy != null) {
-                boolean shouldAttack = shouldAttackSingleEnemyWithAction(enemy);
-                if (shouldAttack) {
+            if (enemy == null) {
+                // we must be seeing multiple enemies OR we think we will lose the 1 on 1
+                // see if there are allies w/ distance < or <= our distance
+                if (Util.hasAllyAttackersWithin(closestEnemyAttacker.location, Cache.MY_LOCATION.distanceSquaredTo(closestEnemyAttacker.location))) {
+                    // if so, just micro towards it
+                    return getBestMoveDirection(location -> getScoreWithActionSingleEnemyAttacker(location, closestEnemyAttacker));
+                } else {
+                    // otherwise, kite
+                    return getBestMoveDirection(Launcher::getScoreForKiting);
+                }
+            } else {
+                if (shouldAttackSingleEnemyWithAction(enemy)) {
                     Debug.setIndicatorDot(Profile.ATTACKING, Cache.MY_LOCATION, 0, 255, 0);
                     return getBestMoveDirection(location -> getScoreWithActionSingleEnemyAttacker(location, enemy));
+                } else {
+                    return getBestMoveDirection(Launcher::getScoreForKiting);
                 }
             }
+        } else {
+            // we see an enemy that must be in our attack radius? (or maybe the enemy died)
+            // see if there are allies w/ distance <= our distance
+            if (Util.hasAllyAttackersWithin(closestEnemyAttacker.location, Cache.MY_LOCATION.distanceSquaredTo(closestEnemyAttacker.location))) {
+                // if so, stay still
+                return Direction.CENTER;
+            } else {
+                // otherwise, kite
+                return getBestMoveDirection(Launcher::getScoreForKiting);
+            }
         }
-        return getBestMoveDirection(Launcher::getScoreForKiting);
     }
 
     public static Direction getBestMoveDirection(ToDoubleFunction<MapLocation> scorer) {
@@ -214,7 +238,7 @@ public class Launcher implements RunnableBot {
         try {
             if (!rc.senseMapInfo(Cache.MY_LOCATION).hasCloud()) {
                 if (!rc.senseMapInfo(location).hasCloud()) {
-                    score += 2000000;
+                    score += 2_000_000;
                 }
             }
         } catch (GameActionException ex) {
@@ -223,12 +247,24 @@ public class Launcher implements RunnableBot {
 
         // prefer squares that we can attack the enemy
         if (location.isWithinDistanceSquared(enemyLocation, Constants.ROBOT_TYPE.actionRadiusSquared)) {
-            score += 1000000;
+            score += 1_000_000;
+        }
+
+        // prefer squares where you're not in enemy hq attack range
+        if (EnemyHqTracker.anyKnownAndPending(enemyHqLocation -> {
+            return location.isWithinDistanceSquared(enemyHqLocation, RobotType.HEADQUARTERS.actionRadiusSquared);
+        })) {
+            score -= 500_000;
+        }
+
+        // Prefer not moving - save our movement for next turn
+        if (Cache.MY_LOCATION.equals(location)) {
+            score += 100_000;
         }
 
         // prefer straight moves
         if (Util.isStraightDirection(Cache.MY_LOCATION.directionTo(location))) {
-            score += 1000;
+            score += 10_000;
         }
 
         // prefer squares where you're further away from the enemy
@@ -240,7 +276,14 @@ public class Launcher implements RunnableBot {
     public static double getScoreForKiting(MapLocation location) {
         double score = 0;
         // prefer squares where attackers can't see you
-        score -= numAttackerRobotsWithin(location, Constants.ROBOT_TYPE.visionRadiusSquared) * 100000.0;
+        score -= numAttackerRobotsWithin(location, Constants.ROBOT_TYPE.visionRadiusSquared) * 1_000_000.0;
+
+        // prefer squares where you're not in enemy hq attack range
+        if (EnemyHqTracker.anyKnownAndPending(enemyHqLocation -> {
+            return location.isWithinDistanceSquared(enemyHqLocation, RobotType.HEADQUARTERS.actionRadiusSquared);
+        })) {
+            score -= 500_000;
+        }
 
         // prefer squares where you're further away from the closest enemy
         score += getClosestEnemyAttackerDistanceSquared(location) * 1000.0;

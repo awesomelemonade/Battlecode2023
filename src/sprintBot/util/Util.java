@@ -296,6 +296,16 @@ public class Util {
         return count;
     }
 
+    public static boolean hasAllyAttackersWithin(MapLocation location, int distanceSquared) {
+        for (int i = Cache.ALLY_ROBOTS.length; --i >= 0; ) {
+            RobotInfo robot = Cache.ALLY_ROBOTS[i];
+            if (Util.isAttacker(robot.type) && robot.location.isWithinDistanceSquared(location, distanceSquared)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static int numAllyAttackersWithin(MapLocation location, int distanceSquared) {
         int count = 0;
         for (int i = Cache.ALLY_ROBOTS.length; --i >= 0; ) {
