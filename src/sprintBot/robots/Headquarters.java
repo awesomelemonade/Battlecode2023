@@ -297,7 +297,7 @@ public class Headquarters implements RunnableBot {
         MapLocation ret = EnemyHqTracker.getClosest();
         if (ret == null) {
             // we should use furthest to be more stable?
-            ret = EnemyHqGuesser.getClosestRotationalSymmetryFirst(l -> true);
+            ret = EnemyHqGuesser.getClosestPreferRotationalSymmetry(l -> true);
         }
         return ret;
     }

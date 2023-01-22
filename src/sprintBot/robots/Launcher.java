@@ -301,7 +301,7 @@ public class Launcher implements RunnableBot {
         if (ret == null) {
             MapLocation lastHqLocation = WellTracker.lastHqLocation();
             if (lastHqLocation != null) {
-                ret = EnemyHqGuesser.getClosestRotationalSymmetryFirst(location -> !blacklist.contains(location.x, location.y));
+                ret = EnemyHqGuesser.getClosestPreferRotationalSymmetry(location -> !blacklist.contains(location.x, location.y));
             }
         }
         if (ret == null) {
