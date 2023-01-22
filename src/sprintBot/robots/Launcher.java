@@ -91,7 +91,10 @@ public class Launcher implements RunnableBot {
         // go to attack random other enemies (non-attackers)
         RobotInfo enemy = Util.getClosestEnemyRobot(robot -> robot.type != RobotType.HEADQUARTERS);
         if (enemy != null) {
-            Util.tryPathfindingMove(enemy.location);
+            Direction direction = getBestMoveDirection(location -> getScoreWithActionSingleEnemyAttacker(location, enemy));
+            if (direction != Direction.CENTER) {
+                Util.tryMove(direction);
+            }
             return;
         }
         // camp the headquarters
