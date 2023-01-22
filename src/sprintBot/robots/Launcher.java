@@ -39,6 +39,10 @@ public class Launcher implements RunnableBot {
             MapLocation enemyLocation = enemy.location;
             tryAttack(enemyLocation);
         }
+    }
+    
+    @Override
+    public void postLoop() throws GameActionException {
         TryAttackCloud.tryAttackCloud();
     }
 
@@ -91,7 +95,10 @@ public class Launcher implements RunnableBot {
         // go to attack random other enemies (non-attackers)
         RobotInfo enemy = Util.getClosestEnemyRobot(robot -> robot.type != RobotType.HEADQUARTERS);
         if (enemy != null) {
-            Util.tryPathfindingMove(enemy.location);
+            Direction direction = getBestMoveDirection(location -> getScoreWithActionSingleEnemyAttacker(location, enemy));
+            if (direction != Direction.CENTER) {
+                Util.tryMove(direction);
+            }
             return;
         }
         // camp the headquarters
@@ -174,7 +181,7 @@ public class Launcher implements RunnableBot {
         for (int i = Constants.ALL_DIRECTIONS.length; --i >= 0; ) {
             Direction direction = Constants.ALL_DIRECTIONS[i];
             MapLocation location = Cache.MY_LOCATION.add(direction);
-            if (direction != Direction.CENTER && !rc.canMove(direction)) {
+            if (direction != Direction.CENTER && !rc.canMove(direction)) { // this is for micro - so let's ignore currents
                 // occupied
                 continue;
             }
@@ -294,7 +301,7 @@ public class Launcher implements RunnableBot {
         if (ret == null) {
             MapLocation lastHqLocation = WellTracker.lastHqLocation();
             if (lastHqLocation != null) {
-                ret = EnemyHqGuesser.getFarthest(lastHqLocation, location -> !blacklist.contains(location.x, location.y));
+                ret = EnemyHqGuesser.getClosestPreferRotationalSymmetry(location -> !blacklist.contains(location.x, location.y));
             }
         }
         if (ret == null) {

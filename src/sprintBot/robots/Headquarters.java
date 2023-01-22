@@ -59,7 +59,22 @@ public class Headquarters implements RunnableBot {
         if (LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> r.type != RobotType.HEADQUARTERS)) {
             return Communication.CarrierTaskType.MINE_MANA;
         }
-        return Communication.CarrierTaskType.MINE_MANA;
+//        if (closestEnemyHq == null) {
+//
+//        } else {
+//            double distance = Math.sqrt(Cache.MY_LOCATION.distanceSquaredTo(closestEnemyHq));
+//        }
+        double targetRatio = 0.9; // 0 = full adamantium, 1 = full mana
+        if (currentMana * (1.0 - targetRatio) <= currentAdamantium * targetRatio) {
+            return Communication.CarrierTaskType.MINE_MANA;
+        } else {
+            return Communication.CarrierTaskType.MINE_ADAMANTIUM;
+        }
+//        if (currentMana <= currentAdamantium) {
+//            return Communication.CarrierTaskType.MINE_MANA;
+//        } else {
+//            return Communication.CarrierTaskType.MINE_ADAMANTIUM;
+//        }
     }
 
     private static double lastAdamantiumIncome = 0;
@@ -78,11 +93,15 @@ public class Headquarters implements RunnableBot {
 //        }
     }
 
+    public void debug_printInfo() {
+//        Debug.println(String.format("[data] round: %d, adamantiumIncome: %f, manaIncome: %f, adamantiumMiners: %f, manaMiners: %f",
+//                rc.getRoundNum(), adamantiumIncome.average(), manaIncome.average(), adamantiumMinerTracker.average(), manaMinerTracker.average()));
+    }
+
     @Override
     public void loop() throws GameActionException {
         debug_render();
 
-        Util.shuffle(shuffledLocations);
         int currentAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
         int currentMana = rc.getResourceAmount(ResourceType.MANA);
         int currentElixir = rc.getResourceAmount(ResourceType.ELIXIR);
@@ -94,8 +113,7 @@ public class Headquarters implements RunnableBot {
         adamantiumDerivativeTracker.add(currentAdamantiumIncome - lastAdamantiumIncome);
         lastAdamantiumIncome = currentAdamantiumIncome;
 
-//        Debug.println("adamantiumIncome: " + adamantiumIncome.average() + ", adamantiumDerivative: " + adamantiumDerivativeTracker.average());
-
+        debug_printInfo();
     }
 
     @Override
@@ -106,7 +124,25 @@ public class Headquarters implements RunnableBot {
         lastElixir = rc.getResourceAmount(ResourceType.ELIXIR);
     }
 
+    private static MapLocation closestEnemyHq = null;
+    private static double currentAdamantium = 0.0;
+    private static double currentMana = 0.0;
+    private static double adamantiumPerMiner = 0.0;
+    private static double manaPerMiner = 0.0;
     public static void assignTasks() throws GameActionException {
+        closestEnemyHq = getNearestEnemyHQLocation();
+        currentAdamantium = adamantiumIncome.average();
+        currentMana = manaIncome.average();
+        if (adamantiumMinerTracker.sum() == 0) {
+            adamantiumPerMiner = 1; // assume 1
+        } else {
+            adamantiumPerMiner = currentAdamantium / adamantiumMinerTracker.average();
+        }
+        if (manaMinerTracker.sum() == 0) {
+            manaPerMiner = 1; // assume 1
+        } else {
+            manaPerMiner = currentMana / manaMinerTracker.average();
+        }
         RobotInfo[] allies = rc.senseNearbyRobots(RobotType.CARRIER.visionRadiusSquared, Constants.ALLY_TEAM);
         if (allies.length > 28) {
             // pigeonhole principle
@@ -132,9 +168,11 @@ public class Headquarters implements RunnableBot {
                         switch (newTask) {
                             case MINE_ADAMANTIUM:
                                 adamantiumMinerTracker.incrementLast();
+                                currentAdamantium += adamantiumPerMiner;
                                 break;
                             case MINE_MANA:
                                 manaMinerTracker.incrementLast();
+                                currentMana += manaPerMiner;
                                 break;
                             case MINE_ELIXIR:
                                 elixirMinerTracker.incrementLast();
@@ -259,7 +297,7 @@ public class Headquarters implements RunnableBot {
         MapLocation ret = EnemyHqTracker.getClosest();
         if (ret == null) {
             // we should use furthest to be more stable?
-            ret = EnemyHqGuesser.getFarthest(Cache.MY_LOCATION, l -> true);
+            ret = EnemyHqGuesser.getClosestPreferRotationalSymmetry(l -> true);
         }
         return ret;
     }

@@ -111,12 +111,17 @@ public class Communication {
         int bestDistanceSquared = Integer.MAX_VALUE;
         // locate all headquarters nearby
         MapLocation[] visibleHqLocations = new MapLocation[headquartersLocations.length];
+        boolean hasVisibleHQLocation = false;
         for (int i = headquartersLocations.length; --i >= 0; ) {
-            if (rc.canSenseLocation(headquartersLocations[i])) {
+            if (Cache.MY_LOCATION.isWithinDistanceSquared(headquartersLocations[i], RobotType.CARRIER.visionRadiusSquared)) {
                 visibleHqLocations[i] = headquartersLocations[i];
+                hasVisibleHQLocation = true;
             }
         }
         // loop
+        if (!hasVisibleHQLocation) {
+            return null;
+        }
         for (int i = MAX_CARRIER_COMMED_TASKS; --i >= 0; ) {
             int commIndex = CARRIER_TASK_OFFSET + i;
             try {
@@ -276,7 +281,7 @@ public class Communication {
         EnemyHqTracker.update();
         EnemyHqGuesser.update();
         WellTracker.update();
-        Checkpoints.update();
+//        Checkpoints.update();
     }
 
     public static void postLoop() {

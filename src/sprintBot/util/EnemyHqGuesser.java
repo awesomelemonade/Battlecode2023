@@ -164,26 +164,31 @@ public class EnemyHqGuesser {
         return bestLocation;
     }
 
-    public static MapLocation getFarthest(MapLocation from, Predicate<MapLocation> predicate) {
+    public static MapLocation getClosestPreferRotationalSymmetry(Predicate<MapLocation> predicate) {
         if (!initialized) {
             return null;
         }
-        return getClosest(predicate);
-//        MapLocation bestLocation = null;
-//        int bestDistanceSquared = Integer.MIN_VALUE;
-//        for (int i = predictions.length; --i >= 0; ) {
-//            if (!invalidated(i)) {
-//                MapLocation location = predictions[i];
-//                if (predicate.test(location)) {
-//                    int distanceSquared = from.distanceSquaredTo(location);
-//                    if (distanceSquared > bestDistanceSquared) {
-//                        bestDistanceSquared = distanceSquared;
-//                        bestLocation = location;
-//                    }
-//                }
-//            }
-//        }
-//        return bestLocation;
+        // rotational symmetry preferred
+        MapLocation bestLocation = null;
+        double bestScore = Double.MAX_VALUE;
+        for (int i = predictions.length; --i >= 0; ) {
+            if (!invalidated(i)) {
+                MapLocation location = predictions[i];
+                if (predicate.test(location)) {
+                    double score = Math.sqrt(Cache.MY_LOCATION.distanceSquaredTo(location)); // regular distance
+                    if (i % 3 == 2) {
+                        // rotational symmetry
+                        score /= 2.0; // lower is better
+                    }
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestLocation = location;
+                    }
+                }
+            }
+        }
+        return bestLocation;
+//        return getClosest(predicate);
     }
 
     public static void forEach(Consumer<MapLocation> consumer) {

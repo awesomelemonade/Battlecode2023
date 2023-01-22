@@ -15,7 +15,6 @@ public class BFSVisionTemplate {
     private static int[] b = new int[] {0, 0, 0, 0, 255, 255, 255, 255, 255};
 
     private static FastGrid<BFSVisionTemplate> allBFS;
-    private static FastMapLocationGridWithDefault currentDestinations;
 
     private static FastQueueWithRemove bfsQueue = new FastQueueWithRemove();
 
@@ -28,7 +27,6 @@ public class BFSVisionTemplate {
 
     public static void init() {
         allBFS = new FastGrid<>(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
-        currentDestinations = new FastMapLocationGridWithDefault(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
     }
 
     private static MapLocation lastLocation = new MapLocation(-1, -1);
@@ -41,7 +39,7 @@ public class BFSVisionTemplate {
                 for (int i = infos.length; --i >= 0; ) {
                     MapInfo info = infos[i];
                     MapLocation location = info.getMapLocation();
-                    currentDestinations.set(location.x, location.y, location.add(info.getCurrentDirection()));
+                    CurrentsCache.set(location.x, location.y, location.add(info.getCurrentDirection()));
 //                PassabilityCache.setPassable(location, info.isPassable()); // INLINED BELOW TO SAVE BYTECODES
                     PassabilityCache.data.setCharAt(location.x * Constants.MAX_MAP_SIZE + location.y,
                             info.isPassable() ? PassabilityCache.PASSABLE : PassabilityCache.UNPASSABLE);
@@ -49,17 +47,17 @@ public class BFSVisionTemplate {
                 lastLocation = Cache.MY_LOCATION;
             }
             BFSVisionTemplate currentBfs = allBFS.get(Cache.MY_LOCATION);
-            if (currentBfs == null && Clock.getBytecodesLeft() > 1500) { // creating new BFSVision() takes ~1300 bytecodes
+            if (currentBfs == null && Clock.getBytecodesLeft() > 2300) { // creating new BFSVision() takes up to ~2100 bytecodes on large maps
                 currentBfs = new BFSVisionTemplate(Cache.MY_LOCATION);
                 allBFS.set(Cache.MY_LOCATION, currentBfs);
             }
             if (currentBfs != null) {
-                currentBfs.bfs();
+                currentBfs.bfs(1100);
                 if (currentBfs.completed) {
                     // find bfs's to execute in queue - most recent first
                     bfsQueue.retain(x -> {
                         BFSVisionTemplate bfs = allBFS.get(x / Constants.MAX_MAP_SIZE, x % Constants.MAX_MAP_SIZE);
-                        bfs.bfs();
+                        bfs.bfs(1100);
                         return !bfs.completed;
                     }, 1100);
                 } else {
@@ -111,7 +109,7 @@ public class BFSVisionTemplate {
         for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
             MapLocation neighbor = origin.add(Constants.ORDINAL_DIRECTIONS[i]);
             if (rc.onTheMap(neighbor)) {
-                neighbor = currentDestinations.get(neighbor);
+                neighbor = CurrentsCache.get(neighbor);
                 // should never be out of bounds because currents should never put a robot out of the map
                 queue.add(neighbor); // theoretically we can just unroll this
                 moveDirections[neighbor.x][neighbor.y] = 1 << i;
@@ -165,11 +163,11 @@ public class BFSVisionTemplate {
         }
     }
 
-    public void bfs() {
+    public void bfs(int bytecodeThreshold) {
         boolean madeProgress = false;
         // this monstrosity is just to save bytecodes :(
         // idk why but while loop breaks the profiler
-        loop: for (int i = 50; --i >= 0 && !queue.isEmpty() && Clock.getBytecodesLeft() > 1100; ) {
+        loop: for (int i = 50; --i >= 0 && !queue.isEmpty() && Clock.getBytecodesLeft() > bytecodeThreshold; ) {
             MapLocation location = queue.peek();
             switch (PassabilityCache.isPassable(location)) {
                 case PassabilityCache.UNPASSABLE:
@@ -188,7 +186,7 @@ public class BFSVisionTemplate {
                     ---
                     MapLocation neighbor = location.add(direction);
                     if (rc.onTheMap(neighbor)) {
-                        neighbor = currentDestinations.get(neighbor);
+                        neighbor = CurrentsCache.get(neighbor);
                         // should never be out of bounds because currents should never put a robot out of the map
                         if (origin.isWithinDistanceSquared(neighbor, Constants.ROBOT_TYPE.visionRadiusSquared)) {
                             if (moveDirections[neighbor.x][neighbor.y] == 0) {

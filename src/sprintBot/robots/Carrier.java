@@ -514,7 +514,7 @@ public class Carrier implements RunnableBot {
     }
 
     public static int capacityLeft() {
-        return GameConstants.CARRIER_CAPACITY - getWeight();
+        return GameConstants.CARRIER_CAPACITY - rc.getWeight();
     }
 
     public static boolean tryCollectResource(MapLocation location, int amount) {
