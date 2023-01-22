@@ -181,7 +181,7 @@ public class Launcher implements RunnableBot {
         for (int i = Constants.ALL_DIRECTIONS.length; --i >= 0; ) {
             Direction direction = Constants.ALL_DIRECTIONS[i];
             MapLocation location = Cache.MY_LOCATION.add(direction);
-            if (direction != Direction.CENTER && !rc.canMove(direction)) {
+            if (direction != Direction.CENTER && !rc.canMove(direction)) { // this is for micro - so let's ignore currents
                 // occupied
                 continue;
             }

@@ -31,7 +31,7 @@ public class Explorer {
         Direction bestDirection = null;
         int minAllies = Integer.MAX_VALUE;
         for (Direction direction : Constants.getAttemptOrder(previousDirection)) {
-            if (rc.canMove(direction)) {
+            if (Util.canMoveAndCheckCurrents(direction)) {
                 MapLocation next = Cache.MY_LOCATION.add(direction);
                 int numAllies = Util.numAllyRobotsWithin(next, 10);
                 if (numAllies < minAllies) {

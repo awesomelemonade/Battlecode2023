@@ -15,7 +15,6 @@ public class BFSVisionTemplate {
     private static int[] b = new int[] {0, 0, 0, 0, 255, 255, 255, 255, 255};
 
     private static FastGrid<BFSVisionTemplate> allBFS;
-    private static FastMapLocationGridWithDefault currentDestinations;
 
     private static FastQueueWithRemove bfsQueue = new FastQueueWithRemove();
 
@@ -28,7 +27,6 @@ public class BFSVisionTemplate {
 
     public static void init() {
         allBFS = new FastGrid<>(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
-        currentDestinations = new FastMapLocationGridWithDefault(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
     }
 
     private static MapLocation lastLocation = new MapLocation(-1, -1);
@@ -41,7 +39,7 @@ public class BFSVisionTemplate {
                 for (int i = infos.length; --i >= 0; ) {
                     MapInfo info = infos[i];
                     MapLocation location = info.getMapLocation();
-                    currentDestinations.set(location.x, location.y, location.add(info.getCurrentDirection()));
+                    CurrentsCache.set(location.x, location.y, location.add(info.getCurrentDirection()));
 //                PassabilityCache.setPassable(location, info.isPassable()); // INLINED BELOW TO SAVE BYTECODES
                     PassabilityCache.data.setCharAt(location.x * Constants.MAX_MAP_SIZE + location.y,
                             info.isPassable() ? PassabilityCache.PASSABLE : PassabilityCache.UNPASSABLE);
@@ -111,7 +109,7 @@ public class BFSVisionTemplate {
         for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
             MapLocation neighbor = origin.add(Constants.ORDINAL_DIRECTIONS[i]);
             if (rc.onTheMap(neighbor)) {
-                neighbor = currentDestinations.get(neighbor);
+                neighbor = CurrentsCache.get(neighbor);
                 // should never be out of bounds because currents should never put a robot out of the map
                 queue.add(neighbor); // theoretically we can just unroll this
                 moveDirections[neighbor.x][neighbor.y] = 1 << i;
@@ -188,7 +186,7 @@ public class BFSVisionTemplate {
                     ---
                     MapLocation neighbor = location.add(direction);
                     if (rc.onTheMap(neighbor)) {
-                        neighbor = currentDestinations.get(neighbor);
+                        neighbor = CurrentsCache.get(neighbor);
                         // should never be out of bounds because currents should never put a robot out of the map
                         if (origin.isWithinDistanceSquared(neighbor, Constants.ROBOT_TYPE.visionRadiusSquared)) {
                             if (moveDirections[neighbor.x][neighbor.y] == 0) {

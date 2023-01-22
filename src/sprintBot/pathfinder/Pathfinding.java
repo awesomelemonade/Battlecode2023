@@ -71,7 +71,8 @@ public class Pathfinding {
 			if (!location.equals(target) && !predicate.test(location)) {
 				continue;
 			}
-			if (Util.tryMove(direction)) {
+			if (Util.canMoveAndCheckCurrents(direction)) {
+				Util.move(direction);
 				return true;
 			}
 		}
@@ -79,7 +80,7 @@ public class Pathfinding {
 		boolean hasNoMove = true;
 		for (int i = counters.length; --i >= 0;) {
 			Direction direction = directions[i];
-			if (rc.canMove(direction)) {
+			if (Util.canMoveAndCheckCurrents(direction)) {
 				MapLocation location = currentLocation.add(direction);
 				counters[i] = visitedSet.get(location.x, location.y);
 				hasNoMove = false;

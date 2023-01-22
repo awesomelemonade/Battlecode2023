@@ -15,6 +15,7 @@ public class Util {
         Constants.init(controller);
         Random.init();
         Cache.init();
+        CurrentsCache.init();
         Communication.init();
         Explorer.init();
         Pathfinding.init();
@@ -183,7 +184,7 @@ public class Util {
             rc.move(direction);
             Cache.invalidate();
         } catch (GameActionException ex) {
-            throw new IllegalStateException(ex);
+            Debug.failFast(ex);
         }
     }
 
@@ -246,7 +247,7 @@ public class Util {
         Direction bestDirection = null;
         for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
             Direction direction = Constants.ORDINAL_DIRECTIONS[i];
-            if (!rc.canMove(direction)) {
+            if (!Util.canMoveAndCheckCurrents(direction)) {
                 continue;
             }
             MapLocation candidate = Cache.MY_LOCATION.add(direction);
@@ -359,5 +360,15 @@ public class Util {
             default:
                 return false;
         }
+    }
+
+    public static boolean canMoveAndCheckCurrents(Direction direction) {
+        if (Constants.ROBOT_TYPE == RobotType.CARRIER) {
+            if (rc.getMovementCooldownTurns() + 5 + rc.getWeight() / 8 < GameConstants.COOLDOWN_LIMIT) {
+                // can double move - let's ignore currents
+                return rc.canMove(direction);
+            }
+        }
+        return rc.canMove(direction) && !CurrentsCache.get(Cache.MY_LOCATION.add(direction)).equals(Cache.MY_LOCATION);
     }
 }
