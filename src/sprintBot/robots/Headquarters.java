@@ -39,7 +39,7 @@ public class Headquarters implements RunnableBot {
         // 4096 * 16 is well beyond that
         carrierTasks = new FastIntMap(4096 * 16);
         shuffledLocations = rc.getAllLocationsWithinRadiusSquared(Cache.MY_LOCATION, RobotType.HEADQUARTERS.actionRadiusSquared);
-        hasSpaceForMiners = hasSpaceForMiners();
+        hasSpaceForMiners = hasSpaceForMinersToDeposit();
     }
 
     public static MapLocation getNearestEnemyHQLocation() {
@@ -312,7 +312,7 @@ public class Headquarters implements RunnableBot {
         }
     }
 
-    public static boolean hasSpaceForMiners() {
+    public static boolean hasSpaceForMinersToDeposit() {
         boolean passable = false;
         for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
             Direction direction = Constants.ORDINAL_DIRECTIONS[i];

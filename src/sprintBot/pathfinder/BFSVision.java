@@ -2,7 +2,6 @@ package sprintBot.pathfinder;
 
 import battlecode.common.*;
 import sprintBot.fast.FastGrid;
-import sprintBot.fast.FastIntGrid;
 import sprintBot.fast.FastMapLocationGridWithDefault;
 import sprintBot.fast.FastMapLocationQueue;
 import sprintBot.util.*;
@@ -19,10 +18,7 @@ public class BFSVision {
     private static FastGrid<BFSVision> allBFS;
     private static FastMapLocationGridWithDefault currentDestinations;
 
-    // queue for a heuristic for which BFSs to calculate
-    private static BFSVision[] bfsQueue = new BFSVision[20];
-    private static int bfsQueueIndex = 0;
-    private static int bfsQueueSize = 0;
+    private static FastQueueWithRemove bfsQueue = new FastQueueWithRemove();
 
     private FastMapLocationQueue queue;
     private int[][] moveDirections;
@@ -36,48 +32,43 @@ public class BFSVision {
         currentDestinations = new FastMapLocationGridWithDefault(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
     }
 
+    private static MapLocation lastLocation = new MapLocation(-1, -1);
+
     public static void postLoop() throws GameActionException {
         if (Cache.TURN_COUNT > 1) { // save bytecodes on turn 1
-            MapInfo[] infos = rc.senseNearbyMapInfos();
-            for (int i = infos.length; --i >= 0; ) {
-                MapInfo info = infos[i];
-                if (info.getCurrentDirection() != Direction.CENTER) {
+            if (!lastLocation.equals(Cache.MY_LOCATION)) {
+                // update passability and currents
+                MapInfo[] infos = rc.senseNearbyMapInfos();
+                for (int i = infos.length; --i >= 0; ) {
+                    MapInfo info = infos[i];
                     MapLocation location = info.getMapLocation();
-                    currentDestinations.set(location, location.add(info.getCurrentDirection()));
+                    currentDestinations.set(location.x, location.y, location.add(info.getCurrentDirection()));
+//                PassabilityCache.setPassable(location, info.isPassable()); // INLINED BELOW TO SAVE BYTECODES
+                    PassabilityCache.data.setCharAt(location.x * Constants.MAX_MAP_SIZE + location.y,
+                            info.isPassable() ? PassabilityCache.PASSABLE : PassabilityCache.UNPASSABLE);
                 }
+                lastLocation = Cache.MY_LOCATION;
             }
             BFSVision currentBfs = allBFS.get(Cache.MY_LOCATION);
-            if (currentBfs == null) {
+            if (currentBfs == null && Clock.getBytecodesLeft() > 1500) { // creating new BFSVision() takes ~1300 bytecodes
                 currentBfs = new BFSVision(Cache.MY_LOCATION);
                 allBFS.set(Cache.MY_LOCATION, currentBfs);
             }
-            currentBfs.bfs();
-
-            if (currentBfs.completed) {
-                // find bfs's to execute in queue
-                // in reverse order (most recent first)
-                for (int i = bfsQueueSize; --i >= 0 && Clock.getBytecodesLeft() > 1100; ) {
-                    bfsQueue[(bfsQueueIndex + i) % bfsQueue.length].bfs();
-                }
-            } else {
-                if (bfsQueueSize > 0) {
-                    BFSVision lastBfs = bfsQueue[(bfsQueueIndex + bfsQueueSize + bfsQueue.length - 1) % bfsQueue.length];
-                    // check if it is the same as the last one so far
-                    if (currentBfs != lastBfs) {
-                        if (bfsQueueSize == bfsQueue.length) {
-                            // overwrite oldest
-                            bfsQueue[(bfsQueueIndex++) % bfsQueue.length] = currentBfs;
-                        } else {
-                            // add to queue
-                            bfsQueue[(bfsQueueIndex + bfsQueueSize++) % bfsQueue.length] = currentBfs;
-                        }
-                    }
+            if (currentBfs != null) {
+                currentBfs.bfs();
+                if (currentBfs.completed) {
+                    // find bfs's to execute in queue - most recent first
+                    bfsQueue.retain(x -> {
+                        BFSVision bfs = allBFS.get(x / Constants.MAX_MAP_SIZE, x % Constants.MAX_MAP_SIZE);
+                        bfs.bfs();
+                        return !bfs.completed;
+                    }, 1100);
                 } else {
                     // add to queue
-                    bfsQueue[(bfsQueueIndex + bfsQueueSize++) % bfsQueue.length] = currentBfs;
+                    bfsQueue.addOrBringToFront(Cache.MY_LOCATION.x * Constants.MAX_MAP_SIZE + Cache.MY_LOCATION.y);
                 }
             }
-            debug_render(currentBfs);
+            debug_render();
         }
     }
 
@@ -87,11 +78,7 @@ public class BFSVision {
             return null;
         }
         BFSVision currentBfsVision = allBFS.get(Cache.MY_LOCATION);
-        if (currentBfsVision == null) {
-            currentBfsVision = new BFSVision(Cache.MY_LOCATION);
-            allBFS.set(Cache.MY_LOCATION, currentBfsVision);
-        }
-        return currentBfsVision.completed ? currentBfsVision : null;
+        return currentBfsVision != null && currentBfsVision.completed ? currentBfsVision : null;
     }
 
     public BFSVision(MapLocation origin) {
@@ -133,20 +120,29 @@ public class BFSVision {
         }
     }
 
-    public static void debug_render(BFSVision bfs) {
+    public static void debug_render() {
 //        renderAllBfs();
-//        bfs.render();
+//        PassabilityCache.debug_render();
+//        BFSVision bfs = allBFS.get(Cache.MY_LOCATION);
+//        if (bfs != null) {
+//            bfs.render();
+//        }
     }
 
     public static void renderAllBfs() {
-        for (int i = 0; i < Constants.MAP_WIDTH; i++) {
-            for (int j = 0; j < Constants.MAP_HEIGHT; j++) {
-                BFSVision bfs = allBFS.get(i, j);
-                if (bfs != null) {
-                    if (bfs.completed) {
-                        Debug.setIndicatorDot(Profile.BFS, new MapLocation(i, j), 0, 255, 0); // green
+        if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS && Profile.BFS.enabled()) {
+            Debug.setIndicatorString(Profile.BFS, "sz: " + bfsQueue.size());
+            for (int i = 0; i < Constants.MAP_WIDTH; i++) {
+                for (int j = 0; j < Constants.MAP_HEIGHT; j++) {
+                    BFSVision bfs = allBFS.get(i, j);
+                    if (bfs == null) {
+                        Debug.setIndicatorDot(Profile.BFS, new MapLocation(i, j), 255, 0, 0); // red
                     } else {
-                        Debug.setIndicatorDot(Profile.BFS, new MapLocation(i, j), 255, 255, 0); // yellow
+                        if (bfs.completed) {
+                            Debug.setIndicatorDot(Profile.BFS, new MapLocation(i, j), 0, 255, 0); // green
+                        } else {
+                            Debug.setIndicatorDot(Profile.BFS, new MapLocation(i, j), 255, 255, 0); // yellow
+                        }
                     }
                 }
             }
@@ -170,20 +166,19 @@ public class BFSVision {
         }
     }
 
-    public static boolean sensePassable(MapLocation location) throws GameActionException {
-        return rc.sensePassability(location); // TODO: check for ally & enemy HQ. they should also be not passable
-    }
-
-    public void bfs() throws GameActionException  {
+    public void bfs() {
+        boolean madeProgress = false;
         // this monstrosity is just to save bytecodes :(
         // idk why but while loop breaks the profiler
         loop: for (int i = 50; --i >= 0 && !queue.isEmpty() && Clock.getBytecodesLeft() > 1100; ) {
             MapLocation location = queue.peek();
             switch (PassabilityCache.isPassable(location)) {
                 case PassabilityCache.UNPASSABLE:
+                    madeProgress = true;
                     queue.poll();
                     break;
                 case PassabilityCache.PASSABLE:
+                    madeProgress = true;
                     queue.poll();
                     int distance_plus_1 = distances[location.x][location.y] + 1;
                     int moveDirection = moveDirections[location.x][location.y];
@@ -361,6 +356,15 @@ public class BFSVision {
             }
         }
         completed = queue.isEmpty();
+        if (Profile.BFS.enabled()) {
+            if (completed) {
+                Debug.setIndicatorDot(Profile.BFS, origin, 0, 255, 0); // green
+            } else if (madeProgress) {
+                Debug.setIndicatorDot(Profile.BFS, origin, 0, 255, 255); // cyan
+            } else {
+                Debug.setIndicatorDot(Profile.BFS, origin, 255, 0, 0); // red
+            }
+        }
     }
 
     public Direction getImmediateMoveDirection(MapLocation target) {
