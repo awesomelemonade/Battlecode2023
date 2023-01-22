@@ -39,6 +39,10 @@ public class Launcher implements RunnableBot {
             MapLocation enemyLocation = enemy.location;
             tryAttack(enemyLocation);
         }
+    }
+    
+    @Override
+    public void postLoop() throws GameActionException {
         TryAttackCloud.tryAttackCloud();
     }
 
