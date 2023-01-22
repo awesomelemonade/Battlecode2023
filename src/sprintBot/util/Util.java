@@ -363,12 +363,17 @@ public class Util {
     }
 
     public static boolean canMoveAndCheckCurrents(Direction direction) {
-        if (Constants.ROBOT_TYPE == RobotType.CARRIER) {
-            if (rc.getMovementCooldownTurns() + 5 + rc.getWeight() / 8 < GameConstants.COOLDOWN_LIMIT) {
-                // can double move - let's ignore currents
-                return rc.canMove(direction);
-            }
-        }
-        return rc.canMove(direction) && !CurrentsCache.get(Cache.MY_LOCATION.add(direction)).equals(Cache.MY_LOCATION);
+        // less bytecodes
+        return rc.canMove(direction) &&
+                ((Constants.ROBOT_TYPE == RobotType.CARRIER && (rc.getMovementCooldownTurns() + rc.getWeight() / 8 < 5)) ||
+                        !CurrentsCache.get(Cache.MY_LOCATION.add(direction)).equals(Cache.MY_LOCATION));
+//        // full version
+//        if (Constants.ROBOT_TYPE == RobotType.CARRIER) {
+//            if (rc.getMovementCooldownTurns() + 5 + rc.getWeight() / 8 < GameConstants.COOLDOWN_LIMIT) {
+//                // can double move - let's ignore currents
+//                return rc.canMove(direction);
+//            }
+//        }
+//        return rc.canMove(direction) && !CurrentsCache.get(Cache.MY_LOCATION.add(direction)).equals(Cache.MY_LOCATION);
     }
 }
