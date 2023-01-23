@@ -230,6 +230,35 @@ public class Util {
         }
     }
 
+    // tries to move on the location OR any location adjacent to it
+    public static void tryPathfindingMoveAdjacentCheckCurrents(MapLocation location) {
+        if (Cache.MY_LOCATION.isAdjacentTo(location)) {
+            // try to move on the location
+            if (!Cache.MY_LOCATION.equals(location)) {
+                Util.tryMove(Cache.MY_LOCATION.directionTo(location));
+            }
+        } else {
+            // try to move to the nearest adjacent spot
+            int bestDistanceSquared = Integer.MAX_VALUE;
+            MapLocation bestLocation = null;
+            for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
+                MapLocation adjacentLocation = location.add(Constants.ORDINAL_DIRECTIONS[i]);
+                if (rc.onTheMap(adjacentLocation) && CurrentsCache.hasNoKnownCurrent(adjacentLocation) && !rc.canSenseRobotAtLocation(adjacentLocation)) {
+                    int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(adjacentLocation);
+                    if (distanceSquared < bestDistanceSquared) {
+                        bestDistanceSquared = distanceSquared;
+                        bestLocation = adjacentLocation;
+                    }
+                }
+            }
+            if (bestLocation == null) {
+                Pathfinding.executeResetIfNotAdjacent(location);
+            } else {
+                Pathfinding.executeResetIfNotAdjacent(bestLocation);
+            }
+        }
+    }
+
     public static boolean tryMoveTowards(Direction direction) {
         for (Direction moveDirection : Constants.getAttemptOrder(direction)) {
             if (tryMove(moveDirection)) {
