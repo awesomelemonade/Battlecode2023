@@ -69,8 +69,8 @@ def run_match(bot, map):
         flagRegex = "FLAG{*}"
         gameAFlags = list(set(re.findall(flagRegex, outputA)))
         gameBFlags = list(set(re.findall(flagRegex, outputA)))
-        gameAFlags = [s[5:-1] for s in gameAFlags].join(", ")
-        gameBFlags = [s[5:-1] for s in gameBFlags].join(", ")
+        gameAFlags = ", ".join([s[5:-1] for s in gameAFlags])
+        gameBFlags = ", ".join([s[5:-1] for s in gameBFlags])
         if len(gameAFlags) > 0:
             gameAFlags = "{{{}}}".format(gameAFlags)
         if len(gameBFlags) > 0:
