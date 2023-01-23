@@ -22,6 +22,10 @@ public class CurrentsCache {
         array[y] = location;
     }
 
+    public static boolean hasNoKnownCurrent(MapLocation location) {
+        return location.equals(get(location));
+    }
+
     public static MapLocation get(MapLocation location) {
         MapLocation[] array = data[location.x];
         if (array == null) {

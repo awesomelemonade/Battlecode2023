@@ -13,6 +13,8 @@ public class Cache { // Cache variables that are constant throughout a turn
     public static WellInfo[] ELIXIR_WELLS;
     public static MapLocation NEAREST_ALLY_HQ;
 
+    public static RobotInfo prevClosestEnemyAttacker = null;
+
     public static void init() {
         TURN_COUNT = 0;
         invalidate();
@@ -23,6 +25,10 @@ public class Cache { // Cache variables that are constant throughout a turn
             invalidate();
         }
         TURN_COUNT++;
+    }
+
+    public static void postLoop() {
+        prevClosestEnemyAttacker = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
     }
 
     public static void invalidate() {

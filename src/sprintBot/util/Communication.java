@@ -284,10 +284,6 @@ public class Communication {
 //        Checkpoints.update();
     }
 
-    public static void postLoop() {
-
-    }
-
     public static int pack(MapLocation location) {
         return (location.x << 6) | location.y;
     }

@@ -86,6 +86,7 @@ public class Launcher implements RunnableBot {
         } else {
             score -= robot.health * 100; // max health is 400
         }
+        // TODO: target carriers with more resources?
         score -= robot.location.distanceSquaredTo(Cache.MY_LOCATION);
         return score;
     }
@@ -151,6 +152,11 @@ public class Launcher implements RunnableBot {
     public static boolean executeMicro() {
         RobotInfo enemy = Util.getClosestEnemyRobot(robot -> Util.isAttacker(robot.type));
         if (enemy == null) {
+            if (Cache.prevClosestEnemyAttacker != null) {
+                // stay still and let them run into our vision
+                // TODO: unless a friendly is in front? if we have action maybe go towards it?
+                return true;
+            }
             return false;
         }
         if (Cache.ALLY_ROBOTS.length > 15) {

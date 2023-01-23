@@ -256,15 +256,9 @@ public class Carrier implements RunnableBot {
         ResourceType targetResource = Communication.CarrierTask.getMineResourceType(currentTask);
 //        WellInfo well = targetResource == null ? getClosestWell() : getClosestWell(targetResource);
         // go to commed well
-        MapLocation commedWell;
-        if (targetResource == null) {
-            commedWell = WellTracker.getClosestKnownWell(location -> !blacklist.contains(location));
-        } else {
-            commedWell = WellTracker.getClosestKnownWell(targetResource, location -> !blacklist.contains(location));
-            if (commedWell == null) {
-                commedWell = WellTracker.getClosestKnownWell(location -> !blacklist.contains(location));
-            }
-        }
+        MapLocation commedWell = targetResource == null ?
+                WellTracker.getClosestKnownWell(location -> !blacklist.contains(location)) :
+                WellTracker.getClosestKnownWell(targetResource, location -> !blacklist.contains(location));
         if (commedWell != null) {
             Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, commedWell, 0, 128, 0); // dark green
             if (!Cache.MY_LOCATION.isAdjacentTo(commedWell)) {
@@ -402,11 +396,11 @@ public class Carrier implements RunnableBot {
     public static boolean tryMoveToPickupAnchor() {
         if (getWeight() == 0 && currentTask != null
                 && currentTask.type == Communication.CarrierTaskType.PICKUP_ANCHOR) {
-            MapLocation location = currentTask.hqLocation;
-            if (Cache.MY_LOCATION.isAdjacentTo(location)) {
+            MapLocation hqLocation = currentTask.hqLocation;
+            if (Cache.MY_LOCATION.isAdjacentTo(hqLocation)) {
                 // check if there's actually an anchor there
                 try {
-                    RobotInfo hq = rc.senseRobotAtLocation(location);
+                    RobotInfo hq = rc.senseRobotAtLocation(hqLocation);
                     if (hq == null) {
                         Debug.failFast("Cannot find hq?");
                     } else {
@@ -420,7 +414,7 @@ public class Carrier implements RunnableBot {
                     Debug.failFast(ex);
                 }
             } else {
-                Util.tryPathfindingMoveAdjacent(location);
+                Util.tryPathfindingMoveAdjacent(hqLocation);
             }
             return true;
         }
