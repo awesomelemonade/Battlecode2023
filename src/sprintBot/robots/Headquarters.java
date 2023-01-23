@@ -280,16 +280,13 @@ public class Headquarters implements RunnableBot {
                 return false;
             }
         }
-        MapLocation wellLocation = WellTracker.getClosestKnownWell(location -> true);
+        MapLocation knownWellLocation = WellTracker.getClosestKnownWell(location -> true);
+        MapLocation spawnTowardsLocation = knownWellLocation == null ? mapMidLocation() : knownWellLocation;
         return tryBuildByScore(RobotType.CARRIER, location -> {
             // we want to be as close to a well as possible
             // heuristic: just use the closest well
             // in the future, we can consider separating adamantium vs mana carriers
-            if (wellLocation == null) {
-                return 0;
-            } else {
-                return location.distanceSquaredTo(wellLocation);
-            }
+            return location.distanceSquaredTo(spawnTowardsLocation);
         });
     }
 
@@ -299,7 +296,15 @@ public class Headquarters implements RunnableBot {
             // we should use furthest to be more stable?
             ret = EnemyHqGuesser.getClosestPreferRotationalSymmetry(l -> true);
         }
+        if (ret == null) {
+            // just go towards mid
+            ret = mapMidLocation();
+        }
         return ret;
+    }
+
+    public static MapLocation mapMidLocation() {
+        return new MapLocation(Constants.MAP_WIDTH / 2, Constants.MAP_HEIGHT / 2);
     }
 
     public static boolean tryBuildLauncher() {
@@ -314,13 +319,9 @@ public class Headquarters implements RunnableBot {
             }
         }
         MapLocation macroLocation = getMacroAttackLocation();
-        Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, macroLocation, 255, 128, 0);
+        Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, macroLocation, 255, 128, 0); // orange
         return tryBuildByScore(RobotType.LAUNCHER, location -> {
-            if (macroLocation == null) {
-                return 0;
-            } else {
-                return location.distanceSquaredTo(macroLocation);
-            }
+            return location.distanceSquaredTo(macroLocation);
         });
     }
 
