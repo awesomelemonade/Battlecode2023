@@ -191,6 +191,51 @@ public class EnemyHqGuesser {
 //        return getClosest(predicate);
     }
 
+    public static int getMaximumPossibleEnemyHqDistanceSquaredAsHeadquarters() {
+        if (predictions == null) {
+            // just use our location
+            int x = Cache.MY_LOCATION.x;
+            int y = Cache.MY_LOCATION.y;
+            int symX = Constants.MAP_WIDTH - x - 1;
+            int symY = Constants.MAP_HEIGHT - y - 1;
+            int distanceSquaredA = Cache.MY_LOCATION.distanceSquaredTo(new MapLocation(x, symY));
+            int distanceSquaredB = Cache.MY_LOCATION.distanceSquaredTo(new MapLocation(symX, y));
+            int distanceSquaredC = Cache.MY_LOCATION.distanceSquaredTo(new MapLocation(symX, symY));
+            return Math.max(distanceSquaredA, Math.max(distanceSquaredB, distanceSquaredC));
+        }
+        // for each symmetry, get the closest distance squared
+        // then return the maximum of the three distances
+        int distanceSquaredA = Integer.MAX_VALUE;
+        int distanceSquaredB = Integer.MAX_VALUE;
+        int distanceSquaredC = Integer.MAX_VALUE;
+        for (int i = predictions.length; --i >= 0; ) {
+            if (!invalidated(i)) {
+                int distanceSquared = predictions[i].distanceSquaredTo(Cache.MY_LOCATION);
+                switch (i % 3) {
+                    case 0:
+                        distanceSquaredA = Math.min(distanceSquaredA, distanceSquared);
+                        break;
+                    case 1:
+                        distanceSquaredB = Math.min(distanceSquaredB, distanceSquared);
+                        break;
+                    case 2:
+                        distanceSquaredC = Math.min(distanceSquaredC, distanceSquared);
+                        break;
+                }
+            }
+        }
+        if (distanceSquaredA == Integer.MAX_VALUE) {
+            distanceSquaredA = 0;
+        }
+        if (distanceSquaredB == Integer.MAX_VALUE) {
+            distanceSquaredB = 0;
+        }
+        if (distanceSquaredC == Integer.MAX_VALUE) {
+            distanceSquaredC = 0;
+        }
+        return Math.max(distanceSquaredA, Math.max(distanceSquaredB, distanceSquaredC));
+    }
+
     public static void forEach(Consumer<MapLocation> consumer) {
         for (int i = predictions.length; --i >= 0; ) {
             if ((invalidations & (1 << i)) == 0 && (invalidationsPending & (1 << i)) == 0) {

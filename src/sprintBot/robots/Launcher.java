@@ -128,6 +128,14 @@ public class Launcher implements RunnableBot {
                 Debug.setIndicatorString(Profile.ATTACKING, "Num: " + numAllyAttackers);
             }
             // do not go to squares within 9 distance of hq
+            if (EnemyHqTracker.anyKnownAndPending(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(Cache.MY_LOCATION, 9))) {
+                // we are currently next to enemy hq - let's just try to leave
+                RobotInfo enemyHq = Util.getClosestEnemyRobot(r -> r.type == RobotType.HEADQUARTERS);
+                if (enemyHq != null) {
+                    Util.tryKiteFrom(enemyHq.location);
+                    return;
+                }
+            }
             Pathfinding.predicate = loc -> {
                 return !EnemyHqTracker.anyKnownAndPending(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(loc, 9));
             };

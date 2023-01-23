@@ -234,7 +234,7 @@ public class Headquarters implements RunnableBot {
             }
             // save to build anchor
         } else {
-            if (Cache.ENEMY_ROBOTS.length > 0) {
+            if (Cache.ENEMY_ROBOTS.length > 0 || EnemyHqGuesser.getMaximumPossibleEnemyHqDistanceSquaredAsHeadquarters() <= 225) { // 15 * 15 = 225
                 if (tryBuildLauncher()) {
                     return;
                 }
@@ -320,8 +320,9 @@ public class Headquarters implements RunnableBot {
         }
         MapLocation macroLocation = getMacroAttackLocation();
         Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, macroLocation, 255, 128, 0); // orange
+        RobotInfo closestEnemy = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
         return tryBuildByScore(RobotType.LAUNCHER, location -> {
-            return location.distanceSquaredTo(macroLocation);
+            return closestEnemy == null ? location.distanceSquaredTo(macroLocation) : -location.distanceSquaredTo(closestEnemy.location);
         });
     }
 
