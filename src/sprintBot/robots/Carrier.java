@@ -256,9 +256,15 @@ public class Carrier implements RunnableBot {
         ResourceType targetResource = Communication.CarrierTask.getMineResourceType(currentTask);
 //        WellInfo well = targetResource == null ? getClosestWell() : getClosestWell(targetResource);
         // go to commed well
-        MapLocation commedWell = targetResource == null ?
-                WellTracker.getClosestKnownWell(location -> !blacklist.contains(location)) :
-                WellTracker.getClosestKnownWell(targetResource, location -> !blacklist.contains(location));
+        MapLocation commedWell;
+        if (targetResource == null) {
+            commedWell = WellTracker.getClosestKnownWell(location -> !blacklist.contains(location));
+        } else {
+            commedWell = WellTracker.getClosestKnownWell(targetResource, location -> !blacklist.contains(location));
+            if (commedWell == null) {
+                commedWell = WellTracker.getClosestKnownWell(location -> !blacklist.contains(location));
+            }
+        }
         if (commedWell != null) {
             Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, commedWell, 0, 128, 0); // dark green
             if (!Cache.MY_LOCATION.isAdjacentTo(commedWell)) {
