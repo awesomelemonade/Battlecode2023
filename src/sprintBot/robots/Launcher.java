@@ -6,11 +6,11 @@ import sprintBot.pathfinder.Pathfinding;
 import sprintBot.util.*;
 
 import java.util.function.ToDoubleBiFunction;
-import java.util.function.ToDoubleFunction;
 
 import static sprintBot.util.Constants.rc;
 
 public class Launcher implements RunnableBot {
+    private static MapLocation cachedClosestAllyAttackerLocation = null;
     @Override
     public void init() throws GameActionException {
         blacklist = new FastIntSet2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
@@ -92,6 +92,8 @@ public class Launcher implements RunnableBot {
 
     @Override
     public void move() {
+        RobotInfo closestAllyAttacker = Util.getClosestRobot(Cache.ALLY_ROBOTS, r -> Util.isAttacker(r.type));
+        cachedClosestAllyAttackerLocation = closestAllyAttacker == null ? null : closestAllyAttacker.location;
         Pathfinding.predicate = loc -> true;
         if (executeMicro()) {
             return;
@@ -265,8 +267,8 @@ public class Launcher implements RunnableBot {
         }
 
         // Prefer closer to closest attacker ally
-        if (Cache.ALLY_ROBOTS.length <= 5) {
-            score -= getClosestAllyAttackerDistanceSquared(afterCurrent, 35) * 20_000; // 35 * 20k < 1 mil
+        if (cachedClosestAllyAttackerLocation != null) {
+            score -= afterCurrent.distanceSquaredTo(cachedClosestAllyAttackerLocation) * 20_000.0; // 35 * 20k < 1 mil
         }
 
         // prefer straight moves
@@ -282,8 +284,23 @@ public class Launcher implements RunnableBot {
 
     public static double getScoreForKiting(MapLocation beforeCurrent, MapLocation afterCurrent) {
         double score = 0;
+
+        // compute enemy statistics
+        int closestEnemyAttackerDistanceSquared = Integer.MAX_VALUE;
+        int numEnemyAttackerRobotsWithin = 0;
+        for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
+            RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
+            if (Util.isAttacker(enemy.type)) {
+                int distanceSquared = afterCurrent.distanceSquaredTo(enemy.location);
+                closestEnemyAttackerDistanceSquared = Math.min(closestEnemyAttackerDistanceSquared, distanceSquared);
+                if (distanceSquared < Constants.ROBOT_TYPE.visionRadiusSquared) {
+                    numEnemyAttackerRobotsWithin++;
+                }
+            }
+        }
+
         // prefer squares where attackers can't see you
-        score -= numAttackerRobotsWithin(afterCurrent, Constants.ROBOT_TYPE.visionRadiusSquared) * 2_000_000.0;
+        score -= numEnemyAttackerRobotsWithin * 2_000_000.0;
 
         // prefer squares where you're not in enemy hq attack range
         // you get damaged BEFORE currents are applied
@@ -294,11 +311,11 @@ public class Launcher implements RunnableBot {
         }
 
         // prefer squares where you're further away from the closest enemy
-        score += getClosestEnemyAttackerDistanceSquared(afterCurrent) * 10_000.0; // 35 * 10 < 1_000_000
+        score += closestEnemyAttackerDistanceSquared * 10_000.0; // 35 * 10 < 1_000_000
 
         // prefer squares where you're closest to an ally
-        if (Cache.ALLY_ROBOTS.length <= 5) {
-            score -= getClosestAllyAttackerDistanceSquared(afterCurrent, 35) * 100.0;
+        if (cachedClosestAllyAttackerLocation != null) {
+            score -= afterCurrent.distanceSquaredTo(cachedClosestAllyAttackerLocation) * 100.0;
         }
 
         // prefer diagonals over straight directions
@@ -321,39 +338,6 @@ public class Launcher implements RunnableBot {
             }
         }
         return robot;
-    }
-
-    public static int numAttackerRobotsWithin(MapLocation location, int distanceSquared) {
-        int count = 0;
-        for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
-            RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
-            if (Util.isAttacker(enemy.type) && location.isWithinDistanceSquared(enemy.getLocation(), distanceSquared)) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    public static int getClosestAllyAttackerDistanceSquared(MapLocation location, int maxDistanceSquared) {
-        int bestDistanceSquared = maxDistanceSquared;
-        for (int i = Cache.ALLY_ROBOTS.length; --i >= 0; ) {
-            RobotInfo enemy = Cache.ALLY_ROBOTS[i];
-            if (Util.isAttacker(enemy.type)) {
-                bestDistanceSquared = Math.min(bestDistanceSquared, location.distanceSquaredTo(enemy.location));
-            }
-        }
-        return bestDistanceSquared;
-    }
-
-    public static int getClosestEnemyAttackerDistanceSquared(MapLocation location) {
-        int bestDistanceSquared = Integer.MAX_VALUE;
-        for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
-            RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
-            if (Util.isAttacker(enemy.type)) {
-                bestDistanceSquared = Math.min(bestDistanceSquared, location.distanceSquaredTo(enemy.location));
-            }
-        }
-        return bestDistanceSquared;
     }
 
     private static FastIntSet2D blacklist;
