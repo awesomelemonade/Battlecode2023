@@ -5,7 +5,7 @@ import battlecode.common.*;
 public class Constants {
     // TODO: CHECK BEFORE SUBMITTING
     public static final boolean DEBUG_PROFILES = true;
-    public static final boolean DEBUG_RESIGN = true;
+    public static final boolean DEBUG_RESIGN = false;
     public static final boolean DEBUG_FAIL_FAST = true;
 
     public static Team ALLY_TEAM;

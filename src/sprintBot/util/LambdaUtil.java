@@ -176,4 +176,18 @@ public class LambdaUtil {
             return supplier.get();
         }
     }
+
+    public static <T> boolean arraysHasAtLeast(T[] array, Predicate<T> predicate, int count) {
+        if (count == 0) {
+            return true;
+        }
+        for (int i = array.length; --i >= 0; ) {
+            if (predicate.test(array[i])) {
+                if (--count <= 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
