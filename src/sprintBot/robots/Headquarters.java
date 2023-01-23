@@ -223,7 +223,8 @@ public class Headquarters implements RunnableBot {
                         return;
                     }
                     // maybe we're missing carriers to carry the anchors
-                    if (tryBuildCarrier()) {
+                    if (tryBuildCarrierRandomAdjacent()) {
+                        Flags.flag("%");
                         return;
                     }
                     // if we have a ton of ally launchers, let's just save mana for anchors and tiebreakers
@@ -286,6 +287,28 @@ public class Headquarters implements RunnableBot {
                 } catch (GameActionException ex) {
                     Debug.failFast(ex);
                 }
+            }
+        }
+        return false;
+    }
+
+    public static boolean tryBuildCarrierRandomAdjacent() {
+        if (rc.getResourceAmount(ResourceType.ADAMANTIUM) < RobotType.CARRIER.buildCostAdamantium) {
+            return false;
+        }
+        if (!hasSpaceForMiners) {
+            return false;
+        }
+        // TODO: can be cached once a turn
+        if (LambdaUtil.arraysAllMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.HEADQUARTERS)) {
+            if (LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> Util.isAttacker(r.type))) {
+                return false;
+            }
+        }
+        for (Direction direction : Constants.getAttemptOrder(Util.randomAdjacentDirection())) {
+            MapLocation location = Cache.MY_LOCATION.add(direction);
+            if (Util.tryBuild(RobotType.CARRIER, location)) {
+                return true;
             }
         }
         return false;
