@@ -6,13 +6,10 @@ import sprintBot.util.*;
 
 import java.util.function.Predicate;
 
-import sprintBot.fast.FastSort;
-
 import static sprintBot.util.Constants.rc;
 
 public class Pathfinding {
 	public static Predicate<MapLocation> predicate = location -> true;
-	private static int[] counters = new int[8];
 
 	public static int moveDistance(MapLocation a, MapLocation b) {
 		return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
@@ -60,50 +57,31 @@ public class Pathfinding {
 		visitedSet.add(currentLocation.x, currentLocation.y);
 		Direction idealDirection = currentLocation.directionTo(target);
 		Direction[] directions = Constants.getAttemptOrder(idealDirection);
+		Direction fallbackDirection = null;
+		int bestFallbackCount = Integer.MAX_VALUE;
 		for (Direction direction : directions) {
-			MapLocation location = currentLocation.add(direction);
-			if (!Util.onTheMap(location)) {
-				continue;
-			}
-			if (visitedSet.contains(location.x, location.y)) {
-				continue;
-			}
-			if (!location.equals(target) && !predicate.test(location)) {
-				continue;
-			}
 			if (Util.canMoveAndCheckCurrents(direction)) {
+				// has to be on the map
+				MapLocation location = currentLocation.add(direction);
+				if (!location.equals(target) && !predicate.test(location)) {
+					continue;
+				}
+				int fallbackCount = visitedSet.get(location.x, location.y);
+				if (fallbackCount < bestFallbackCount) {
+					bestFallbackCount = fallbackCount;
+					fallbackDirection = direction;
+				}
+				if (visitedSet.contains(location.x, location.y)) {
+					continue;
+				}
 				Util.move(direction);
 				return true;
 			}
 		}
 		// We stuck bois - let's look for the lowest non-negative
-		boolean hasNoMove = true;
-		for (int i = counters.length; --i >= 0;) {
-			Direction direction = directions[i];
-			if (Util.canMoveAndCheckCurrents(direction)) {
-				MapLocation location = currentLocation.add(direction);
-				counters[i] = visitedSet.get(location.x, location.y);
-				hasNoMove = false;
-			} else {
-				counters[i] = Integer.MAX_VALUE;
-			}
-		}
-		if (hasNoMove) {
-			return false;
-		}
-		int[] indices = FastSort.sort(counters);
-		for (int i = 0; i < indices.length; i++) {
-			Direction direction = directions[indices[i]];
-			MapLocation location = currentLocation.add(direction);
-			if (!Util.onTheMap(location)) {
-				continue;
-			}
-			if (!location.equals(target) && !predicate.test(location)) {
-				continue;
-			}
-			if (Util.tryMove(direction)) {
-				return true;
-			}
+		if (fallbackDirection != null) {
+			Util.move(fallbackDirection);
+			return true;
 		}
 		// we're stuck (perhaps surrounded by units?)
 		return false;

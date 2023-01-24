@@ -150,7 +150,7 @@ public class Launcher implements RunnableBot {
 
     public static boolean tryPathfindingTangent(MapLocation target) {
         double distance = 10;
-        double direction = Math.atan2(target.y - Cache.MY_LOCATION.y, target.x - Cache.MY_LOCATION.x);
+        double direction = Math.atan2(target.y - Cache.MY_LOCATION.y, target.x - Cache.MY_LOCATION.x) + Math.PI / 2;
         double cos = Math.cos(direction);
         double sin = Math.sin(direction);
         MapLocation tangentTarget = Cache.MY_LOCATION.translate((int) (cos * distance), (int) (sin * distance));
@@ -254,10 +254,8 @@ public class Launcher implements RunnableBot {
         double score = 0;
         // prefer non clouds if we're not in a cloud
         try {
-            if (!rc.senseMapInfo(Cache.MY_LOCATION).hasCloud()) {
-                if (!rc.senseMapInfo(afterCurrent).hasCloud()) {
-                    score += 20_000_000;
-                }
+            if (!rc.senseCloud(Cache.MY_LOCATION) && !rc.senseCloud(afterCurrent)) {
+                score += 20_000_000;
             }
         } catch (GameActionException ex) {
             Debug.failFast(ex);

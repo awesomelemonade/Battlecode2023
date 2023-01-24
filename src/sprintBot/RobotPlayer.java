@@ -49,10 +49,10 @@ public class RobotPlayer {
                                 controller.getRobotCount() <= Communication.headquartersLocations.length &&
                                 Cache.ALLY_ROBOTS.length == 0 &&
                                 Cache.ENEMY_ROBOTS.length > 2) {
-                            //controller.resign();
+                            controller.resign();
                         }
                         if (currentTurn > 150 && Cache.ALLY_ROBOTS.length == 0 && Cache.ENEMY_ROBOTS.length > controller.getRobotCount() + 5) {
-                            //controller.resign();
+                            controller.resign();
                         }
                     }
                     bot.loop();
@@ -80,10 +80,11 @@ public class RobotPlayer {
                 }
             } catch (Exception ex) {
                 Debug.println(Profile.ERROR_STATE, controller.getLocation() + " errored: " + Cache.TURN_COUNT);
+                Flags.flag("ERROR");
                 ex.printStackTrace();
                 errored = true;
                 if (Constants.DEBUG_RESIGN) {
-//                    controller.resign();
+                    controller.resign();
                 }
                 Clock.yield();
             }
