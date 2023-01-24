@@ -28,7 +28,7 @@ public class Util {
     }
 
     public static void postLoop() throws GameActionException {
-        Communication.postLoop();
+        Cache.postLoop();
         BFSVision.postLoop();
 
         // consider disintegrating in the late game
@@ -203,7 +203,6 @@ public class Util {
 
     // tries to move on the location OR any location adjacent to it
     public static void tryPathfindingMoveAdjacent(MapLocation location) {
-//        Pathfinding.execute(location);
         if (Cache.MY_LOCATION.isAdjacentTo(location)) {
             // try to move on the location
             if (!Cache.MY_LOCATION.equals(location)) {
@@ -213,8 +212,8 @@ public class Util {
             // try to move to the nearest adjacent spot
             int bestDistanceSquared = Integer.MAX_VALUE;
             MapLocation bestLocation = null;
-            for (Direction direction: Constants.ORDINAL_DIRECTIONS) {
-                MapLocation adjacentLocation = location.add(direction);
+            for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
+                MapLocation adjacentLocation = location.add(Constants.ORDINAL_DIRECTIONS[i]);
                 if (!rc.canSenseRobotAtLocation(adjacentLocation)) {
                     int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(adjacentLocation);
                     if (distanceSquared < bestDistanceSquared) {
@@ -223,7 +222,38 @@ public class Util {
                     }
                 }
             }
-            if (bestLocation != null) {
+            if (bestLocation == null) {
+                Pathfinding.executeResetIfNotAdjacent(location);
+            } else {
+                Pathfinding.executeResetIfNotAdjacent(bestLocation);
+            }
+        }
+    }
+
+    // tries to move on the location OR any location adjacent to it
+    public static void tryPathfindingMoveAdjacentCheckCurrents(MapLocation location) {
+        if (Cache.MY_LOCATION.isAdjacentTo(location)) {
+            // try to move on the location
+            if (!Cache.MY_LOCATION.equals(location)) {
+                Util.tryMove(Cache.MY_LOCATION.directionTo(location));
+            }
+        } else {
+            // try to move to the nearest adjacent spot
+            int bestDistanceSquared = Integer.MAX_VALUE;
+            MapLocation bestLocation = null;
+            for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
+                MapLocation adjacentLocation = location.add(Constants.ORDINAL_DIRECTIONS[i]);
+                if (rc.onTheMap(adjacentLocation) && CurrentsCache.hasNoKnownCurrent(adjacentLocation) && !rc.canSenseRobotAtLocation(adjacentLocation)) {
+                    int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(adjacentLocation);
+                    if (distanceSquared < bestDistanceSquared) {
+                        bestDistanceSquared = distanceSquared;
+                        bestLocation = adjacentLocation;
+                    }
+                }
+            }
+            if (bestLocation == null) {
+                Pathfinding.executeResetIfNotAdjacent(location);
+            } else {
                 Pathfinding.executeResetIfNotAdjacent(bestLocation);
             }
         }

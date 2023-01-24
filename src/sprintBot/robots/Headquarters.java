@@ -207,24 +207,41 @@ public class Headquarters implements RunnableBot {
     public void action() {
         int robotCount = rc.getRobotCount();
         int roundNum = rc.getRoundNum();
-        if (robotCount > 0.25 * Constants.MAP_WIDTH * Constants.MAP_HEIGHT
-                || robotCount > 100 && roundNum > 1800
-                || robotCount > 50 && roundNum > 1900
-                || roundNum > 1950) {
+        int MAP_AREA = Constants.MAP_WIDTH * Constants.MAP_HEIGHT;
+        // TODO: can be converted to linear function
+        if (robotCount > 0.25 * MAP_AREA
+                || robotCount > 0.2 * MAP_AREA && roundNum > 1600
+                || robotCount > 0.15 * MAP_AREA && roundNum > 1700
+                || robotCount > 0.1 * MAP_AREA && roundNum > 1800
+                || roundNum > 1900) {
             int adamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
             int mana = rc.getResourceAmount(ResourceType.MANA);
             if (adamantium >= Anchor.STANDARD.adamantiumCost
                     && mana >= Anchor.STANDARD.manaCost) { // simple random heuristic to build anchors
-                if (Math.random() < 0.8) {
+                if (Math.random() < 0.8 || roundNum > 1800) {
                     if (tryBuildAnchor(Anchor.STANDARD)) {
                         return;
+                    }
+                    // maybe we're missing carriers to carry the anchors
+                    if (tryBuildCarrierRandomAdjacent()) {
+                        Flags.flag("%");
+                        return;
+                    }
+                    // if we have a ton of ally launchers, let's just save mana for anchors and tiebreakers
+                    if (!LambdaUtil.arraysHasAtLeast(Cache.ALLY_ROBOTS, r -> Util.isAttacker(r.type), 10)) {
+                        if (tryBuildLauncher()) {
+                            return;
+                        }
                     }
                 } else {
                     if (tryBuildCarrier()) {
                         return;
                     }
-                    if (tryBuildLauncher()) {
-                        return;
+                    // if we have a ton of ally launchers, let's just save mana for anchors and tiebreakers
+                    if (!LambdaUtil.arraysHasAtLeast(Cache.ALLY_ROBOTS, r -> Util.isAttacker(r.type), 10)) {
+                        if (tryBuildLauncher()) {
+                            return;
+                        }
                     }
                     // what if there is nowhere to spawn units? let's just build anchors
                     if (tryBuildAnchor(Anchor.STANDARD)) {
@@ -234,7 +251,7 @@ public class Headquarters implements RunnableBot {
             }
             // save to build anchor
         } else {
-            if (Cache.ENEMY_ROBOTS.length > 0) {
+            if (Cache.ENEMY_ROBOTS.length > 0 || EnemyHqGuesser.getMaximumPossibleEnemyHqDistanceSquaredAsHeadquarters() <= 225) { // 15 * 15 = 225
                 if (tryBuildLauncher()) {
                     return;
                 }
@@ -249,6 +266,13 @@ public class Headquarters implements RunnableBot {
     }
 
     public static boolean tryBuildAnchor(Anchor anchorType) {
+        // TODO: can be cached
+        // don't build anchors with enemies nearby and no allies
+        if (LambdaUtil.arraysAllMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.HEADQUARTERS)) {
+            if (LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> Util.isAttacker(r.type))) {
+                return false;
+            }
+        }
         // don't build more than 2 anchors
         if (rc.getNumAnchors(null) >= 2) {
             return false;
@@ -268,6 +292,28 @@ public class Headquarters implements RunnableBot {
         return false;
     }
 
+    public static boolean tryBuildCarrierRandomAdjacent() {
+        if (rc.getResourceAmount(ResourceType.ADAMANTIUM) < RobotType.CARRIER.buildCostAdamantium) {
+            return false;
+        }
+        if (!hasSpaceForMiners) {
+            return false;
+        }
+        // TODO: can be cached once a turn
+        if (LambdaUtil.arraysAllMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.HEADQUARTERS)) {
+            if (LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> Util.isAttacker(r.type))) {
+                return false;
+            }
+        }
+        for (Direction direction : Constants.getAttemptOrder(Util.randomAdjacentDirection())) {
+            MapLocation location = Cache.MY_LOCATION.add(direction);
+            if (Util.tryBuild(RobotType.CARRIER, location)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static boolean tryBuildCarrier() {
         if (rc.getResourceAmount(ResourceType.ADAMANTIUM) < RobotType.CARRIER.buildCostAdamantium) {
             return false;
@@ -275,6 +321,7 @@ public class Headquarters implements RunnableBot {
         if (!hasSpaceForMiners) {
             return false;
         }
+        // TODO: can be cached once a turn
         if (LambdaUtil.arraysAllMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.HEADQUARTERS)) {
             if (LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> Util.isAttacker(r.type))) {
                 return false;
@@ -311,6 +358,7 @@ public class Headquarters implements RunnableBot {
         if (rc.getResourceAmount(ResourceType.MANA) < RobotType.LAUNCHER.buildCostMana) {
             return false;
         }
+        // TODO: we can cache this once a turn
         if (LambdaUtil.arraysAllMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.HEADQUARTERS)) {
             // if 2 or more enemy attackers within radius 16 OR 5 or more enemy attackers within vision radius
             if (Util.numEnemyAttackersWithin(Cache.MY_LOCATION, 16) >= 2
@@ -318,10 +366,16 @@ public class Headquarters implements RunnableBot {
                 return false;
             }
         }
+        // TODO: we can cache his once a turn
+        // if we have an absurd number of launchers nearby,
+        if (LambdaUtil.arraysHasAtLeast(Cache.ALLY_ROBOTS, r -> r.type == RobotType.LAUNCHER, 25)) {
+            return false;
+        }
         MapLocation macroLocation = getMacroAttackLocation();
         Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, macroLocation, 255, 128, 0); // orange
+        RobotInfo closestEnemy = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
         return tryBuildByScore(RobotType.LAUNCHER, location -> {
-            return location.distanceSquaredTo(macroLocation);
+            return closestEnemy == null ? location.distanceSquaredTo(macroLocation) : -location.distanceSquaredTo(closestEnemy.location);
         });
     }
 

@@ -11,6 +11,8 @@ public class Communication {
     public static final int HEADQUARTERS_LOCATIONS_SET_BIT = 0;
     public static final int HEADQUARTERS_LOCATIONS_LOCATION_BIT = 1;
     public static final int HEADQUARTERS_LOCATIONS_LOCATION_MASK = 0b111111_111111; // 12 bits, 6 bit per coordinate
+    // TODO: 3 bits for enemy attacker angle
+    // TODO: 1 bit for enemy attacker distance (<= 20, > 20)
     private static int headquartersSharedIndex = -1;
     public static MapLocation[] headquartersLocations;
 
@@ -282,10 +284,6 @@ public class Communication {
         EnemyHqGuesser.update();
         WellTracker.update();
 //        Checkpoints.update();
-    }
-
-    public static void postLoop() {
-
     }
 
     public static int pack(MapLocation location) {

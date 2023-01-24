@@ -13,6 +13,8 @@ public class Cache { // Cache variables that are constant throughout a turn
     public static WellInfo[] ELIXIR_WELLS;
     public static MapLocation NEAREST_ALLY_HQ;
 
+    public static RobotInfo prevClosestEnemyAttacker = null;
+
     public static void init() {
         TURN_COUNT = 0;
         invalidate();
@@ -25,19 +27,24 @@ public class Cache { // Cache variables that are constant throughout a turn
         TURN_COUNT++;
     }
 
+    public static void postLoop() {
+        prevClosestEnemyAttacker = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
+    }
+
     public static void invalidate() {
         try {
             ALLY_ROBOTS = rc.senseNearbyRobots(-1, Constants.ALLY_TEAM);
             ENEMY_ROBOTS = rc.senseNearbyRobots(-1, Constants.ENEMY_TEAM);
-            ADAMANTIUM_WELLS =  rc.senseNearbyWells(ResourceType.ADAMANTIUM);
-            MANA_WELLS =  rc.senseNearbyWells(ResourceType.MANA);
-            ELIXIR_WELLS =  rc.senseNearbyWells(ResourceType.ELIXIR);
         } catch (GameActionException ex) {
             throw new IllegalStateException(ex);
         }
         MY_LOCATION = rc.getLocation();
         if (Constants.ROBOT_TYPE == RobotType.CARRIER) {
             NEAREST_ALLY_HQ = Util.getClosestAllyHeadquartersLocation();
+        } else {
+            ADAMANTIUM_WELLS =  rc.senseNearbyWells(ResourceType.ADAMANTIUM);
+            MANA_WELLS =  rc.senseNearbyWells(ResourceType.MANA);
+            ELIXIR_WELLS =  rc.senseNearbyWells(ResourceType.ELIXIR);
         }
     }
 }

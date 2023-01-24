@@ -256,9 +256,16 @@ public class Carrier implements RunnableBot {
         ResourceType targetResource = Communication.CarrierTask.getMineResourceType(currentTask);
 //        WellInfo well = targetResource == null ? getClosestWell() : getClosestWell(targetResource);
         // go to commed well
-        MapLocation commedWell = targetResource == null ?
-                WellTracker.getClosestKnownWell(location -> !blacklist.contains(location)) :
-                WellTracker.getClosestKnownWell(targetResource, location -> !blacklist.contains(location));
+        MapLocation commedWell;
+        if (targetResource == null) {
+            commedWell = WellTracker.getClosestKnownWell(location -> !blacklist.contains(location));
+        } else {
+            commedWell = WellTracker.getClosestKnownWell(targetResource, location -> !blacklist.contains(location));
+            if (commedWell == null && targetResource == ResourceType.ADAMANTIUM) {
+                commedWell = WellTracker.getClosestKnownWell(location -> !blacklist.contains(location));
+                Flags.flag("^");
+            }
+        }
         if (commedWell != null) {
             Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, commedWell, 0, 128, 0); // dark green
             if (!Cache.MY_LOCATION.isAdjacentTo(commedWell)) {
@@ -396,11 +403,11 @@ public class Carrier implements RunnableBot {
     public static boolean tryMoveToPickupAnchor() {
         if (getWeight() == 0 && currentTask != null
                 && currentTask.type == Communication.CarrierTaskType.PICKUP_ANCHOR) {
-            MapLocation location = currentTask.hqLocation;
-            if (Cache.MY_LOCATION.isAdjacentTo(location)) {
+            MapLocation hqLocation = currentTask.hqLocation;
+            if (Cache.MY_LOCATION.isAdjacentTo(hqLocation)) {
                 // check if there's actually an anchor there
                 try {
-                    RobotInfo hq = rc.senseRobotAtLocation(location);
+                    RobotInfo hq = rc.senseRobotAtLocation(hqLocation);
                     if (hq == null) {
                         Debug.failFast("Cannot find hq?");
                     } else {
@@ -414,7 +421,7 @@ public class Carrier implements RunnableBot {
                     Debug.failFast(ex);
                 }
             } else {
-                Util.tryPathfindingMoveAdjacent(location);
+                Util.tryPathfindingMoveAdjacent(hqLocation);
             }
             return true;
         }
@@ -622,55 +629,6 @@ public class Carrier implements RunnableBot {
             if (distanceSquared < bestDistanceSquared) {
                 bestDistanceSquared = distanceSquared;
                 bestWell = well;
-            }
-        }
-        return bestWell;
-    }
-
-    // TODO-someday: to be removed
-    public static WellInfo getWell() {
-        WellInfo[] wells = Cache.ADAMANTIUM_WELLS;
-        WellInfo bestWell = null;
-        int bestDistanceSquared = Integer.MAX_VALUE;
-        for (int i = wells.length; --i >= 0; ) {
-            WellInfo well = wells[i];
-            MapLocation wellLocation = well.getMapLocation();
-            if (!blacklist.contains(wellLocation)) {
-                int distanceSquared = wellLocation.distanceSquaredTo(Cache.MY_LOCATION);
-                if (distanceSquared < bestDistanceSquared) {
-                    bestDistanceSquared = distanceSquared;
-                    bestWell = well;
-                }
-            }
-        }
-        if (bestWell != null) {
-            return bestWell;
-        }
-        wells = Cache.MANA_WELLS;
-        for (int i = wells.length; --i >= 0; ) {
-            WellInfo well = wells[i];
-            MapLocation wellLocation = well.getMapLocation();
-            if (!blacklist.contains(wellLocation)) {
-                int distanceSquared = wellLocation.distanceSquaredTo(Cache.MY_LOCATION);
-                if (distanceSquared < bestDistanceSquared) {
-                    bestDistanceSquared = distanceSquared;
-                    bestWell = well;
-                }
-            }
-        }
-        if (bestWell != null) {
-            return bestWell;
-        }
-        wells = Cache.ELIXIR_WELLS;
-        for (int i = wells.length; --i >= 0; ) {
-            WellInfo well = wells[i];
-            MapLocation wellLocation = well.getMapLocation();
-            if (!blacklist.contains(wellLocation)) {
-                int distanceSquared = wellLocation.distanceSquaredTo(Cache.MY_LOCATION);
-                if (distanceSquared < bestDistanceSquared) {
-                    bestDistanceSquared = distanceSquared;
-                    bestWell = well;
-                }
             }
         }
         return bestWell;
