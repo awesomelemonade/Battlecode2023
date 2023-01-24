@@ -80,6 +80,7 @@ public class RobotPlayer {
                 }
             } catch (Exception ex) {
                 Debug.println(Profile.ERROR_STATE, controller.getLocation() + " errored: " + Cache.TURN_COUNT);
+                Flags.flag("ERROR");
                 ex.printStackTrace();
                 errored = true;
                 if (Constants.DEBUG_RESIGN) {
