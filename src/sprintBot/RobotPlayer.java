@@ -75,12 +75,12 @@ public class RobotPlayer {
                     }
                     if (overBytecodes) {
                         Debug.setIndicatorDot(Profile.ERROR_STATE, controller.getLocation(), 128, 0, 255); // purple
-                        markProfiler(20);
+//                        markProfiler(20);
                     }
                     Clock.yield();
-                    if (overBytecodes) {
-                        controller.resign();
-                    }
+//                    if (overBytecodes) {
+//                        controller.resign();
+//                    }
                 }
             } catch (Exception ex) {
                 Debug.println(Profile.ERROR_STATE, controller.getLocation() + " errored: " + Cache.TURN_COUNT);
