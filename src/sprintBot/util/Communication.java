@@ -283,7 +283,7 @@ public class Communication {
         // Update enemy hqs from comms
         EnemyHqGuesser.update();
         WellTracker.update();
-        Checkpoints.update();
+        //Checkpoints.update();
         //BFSCheckpoints.debug_render();
     }
 
