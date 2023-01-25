@@ -8,7 +8,6 @@ import static sprintBot.util.Constants.rc;
 
 public class Communication {
     public static final int ALLY_HEADQUARTERS_LOCATIONS_OFFSET = 0; // 4 integers
-    public static final int ENEMY_HEADQUARTERS_LOCATIONS_OFFSET = 4; // 4 integers
     public static final int HEADQUARTERS_LOCATIONS_SET_BIT = 0;
     public static final int HEADQUARTERS_LOCATIONS_LOCATION_BIT = 1;
     public static final int HEADQUARTERS_LOCATIONS_LOCATION_MASK = 0b111111_111111; // 12 bits, 6 bit per coordinate
@@ -18,12 +17,14 @@ public class Communication {
     public static MapLocation[] headquartersLocations;
 
     // 3 resource types * 4 headquarters * 12 bits per well = 144 bits total = theoretically 9 integers
-    public static final int WELL_LOCATIONS_OFFSET = 8; // 144 12 integers
+    public static final int WELL_LOCATIONS_OFFSET = 4; // 144 12 integers
     public static final int WELL_LOCATIONS_SET_BIT = 0;
     public static final int WELL_LOCATIONS_LOCATION_BIT = 1;
     public static final int WELL_LOCATIONS_LOCATION_MASK = 0b111111_111111; // 12 bits, 6 bit per coordinate
 
-    public static final int ENEMY_HQ_GUESSER_OFFSET = 20;
+    public static final int ENEMY_HQ_INVALIDATIONS_OFFSET = 16;
+    public static final int ENEMY_HQ_CONFIRMED_OFFSET = 17;
+    // UNUSED: 18, 19, 20
 
     public static final int CARRIER_TASK_OFFSET = 21; // 16 integers
     public static final int CARRIER_TASK_POSITION_BIT_OFFSET = 0;
@@ -261,7 +262,6 @@ public class Communication {
                     if (value != 0) {
                         if (!initialized) {
                             headquartersLocations = new MapLocation[i + 1];
-                            EnemyHqTracker.init(i + 1);
                             initialized = true;
                         }
                     }
@@ -281,11 +281,10 @@ public class Communication {
             // TODO: broadcast whether the headquarters is safe (for carriers to deposit resources)
         }
         // Update enemy hqs from comms
-        EnemyHqTracker.update();
         EnemyHqGuesser.update();
         WellTracker.update();
         Checkpoints.update();
-        BFSCheckpoints.debug_render();
+        //BFSCheckpoints.debug_render();
     }
 
     public static int pack(MapLocation location) {

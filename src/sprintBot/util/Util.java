@@ -209,7 +209,7 @@ public class Util {
             MapLocation bestLocation = null;
             for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
                 MapLocation adjacentLocation = location.add(Constants.ORDINAL_DIRECTIONS[i]);
-                if (!rc.canSenseRobotAtLocation(adjacentLocation) && PassabilityCache.isPassableOrTrue(adjacentLocation)) {
+                if (rc.onTheMap(adjacentLocation) && !rc.canSenseRobotAtLocation(adjacentLocation) && PassabilityCache.isPassableOrTrue(adjacentLocation)) {
                     int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(adjacentLocation);
                     if (distanceSquared < bestDistanceSquared) {
                         bestDistanceSquared = distanceSquared;

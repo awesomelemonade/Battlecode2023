@@ -15,7 +15,13 @@ public class EnemyHqGuesser {
     private static boolean initialized = false;
     private static MapLocation[] predictions;
     private static int invalidations; // commed invalidations - bit field
-    private static int invalidationsPending; // bit field
+    private static int lastInvalidationsRead;
+
+    public static MapLocation[] enemyHeadquartersLocations; // may include null (for unknown enemy headquarters)
+    public static int numKnownEnemyHeadquarterLocations = 0;
+
+    private static int confirmed; // commed confirmed - bit field
+    private static int lastConfirmedRead;
 
     public static void generateHQGuessList() {
         if (initialized) {
@@ -26,15 +32,16 @@ public class EnemyHqGuesser {
             return;
         }
         int numHqLocations = hqLocations.length;
+        enemyHeadquartersLocations = new MapLocation[numHqLocations];
         predictions = new MapLocation[NUM_POSSIBLE_SYMMETRIES * numHqLocations];
 
         for (int i = hqLocations.length; --i >= 0; ) {
-            guessEnemyArchonLocations(hqLocations[i], i);
+            guessEnemyHeadquartersLocations(hqLocations[i], i);
         }
         initialized = true;
     }
 
-    public static void guessEnemyArchonLocations(MapLocation location, int hqIndex) {
+    public static void guessEnemyHeadquartersLocations(MapLocation location, int hqIndex) {
         int x = location.x;
         int y = location.y;
         int symX = Constants.MAP_WIDTH - x - 1;
@@ -44,33 +51,41 @@ public class EnemyHqGuesser {
         predictions[hqIndex * NUM_POSSIBLE_SYMMETRIES + 2] = new MapLocation(symX, symY);
     }
 
-    public static void invalidatePending(int index) {
-        invalidationsPending = invalidationsPending | (1 << index);
+    public static void markKnownEnemyHQ(int index) {
+        if ((confirmed & (1 << index)) == 0) {
+            enemyHeadquartersLocations[numKnownEnemyHeadquarterLocations++] = predictions[index];
+        }
+        confirmed |= 1 << index;
     }
 
-    public static boolean invalidated(int index) {
-        return ((invalidations | invalidationsPending) & (1 << index)) != 0;
+    public static boolean isConfirmedPrediction(int index) {
+        return (confirmed & (1 << index)) != 0;
+    }
+
+    public static void invalidatePending(int index) {
+        invalidations |= 1 << index;
+    }
+
+    public static boolean isInvalidatedPrediction(int index) {
+        return (invalidations & (1 << index)) != 0;
     }
 
     // symmetry = 0, 1, 2; representing index % 3
     public static boolean isSymmetryPossible(int symmetry) {
-        for (int i = symmetry; i < predictions.length; i += NUM_POSSIBLE_SYMMETRIES) {
-            if (invalidated(i)) {
-                return false;
+        for (int i = predictions.length; --i >= 0; ) {
+            if (i % NUM_POSSIBLE_SYMMETRIES == symmetry) {
+                // must not be invalidated
+                if (isInvalidatedPrediction(i)) {
+                    return false;
+                }
+            } else {
+                // must not be confirmed
+                if (isConfirmedPrediction(i)) {
+                    return false;
+                }
             }
         }
-        // look at all known enemy hq, see if all the known and pending enemy HQ locations exists in symmetry
-        return EnemyHqTracker.allKnownAndPending(location -> existsInSymmetry(location, symmetry));
-    }
-
-    public static boolean existsInSymmetry(MapLocation location, int symmetry) {
-        for (int i = symmetry; i < predictions.length; i += NUM_POSSIBLE_SYMMETRIES) {
-            MapLocation prediction = predictions[i];
-            if (location.equals(prediction)) {
-                return true;
-            }
-        }
-        return false;
+        return true;
     }
 
     public static void update() {
@@ -84,22 +99,38 @@ public class EnemyHqGuesser {
         }
         // receive from communication
         try {
-            invalidations = rc.readSharedArray(Communication.ENEMY_HQ_GUESSER_OFFSET);
+            lastInvalidationsRead = rc.readSharedArray(Communication.ENEMY_HQ_INVALIDATIONS_OFFSET);
+            invalidations |= lastInvalidationsRead;
+            lastConfirmedRead = rc.readSharedArray(Communication.ENEMY_HQ_CONFIRMED_OFFSET);
+            int confirmedDifferences = confirmed;
+            confirmed |= lastConfirmedRead;
+            confirmedDifferences ^= confirmed; // XOR to find differences
+            if (confirmedDifferences != 0) {
+                // we have new HQs
+                for (int i = predictions.length; --i >= 0; ) {
+                    if ((confirmedDifferences & (1 << i)) != 0) {
+                        // predictions[i] is now confirmed
+                        enemyHeadquartersLocations[numKnownEnemyHeadquarterLocations++] = predictions[i];
+                    }
+                }
+            }
         } catch (GameActionException ex) {
             Debug.failFast(ex);
         }
 
         // traverse and remove any that are visible and not there
         for (int i = predictions.length; --i >= 0; ) {
-            if (invalidated(i)) {
+            if (isInvalidatedPrediction(i)) {
                 continue;
             }
             MapLocation prediction = predictions[i];
             if (rc.canSenseLocation(prediction)) {
                 try {
                     RobotInfo robot = rc.senseRobotAtLocation(prediction);
-                    boolean hasEnemyHeadquarters = robot != null && robot.type == RobotType.HEADQUARTERS && robot.team == Constants.ENEMY_TEAM;
-                    if (!hasEnemyHeadquarters) {
+                    // can we sense an enemy headquarter?
+                    if (robot != null && robot.type == RobotType.HEADQUARTERS && robot.team == Constants.ENEMY_TEAM) {
+                        markKnownEnemyHQ(i);
+                    } else {
                         invalidatePending(i);
                     }
                 } catch (GameActionException ex) {
@@ -125,17 +156,23 @@ public class EnemyHqGuesser {
             // check if only one symmetry is possible
             if (numPossibleSymmetries == 1) {
                 for (int j = possibleSymmetry; j < predictions.length; j += NUM_POSSIBLE_SYMMETRIES) {
-                    EnemyHqTracker.markKnownEnemyHQ(predictions[j]);
+                    markKnownEnemyHQ(j);
                 }
             }
         }
 
         // write to communication
         if (rc.canWriteSharedArray(0, 0)) {
-            int write = invalidations | invalidationsPending;
-            if (invalidations != write) {
+            if (invalidations != lastInvalidationsRead) {
                 try {
-                    rc.writeSharedArray(Communication.ENEMY_HQ_GUESSER_OFFSET, invalidations | invalidationsPending);
+                    rc.writeSharedArray(Communication.ENEMY_HQ_INVALIDATIONS_OFFSET, invalidations);
+                } catch (GameActionException ex) {
+                    Debug.failFast(ex);
+                }
+            }
+            if (confirmed != lastConfirmedRead) {
+                try {
+                    rc.writeSharedArray(Communication.ENEMY_HQ_CONFIRMED_OFFSET, confirmed);
                 } catch (GameActionException ex) {
                     Debug.failFast(ex);
                 }
@@ -143,14 +180,14 @@ public class EnemyHqGuesser {
         }
     }
 
-    public static MapLocation getClosest(Predicate<MapLocation> predicate) {
+    public static MapLocation getClosestPrediction(Predicate<MapLocation> predicate) {
         if (!initialized) {
             return null;
         }
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MAX_VALUE;
         for (int i = predictions.length; --i >= 0; ) {
-            if (!invalidated(i)) {
+            if (!isInvalidatedPrediction(i)) {
                 MapLocation location = predictions[i];
                 if (predicate.test(location)) {
                     int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
@@ -164,7 +201,7 @@ public class EnemyHqGuesser {
         return bestLocation;
     }
 
-    public static MapLocation getClosestPreferRotationalSymmetry(Predicate<MapLocation> predicate) {
+    public static MapLocation getClosestPredictionPreferRotationalSymmetry(Predicate<MapLocation> predicate) {
         if (!initialized) {
             return null;
         }
@@ -172,7 +209,7 @@ public class EnemyHqGuesser {
         MapLocation bestLocation = null;
         double bestScore = Double.MAX_VALUE;
         for (int i = predictions.length; --i >= 0; ) {
-            if (!invalidated(i)) {
+            if (!isInvalidatedPrediction(i)) {
                 MapLocation location = predictions[i];
                 if (predicate.test(location)) {
                     double score = Math.sqrt(Cache.MY_LOCATION.distanceSquaredTo(location)); // regular distance
@@ -190,6 +227,7 @@ public class EnemyHqGuesser {
         return bestLocation;
 //        return getClosest(predicate);
     }
+
 
     public static int getMaximumPossibleEnemyHqDistanceSquaredAsHeadquarters() {
         if (predictions == null) {
@@ -209,7 +247,7 @@ public class EnemyHqGuesser {
         int distanceSquaredB = Integer.MAX_VALUE;
         int distanceSquaredC = Integer.MAX_VALUE;
         for (int i = predictions.length; --i >= 0; ) {
-            if (!invalidated(i)) {
+            if (!isInvalidatedPrediction(i)) {
                 int distanceSquared = predictions[i].distanceSquaredTo(Cache.MY_LOCATION);
                 switch (i % 3) {
                     case 0:
@@ -236,21 +274,54 @@ public class EnemyHqGuesser {
         return Math.max(distanceSquaredA, Math.max(distanceSquaredB, distanceSquaredC));
     }
 
-    public static void forEach(Consumer<MapLocation> consumer) {
+    public static void forEachNonInvalidatedPrediction(Consumer<MapLocation> consumer) {
         if (initialized) {
             for (int i = predictions.length; --i >= 0; ) {
-                if ((invalidations & (1 << i)) == 0 && (invalidationsPending & (1 << i)) == 0) {
+                if (!isInvalidatedPrediction(i)) {
                     consumer.accept(predictions[i]);
                 }
             }
         }
     }
 
-    public static void forEachPendingInvalidations(Consumer<MapLocation> consumer) {
-        for (int i = predictions.length; --i >= 0; ) {
-            if ((invalidations & (1 << i)) == 0 && (invalidationsPending & (1 << i)) != 0) {
-                consumer.accept(predictions[i]);
+    public static MapLocation getClosestConfirmed() {
+        return getClosestConfirmed(location -> true);
+    }
+
+    public static MapLocation getClosestConfirmed(Predicate<MapLocation> predicate) {
+        int bestDistanceSquared = Integer.MAX_VALUE;
+        MapLocation bestLocation = null;
+        if (initialized) {
+            for (int i = numKnownEnemyHeadquarterLocations; --i >= 0; ) {
+                MapLocation location = enemyHeadquartersLocations[i];
+                if (predicate.test(location)) {
+                    int distanceSquared = location.distanceSquaredTo(Cache.MY_LOCATION);
+                    if (distanceSquared < bestDistanceSquared) {
+                        bestDistanceSquared = distanceSquared;
+                        bestLocation = location;
+                    }
+                }
             }
         }
+        return bestLocation;
+    }
+
+    public static void forEachConfirmed(Consumer<MapLocation> consumer) {
+        if (initialized) {
+            for (int i = numKnownEnemyHeadquarterLocations; --i >= 0; ) {
+                consumer.accept(enemyHeadquartersLocations[i]);
+            }
+        }
+    }
+
+    public static boolean anyConfirmed(Predicate<MapLocation> predicate) {
+        if (initialized) {
+            for (int i = numKnownEnemyHeadquarterLocations; --i >= 0; ) {
+                if (predicate.test(enemyHeadquartersLocations[i])) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

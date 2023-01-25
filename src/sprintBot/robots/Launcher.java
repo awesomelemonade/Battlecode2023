@@ -18,10 +18,8 @@ public class Launcher implements RunnableBot {
 
     private static void debug_render() {
         if (Profile.ATTACKING.enabled()) {
-            EnemyHqGuesser.forEach(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 0)); // black
-            EnemyHqGuesser.forEachPendingInvalidations(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 128, 128, 128)); // gray
-            EnemyHqTracker.forEachPending(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 255, 255)); // cyan
-            EnemyHqTracker.forEachKnown(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 255)); // blue
+            EnemyHqGuesser.forEachNonInvalidatedPrediction(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 0)); // black
+            EnemyHqGuesser.forEachConfirmed(location -> Debug.setIndicatorDot(Profile.ATTACKING, location, 0, 0, 255)); // blue
         }
     }
 
@@ -128,7 +126,7 @@ public class Launcher implements RunnableBot {
                 Debug.setIndicatorString(Profile.ATTACKING, "Num: " + numAllyAttackers);
             }
             // do not go to squares within 9 distance of hq
-            if (EnemyHqTracker.anyKnownAndPending(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(Cache.MY_LOCATION, 9))) {
+            if (EnemyHqGuesser.anyConfirmed(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(Cache.MY_LOCATION, 9))) {
                 // we are currently next to enemy hq - let's just try to leave
                 RobotInfo enemyHq = Util.getClosestEnemyRobot(r -> r.type == RobotType.HEADQUARTERS);
                 if (enemyHq != null) {
@@ -137,7 +135,7 @@ public class Launcher implements RunnableBot {
                 }
             }
             Pathfinding.predicate = loc -> {
-                return !EnemyHqTracker.anyKnownAndPending(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(loc, 9));
+                return !EnemyHqGuesser.anyConfirmed(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(loc, 9));
             };
             if (Cache.MY_LOCATION.isWithinDistanceSquared(location, 16)) {
                 // try to circle around it
@@ -267,7 +265,7 @@ public class Launcher implements RunnableBot {
         }
 
         // prefer squares where you're not in enemy hq attack range
-        if (EnemyHqTracker.anyKnownAndPending(enemyHqLocation -> {
+        if (EnemyHqGuesser.anyConfirmed(enemyHqLocation -> {
             return beforeCurrent.isWithinDistanceSquared(enemyHqLocation, RobotType.HEADQUARTERS.actionRadiusSquared);
         })) {
             score -= 5_000_000;
@@ -316,7 +314,7 @@ public class Launcher implements RunnableBot {
 
         // prefer squares where you're not in enemy hq attack range
         // you get damaged BEFORE currents are applied
-        if (EnemyHqTracker.anyKnownAndPending(enemyHqLocation -> {
+        if (EnemyHqGuesser.anyConfirmed(enemyHqLocation -> {
             return beforeCurrent.isWithinDistanceSquared(enemyHqLocation, RobotType.HEADQUARTERS.actionRadiusSquared);
         })) {
             score -= 1_000_000;
@@ -359,16 +357,16 @@ public class Launcher implements RunnableBot {
                 !blacklist.contains(robot.location.x, robot.location.y));
         MapLocation ret = closestVisibleEnemyHQ == null ? null : closestVisibleEnemyHQ.location;
         if (ret == null) {
-            ret = EnemyHqTracker.getClosest(location -> !blacklist.contains(location.x, location.y));
+            ret = EnemyHqGuesser.getClosestConfirmed(location -> !blacklist.contains(location.x, location.y));
         }
         if (ret == null) {
             MapLocation lastHqLocation = WellTracker.lastHqLocation();
             if (lastHqLocation != null) {
-                ret = EnemyHqGuesser.getClosestPreferRotationalSymmetry(location -> !blacklist.contains(location.x, location.y));
+                ret = EnemyHqGuesser.getClosestPredictionPreferRotationalSymmetry(location -> !blacklist.contains(location.x, location.y));
             }
         }
         if (ret == null) {
-            ret = EnemyHqGuesser.getClosest(location -> !blacklist.contains(location.x, location.y));
+            ret = EnemyHqGuesser.getClosestPrediction(location -> !blacklist.contains(location.x, location.y));
         }
         if (ret == null) {
             blacklist.reset();

@@ -5,7 +5,6 @@ import battlecode.common.MapLocation;
 import sprintBot.util.Cache;
 import sprintBot.util.Debug;
 import sprintBot.util.EnemyHqGuesser;
-import sprintBot.util.EnemyHqTracker;
 
 public class BFSCheckpoints {
     private static final int SIZE = Checkpoints.SIZE;
@@ -53,7 +52,7 @@ public class BFSCheckpoints {
         }
         lastInvalidateTurn = Cache.TURN_COUNT;
         debug_reset();
-        EnemyHqTracker.forEachKnownAndPending(location -> {
+        EnemyHqGuesser.forEachConfirmed(location -> {
             ChunkCoord chunk = Checkpoints.getNearestChunkCoord(location);
             if (!visited[chunk.chunkX][chunk.chunkY]) {
                 queue.add(chunk);
@@ -62,7 +61,7 @@ public class BFSCheckpoints {
         });
         if (queue.isEmpty()) {
             // No known Enemy HQs, let's use guesser
-            EnemyHqGuesser.forEach(location -> {
+            EnemyHqGuesser.forEachNonInvalidatedPrediction(location -> {
                 ChunkCoord chunk = Checkpoints.getNearestChunkCoord(location);
                 if (!visited[chunk.chunkX][chunk.chunkY]) {
                     queue.add(chunk);

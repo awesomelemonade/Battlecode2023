@@ -42,15 +42,6 @@ public class Headquarters implements RunnableBot {
         hasSpaceForMiners = hasSpaceForMinersToDeposit();
     }
 
-    public static MapLocation getNearestEnemyHQLocation() {
-        // use known, then fall back to predicted
-        MapLocation ret = EnemyHqTracker.getClosest();
-        if (ret == null) {
-            ret = EnemyHqGuesser.getClosest(l -> true);
-        }
-        return ret;
-    }
-
     public static Communication.CarrierTaskType getNewTask() {
         int numAnchors = rc.getNumAnchors(null);
         if (numAnchors > 0) {
@@ -124,13 +115,11 @@ public class Headquarters implements RunnableBot {
         lastElixir = rc.getResourceAmount(ResourceType.ELIXIR);
     }
 
-    private static MapLocation closestEnemyHq = null;
     private static double currentAdamantium = 0.0;
     private static double currentMana = 0.0;
     private static double adamantiumPerMiner = 0.0;
     private static double manaPerMiner = 0.0;
     public static void assignTasks() throws GameActionException {
-        closestEnemyHq = getNearestEnemyHQLocation();
         currentAdamantium = adamantiumIncome.average();
         currentMana = manaIncome.average();
         if (adamantiumMinerTracker.sum() == 0) {
@@ -338,10 +327,10 @@ public class Headquarters implements RunnableBot {
     }
 
     public static MapLocation getMacroAttackLocation() {
-        MapLocation ret = EnemyHqTracker.getClosest();
+        MapLocation ret = EnemyHqGuesser.getClosestConfirmed();
         if (ret == null) {
             // we should use furthest to be more stable?
-            ret = EnemyHqGuesser.getClosestPreferRotationalSymmetry(l -> true);
+            ret = EnemyHqGuesser.getClosestPredictionPreferRotationalSymmetry(l -> true);
         }
         if (ret == null) {
             // just go towards mid
