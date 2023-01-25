@@ -14,7 +14,7 @@ public class EnemyHqGuesser {
     private static final int NUM_POSSIBLE_SYMMETRIES = 3;
     private static boolean initialized = false;
     private static MapLocation[] predictions;
-    private static int invalidations; // commed invalidations - bit field
+    public static int invalidations; // commed invalidations - bit field
     private static int lastInvalidationsRead;
 
     public static MapLocation[] enemyHeadquartersLocations; // may include null (for unknown enemy headquarters)

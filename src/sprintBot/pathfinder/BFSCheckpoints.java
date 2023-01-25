@@ -71,9 +71,26 @@ public class BFSCheckpoints {
         }
     }
 
+    private static int prevKnownEnemyHeadquarters;
+    private static int prevInvalidations;
+
     public static void postLoop() {
-        if (Cache.TURN_COUNT == -1) { // TODO: when enemy hqs changed OR when we run into an impassable wall
-            invalidate();
+        // see if numKnownEnemyHeadquarters or invalidations have changed
+        if (prevKnownEnemyHeadquarters == 0) {
+            // check if invalidations or known enemy hqs have changed
+            if (prevKnownEnemyHeadquarters != EnemyHqGuesser.numKnownEnemyHeadquarterLocations) {
+                invalidate();
+                prevKnownEnemyHeadquarters = EnemyHqGuesser.numKnownEnemyHeadquarterLocations;
+            } else if (prevInvalidations != EnemyHqGuesser.invalidations) {
+                invalidate();
+                prevInvalidations = EnemyHqGuesser.invalidations;
+            }
+        } else {
+            // invalidations are now irrelevant
+            if (prevKnownEnemyHeadquarters != EnemyHqGuesser.numKnownEnemyHeadquarterLocations) {
+                invalidate();
+                prevKnownEnemyHeadquarters = EnemyHqGuesser.numKnownEnemyHeadquarterLocations;
+            }
         }
         bfs();
     }
