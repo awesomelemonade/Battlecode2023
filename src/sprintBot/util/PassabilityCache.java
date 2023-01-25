@@ -34,6 +34,10 @@ public class PassabilityCache {
         return isPassable(location) == PASSABLE;
     }
 
+    public static boolean isPassableOrTrue(MapLocation location) {
+        return isPassable(location) != UNPASSABLE;
+    }
+
     public static final char UNKNOWN = '\u0000';
     public static final char UNPASSABLE = '\u0001';
     public static final char PASSABLE = '\u0002';

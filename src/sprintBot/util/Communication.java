@@ -1,6 +1,7 @@
 package sprintBot.util;
 
 import battlecode.common.*;
+import sprintBot.pathfinder.BFSCheckpoints;
 import sprintBot.pathfinder.Checkpoints;
 
 import static sprintBot.util.Constants.rc;
@@ -283,7 +284,9 @@ public class Communication {
         EnemyHqTracker.update();
         EnemyHqGuesser.update();
         WellTracker.update();
-//        Checkpoints.update();
+        Checkpoints.update();
+        BFSCheckpoints.debug_bfs();
+        BFSCheckpoints.debug_render();
     }
 
     public static int pack(MapLocation location) {

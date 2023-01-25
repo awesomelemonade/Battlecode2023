@@ -2,7 +2,6 @@ package sprintBot.pathfinder;
 
 import battlecode.common.*;
 import sprintBot.fast.FastGrid;
-import sprintBot.fast.FastMapLocationGridWithDefault;
 import sprintBot.fast.FastMapLocationQueue;
 import sprintBot.util.*;
 
@@ -118,7 +117,7 @@ public class BFSVisionTemplate {
     }
 
     public static void debug_render() {
-//        renderAllBfs();
+        debug_renderAllBfs();
 //        PassabilityCache.debug_render();
 //        BFSVisionTemplate bfs = allBFS.get(Cache.MY_LOCATION);
 //        if (bfs != null) {
@@ -126,7 +125,7 @@ public class BFSVisionTemplate {
 //        }
     }
 
-    public static void renderAllBfs() {
+    public static void debug_renderAllBfs() {
         if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS && Profile.BFS.enabled()) {
             Debug.setIndicatorString(Profile.BFS, "sz: " + bfsQueue.size());
             for (int i = 0; i < Constants.MAP_WIDTH; i++) {

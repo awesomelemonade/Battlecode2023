@@ -56,13 +56,6 @@ public class Util {
         return random(Constants.ORDINAL_DIRECTIONS);
     }
 
-    @SuppressWarnings("unchecked")
-    public static <T> T[] trimArray(T[] array, int length) {
-        Object[] newArray = new Object[length];
-        System.arraycopy(array, 0, newArray, 0, length);
-        return (T[]) newArray;
-    }
-
     public static boolean isAttacker(RobotType type) {
         switch (type) {
             case LAUNCHER:
@@ -214,7 +207,7 @@ public class Util {
             MapLocation bestLocation = null;
             for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
                 MapLocation adjacentLocation = location.add(Constants.ORDINAL_DIRECTIONS[i]);
-                if (!rc.canSenseRobotAtLocation(adjacentLocation)) {
+                if (!rc.canSenseRobotAtLocation(adjacentLocation) && PassabilityCache.isPassableOrTrue(adjacentLocation)) {
                     int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(adjacentLocation);
                     if (distanceSquared < bestDistanceSquared) {
                         bestDistanceSquared = distanceSquared;
@@ -243,7 +236,7 @@ public class Util {
             MapLocation bestLocation = null;
             for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
                 MapLocation adjacentLocation = location.add(Constants.ORDINAL_DIRECTIONS[i]);
-                if (rc.onTheMap(adjacentLocation) && CurrentsCache.hasNoKnownCurrent(adjacentLocation) && !rc.canSenseRobotAtLocation(adjacentLocation)) {
+                if (rc.onTheMap(adjacentLocation) && CurrentsCache.hasNoKnownCurrent(adjacentLocation) && !rc.canSenseRobotAtLocation(adjacentLocation) && PassabilityCache.isPassableOrTrue(adjacentLocation)) {
                     int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(adjacentLocation);
                     if (distanceSquared < bestDistanceSquared) {
                         bestDistanceSquared = distanceSquared;

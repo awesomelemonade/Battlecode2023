@@ -15,6 +15,9 @@ public class Checkpoints {
     private static final int CHECKPOINTS_PER_CYCLE = (SIZE * SIZE + CYCLES_PER_FULL_REFRESH - 1) / CYCLES_PER_FULL_REFRESH; // number of checkpoints = 38
     private static final int COMM_INTS_PER_CYCLE = (CHECKPOINTS_PER_CYCLE + 1) / 2; // 2 checkpoints per comm int: 19 ints
     private static int[] checkpoints = new int[SIZE * SIZE + CYCLES_PER_FULL_REFRESH]; // + x to avoid out of bounds and bound checking. last elements are meaningless
+    // ^ can we somehow unpack the checkpoints only once (get neighbor chunks)
+//    private static ChunkCoord[][] neighborCheckpoints = new ChunkCoord[SIZE * SIZE + CYCLES_PER_FULL_REFRESH][];
+
     private static ChunkCoord[] pending = new ChunkCoord[20];
     private static int pendingSize = 0;
 
@@ -143,7 +146,9 @@ public class Checkpoints {
         }
     }
 
-    public static ChunkCoord[] pathableNeighborChunks(ChunkCoord chunk) {
+    public static ChunkCoord[] neighbors;
+    public static int neighborsLength;
+    public static void debug_pathableNeighborChunks(ChunkCoord chunk) {
         int checkpoint = checkpoints[chunk.chunkX * SIZE + chunk.chunkY];
 
         // TODO: assume checkpoints not explored are checkpoints that can get everywhere - i.e. 0b1111_1111?
@@ -162,7 +167,26 @@ public class Checkpoints {
                 buffer[length++] = chunk.add(direction);
             }
         }
-        return Util.trimArray(buffer, length);
+        neighbors = buffer;
+        neighborsLength = length;
+//        return buffer;
+//        return Util.trimArray(buffer, length);
+    }
+    public static void debug_backwardsNeighborChunks(ChunkCoord chunk) {
+        ChunkCoord[] buffer = new ChunkCoord[Constants.ORDINAL_DIRECTIONS.length];
+        int length = 0;
+        for (Direction direction : Constants.ORDINAL_DIRECTIONS) {
+            ChunkCoord neighbor = chunk.add(direction);
+            // TODO: optimize out the bound checking?
+            if (neighbor.chunkX >= 0 && neighbor.chunkY >= 0 && neighbor.chunkX < SIZE && neighbor.chunkY < SIZE) {
+                int checkpoint = checkpoints[neighbor.chunkX * SIZE + neighbor.chunkY];
+                if (checkpoint == 0 || (checkpoint & (1 << direction.opposite().ordinal())) != 0) {
+                    buffer[length++] = neighbor;
+                }
+            }
+        }
+        neighbors = buffer;
+        neighborsLength = length;
     }
 
     public static boolean chunkIsUnexplored(ChunkCoord chunk) {
@@ -180,29 +204,11 @@ public class Checkpoints {
     }
 
     public static ChunkCoord getNearestChunkCoord(MapLocation location) {
+        // TODO: not necessarily the nearest...
         return new ChunkCoord(location.x * SIZE / Constants.MAP_WIDTH, location.y * SIZE / Constants.MAP_HEIGHT);
     }
 
-    // TODO: when we are done, we can replace with MapLocation to save bytecodes
-    static class ChunkCoord {
-        int chunkX, chunkY;
-        public ChunkCoord(int chunkX, int chunkY) {
-            this.chunkX = chunkX;
-            this.chunkY = chunkY;
-        }
-        public ChunkCoord add(Direction direction) {
-            return new ChunkCoord(chunkX + direction.dx, chunkY + direction.dy);
-        }
-        public ChunkCoord translate(int dx, int dy) {
-            return new ChunkCoord(chunkX + dx, chunkY + dy);
-        }
-        @Override
-        public boolean equals(Object o) {
-            if (o instanceof ChunkCoord) {
-                ChunkCoord other = (ChunkCoord) o;
-                return chunkX == other.chunkX && chunkY == other.chunkY;
-            }
-            return false;
-        }
+    public static ChunkCoord toChunkCoord(MapLocation location) {
+        return new ChunkCoord(location.x * SIZE / Constants.MAP_WIDTH, location.y * SIZE / Constants.MAP_HEIGHT);
     }
 }

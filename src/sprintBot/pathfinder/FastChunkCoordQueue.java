@@ -1,32 +1,36 @@
-package sprintBot.fast;
+package sprintBot.pathfinder;
 
 import battlecode.common.MapLocation;
 
-public class FastMapLocationQueue {
-    private MapLocation[] queue;
+public class FastChunkCoordQueue {
+    private ChunkCoord[] queue;
     private int maxSize;
     private int index = 0;
     private int size = 0;
 
-    public FastMapLocationQueue(int maxSize) {
-        this.queue = new MapLocation[maxSize];
+    public FastChunkCoordQueue(int maxSize) {
+        this.queue = new ChunkCoord[maxSize];
         this.maxSize = maxSize;
+    }
+
+    public int size() {
+        return size;
     }
 
     public boolean isEmpty() {
         return size == 0;
     }
 
-    public MapLocation peek() {
+    public ChunkCoord peek() {
         return queue[index % maxSize];
     }
 
-    public MapLocation poll() {
+    public ChunkCoord poll() {
         size--;
         return queue[(index++) % maxSize];
     }
 
-    public void add(MapLocation location) {
+    public void add(ChunkCoord location) {
         queue[(index + size++) % maxSize] = location;
     }
 
