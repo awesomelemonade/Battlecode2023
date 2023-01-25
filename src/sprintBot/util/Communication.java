@@ -285,7 +285,6 @@ public class Communication {
         EnemyHqGuesser.update();
         WellTracker.update();
         Checkpoints.update();
-        BFSCheckpoints.debug_bfs();
         BFSCheckpoints.debug_render();
     }
 

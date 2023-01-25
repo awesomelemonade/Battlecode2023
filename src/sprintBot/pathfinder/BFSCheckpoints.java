@@ -5,6 +5,7 @@ import battlecode.common.MapLocation;
 import sprintBot.util.Cache;
 import sprintBot.util.Debug;
 import sprintBot.util.EnemyHqGuesser;
+import sprintBot.util.EnemyHqTracker;
 
 public class BFSCheckpoints {
     private static final int SIZE = Checkpoints.SIZE;
@@ -18,12 +19,18 @@ public class BFSCheckpoints {
             for (int j = 0; j < SIZE; j++) {
                 ChunkCoord chunkCoord = new ChunkCoord(i, j);
                 MapLocation location = Checkpoints.chunkToMapLocation(chunkCoord);
-                if (visited[i][j] && false) {
-                    Debug.setIndicatorDot(location, 0, 0, 255); // blue
-                } else if (Checkpoints.chunkIsUnexplored(chunkCoord)) {
-                    Debug.setIndicatorDot(location, 255, 0, 0); // red
+                if (Checkpoints.chunkIsUnexplored(chunkCoord)) {
+                    if (visited[i][j]) {
+                        Debug.setIndicatorDot(location, 255, 128, 0); // orange
+                    } else {
+                        Debug.setIndicatorDot(location, 255, 0, 0); // red
+                    }
                 } else {
-                    Debug.setIndicatorDot(location, 0, 255, 255); // cyan
+                    if (visited[i][j]) {
+                        Debug.setIndicatorDot(location, 0, 0, 255); // blue
+                    } else {
+                        Debug.setIndicatorDot(location, 0, 255, 255); // cyan
+                    }
                 }
             }
         }
@@ -39,22 +46,43 @@ public class BFSCheckpoints {
         }
     }
 
-    public static void debug_bfs() {
-        debug_reset();
-        Debug.println("A: " + Clock.getBytecodeNum());
-        // bfs from current location
-        // TODO: work backwards from the destinations?
-        MapLocation location = EnemyHqGuesser.getClosestPreferRotationalSymmetry(loc -> true);
-        if (location == null) {
+    private static int lastInvalidateTurn = -1;
+    public static void invalidate() {
+        if (lastInvalidateTurn == Cache.TURN_COUNT) {
             return;
         }
-        Debug.setIndicatorLine(Cache.MY_LOCATION, location, 255, 255, 0); // yellow
-        ChunkCoord currentChunk = Checkpoints.getNearestChunkCoord(location);
-        queue.add(currentChunk);
-        visited[currentChunk.chunkX][currentChunk.chunkY] = true;
-        int count = 0;
-        while (!queue.isEmpty()) {
-            count++;
+        lastInvalidateTurn = Cache.TURN_COUNT;
+        debug_reset();
+        EnemyHqTracker.forEachKnownAndPending(location -> {
+            ChunkCoord chunk = Checkpoints.getNearestChunkCoord(location);
+            if (!visited[chunk.chunkX][chunk.chunkY]) {
+                queue.add(chunk);
+                visited[chunk.chunkX][chunk.chunkY] = true;
+            }
+        });
+        if (queue.isEmpty()) {
+            // No known Enemy HQs, let's use guesser
+            EnemyHqGuesser.forEach(location -> {
+                ChunkCoord chunk = Checkpoints.getNearestChunkCoord(location);
+                if (!visited[chunk.chunkX][chunk.chunkY]) {
+                    queue.add(chunk);
+                    visited[chunk.chunkX][chunk.chunkY] = true;
+                }
+            });
+        }
+    }
+
+    public static void postLoop() {
+        if (Cache.TURN_COUNT == -1) { // TODO: when enemy hqs changed OR when we run into an impassable wall
+            invalidate();
+        }
+        bfs();
+    }
+
+    public static void bfs() {
+        int max = 0;
+        while (!queue.isEmpty() && Clock.getBytecodesLeft() > 900) {
+            int a = Clock.getBytecodeNum();
             ChunkCoord chunk = queue.poll();
             Checkpoints.debug_backwardsNeighborChunks(chunk);
             for (int i = Checkpoints.neighborsLength; --i >= 0; ) {
@@ -65,7 +93,8 @@ public class BFSCheckpoints {
                     visited[neighbor.chunkX][neighbor.chunkY] = true;
                 }
             }
+            max = Math.max(max, Clock.getBytecodeNum() - a);
         }
-        Debug.println("B: " + Clock.getBytecodeNum() + " - " + count);
+        Debug.println("MAX: " + max);
     }
 }

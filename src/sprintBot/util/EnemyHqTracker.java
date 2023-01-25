@@ -1,6 +1,7 @@
 package sprintBot.util;
 
 import battlecode.common.*;
+import sprintBot.pathfinder.BFSCheckpoints;
 
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -8,6 +9,7 @@ import java.util.function.Predicate;
 import static sprintBot.util.Constants.rc;
 import static sprintBot.util.Communication.*;
 
+// TODO: could be obsolete when combined with EnemyHqGuesser
 public class EnemyHqTracker {
     public static MapLocation[] enemyHeadquartersLocations; // may include null (for unknown enemy headquarters)
     public static int numKnownEnemyHeadquarterLocations = 0;
@@ -134,6 +136,17 @@ public class EnemyHqTracker {
     }
 
     public static void forEachPending(Consumer<MapLocation> consumer) {
+        for (int i = numPendingLocations; --i >= 0; ) {
+            consumer.accept(pendingLocations[i]);
+        }
+    }
+
+    public static void forEachKnownAndPending(Consumer<MapLocation> consumer) {
+        if (enemyHeadquartersLocations != null) {
+            for (int i = numKnownEnemyHeadquarterLocations; --i >= 0; ) {
+                consumer.accept(enemyHeadquartersLocations[i]);
+            }
+        }
         for (int i = numPendingLocations; --i >= 0; ) {
             consumer.accept(pendingLocations[i]);
         }

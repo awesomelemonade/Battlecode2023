@@ -172,6 +172,7 @@ public class BFSVisionTemplate {
                 case PassabilityCache.UNPASSABLE:
                     madeProgress = true;
                     queue.poll();
+                    moveDirections[location.x][location.y] = 0; // no moves can reach here
                     break;
                 case PassabilityCache.PASSABLE:
                     madeProgress = true;

@@ -222,11 +222,11 @@ public class Launcher implements RunnableBot {
         double bestScore = -Double.MAX_VALUE;
         for (int i = Constants.ALL_DIRECTIONS.length; --i >= 0; ) {
             Direction direction = Constants.ALL_DIRECTIONS[i];
-            MapLocation location = Cache.MY_LOCATION.add(direction);
             if (direction != Direction.CENTER && !rc.canMove(direction)) { // this is for micro - so let's ignore currents
                 // occupied
                 continue;
             }
+            MapLocation location = Cache.MY_LOCATION.add(direction);
             double score = scorer.applyAsDouble(location, CurrentsCache.get(location));
             if (score > bestScore) {
                 bestScore = score;

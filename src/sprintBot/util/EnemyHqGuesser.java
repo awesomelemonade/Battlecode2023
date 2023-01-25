@@ -237,9 +237,11 @@ public class EnemyHqGuesser {
     }
 
     public static void forEach(Consumer<MapLocation> consumer) {
-        for (int i = predictions.length; --i >= 0; ) {
-            if ((invalidations & (1 << i)) == 0 && (invalidationsPending & (1 << i)) == 0) {
-                consumer.accept(predictions[i]);
+        if (initialized) {
+            for (int i = predictions.length; --i >= 0; ) {
+                if ((invalidations & (1 << i)) == 0 && (invalidationsPending & (1 << i)) == 0) {
+                    consumer.accept(predictions[i]);
+                }
             }
         }
     }

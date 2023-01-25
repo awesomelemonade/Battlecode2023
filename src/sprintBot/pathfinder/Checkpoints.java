@@ -79,22 +79,22 @@ public class Checkpoints {
             // update checkpoints from comms
             int cycleIndex = rc.getRoundNum() % CYCLES_PER_FULL_REFRESH;
             for (int i = COMM_INTS_PER_CYCLE; --i >= 0;) {
-                int read = rc.readSharedArray(i + Communication.CHECKPOINTS_OFFSET); // TODO
+                int read = rc.readSharedArray(i + Communication.CHECKPOINTS_OFFSET);
                 int index = CHECKPOINTS_PER_CYCLE * cycleIndex + i * 2;
                 checkpoints[index] |= read & MASK_8;
                 checkpoints[index + 1] |= (read >> 8) & MASK_8;
             }
         }
         // update checkpoint for current chunk
-        // TODO
         BFSVision bfs = BFSVision.getBFSIfCompleted();
         if (bfs != null) {
-            ChunkCoord unexplored = getNearestUnexplored(bfs);
+            ChunkCoord unexplored = getNearestUnexplored(bfs); // TODO: very costly
             if (unexplored != null) {
                 int checkpoint = 0;
+                // TODO - very costly
                 for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
                     ChunkCoord neighborChunk = unexplored.add(Constants.ORDINAL_DIRECTIONS[i]);
-                    if (bfsCanReachChunk(bfs, neighborChunk)) {
+                    if (bfsCanReachChunk(bfs, neighborChunk)) { // TODO: maybe bfsCanReachChunk can be cached - we do the same computation in getNearestUnexplored()
                         // assumed: i = direction.ordinal()
                         checkpoint |= (1 << i);
                     }
@@ -120,6 +120,7 @@ public class Checkpoints {
 
     static int[] dx = new int[] {-1, 1, 0, 0, -1, 1, -1, 1};
     static int[] dy = new int[] {0, 0, -1, 1, -1, -1, 1, 1};
+    // TODO: can be a list of neighbor chunks stored in bfs
     public static ChunkCoord getNearestUnexplored(BFSVision bfs) {
         ChunkCoord currentChunkCoord = getNearestChunkCoord(Cache.MY_LOCATION);
         if (bfsCanReachChunk(bfs, currentChunkCoord) && chunkIsUnexplored(currentChunkCoord)) {
@@ -196,7 +197,7 @@ public class Checkpoints {
 
     public static boolean bfsCanReachChunk(BFSVision bfs, ChunkCoord chunk) {
         MapLocation location = chunkToMapLocation(chunk);
-        return rc.onTheMap(location) && bfs.hasMoveDirection(location) && PassabilityCache.isPassableOrFalse(location); // TODO: check hq location?
+        return rc.onTheMap(location) && bfs.hasMoveDirection(location);
     }
 
     public static MapLocation chunkToMapLocation(ChunkCoord chunk) {
