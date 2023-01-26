@@ -109,9 +109,15 @@ where
 }
 
 pub fn run() {
+    let winrate = arena::get_score(
+        arena::wrap_micro_scp(micro::sprint1::micro()),
+        arena::wrap_micro(micro::sprint1::micro()),
+        500
+    );
+    println!("winrate = {}", winrate);
     show_game(
-        crate::arena::wrap_micro(micro::sprint_micro()),
-        crate::arena::wrap_micro(micro::sprint_micro())
+        arena::wrap_micro_scp(micro::sprint1::micro()),
+        arena::wrap_micro(micro::sprint1::micro()),
     );
     // simulated_annealing::train(0.025, 1000);
 }

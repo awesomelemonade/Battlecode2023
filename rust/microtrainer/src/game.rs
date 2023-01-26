@@ -51,7 +51,7 @@ where
 
 #[derive(Debug, Clone)]
 pub struct Board {
-    turn_count: u32,
+    pub turn_count: u32,
     width: usize,
     height: usize,
     robots: Robots,

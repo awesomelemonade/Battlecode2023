@@ -6,23 +6,22 @@ use crate::{
 use rand::Rng;
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 
+fn try_attack(controller: &mut RobotController) {
+    let position = controller.current_position();
+    if let Some(target) = controller
+        .sense_nearby_robots_in_vision()
+        .iter()
+        .filter(|r| controller.can_attack(r.position()))
+        .min_by_key(|r| (r.health(), r.position().distance_squared(position)))
+    {
+        controller.attack_exn(target.position());
+    }
+}
+
 pub fn wrap_micro<F>(micro: F) -> impl Fn(&mut RobotController) -> ()
 where
     F: Fn(&mut RobotController) -> (),
 {
-    fn try_attack(controller: &mut RobotController) {
-        let position = controller.current_position();
-        if let Some(target) = controller
-            .sense_nearby_robots_in_vision()
-            .iter()
-            .filter(|r| controller.can_attack(r.position()))
-            .min_by_key(|r| (r.health(), r.position().distance_squared(position)))
-        {
-            controller.attack_exn(target.position());
-        }
-    }
-
-    // TODO: we should continue to micro X turns after seeing an enemy
     move |controller| {
         try_attack(controller);
         if let Some(closest_enemy) = controller.get_nearest_enemy_omnipotent() {
@@ -40,6 +39,38 @@ where
                     })
                 {
                     controller.move_exn(move_direction);
+                }
+            } else {
+                micro(controller);
+            }
+        }
+        try_attack(controller);
+    }
+}
+
+pub fn wrap_micro_scp<F>(micro: F) -> impl Fn(&mut RobotController) -> ()
+where
+    F: Fn(&mut RobotController) -> (),
+{
+    move |controller| {
+        try_attack(controller);
+        if let Some(closest_enemy) = controller.get_nearest_enemy_omnipotent() {
+            let position = controller.current_position();
+            let dist = position.distance_squared(closest_enemy.position());
+            if dist > 20 {
+                if controller.get_turn_count() % 2 == 0 {
+                    // omnipotent move
+                    if let Some(&move_direction) = Direction::ordinal_directions()
+                        .iter()
+                        .filter(|&&dir| controller.can_move(dir))
+                        .min_by_key(|&&dir| {
+                            position
+                                .add_exn(dir)
+                                .distance_squared(closest_enemy.position())
+                        })
+                    {
+                        controller.move_exn(move_direction);
+                    }
                 }
             } else {
                 micro(controller);
@@ -80,7 +111,7 @@ pub fn gen_random_starting_board() -> Board {
     board
 }
 
-pub fn get_score<F1, F2>(micro1: F1, micro2: F2, samples: u32) -> f32
+pub fn get_score<F1, F2>(bot1: F1, bot2: F2, samples: u32) -> f32
 where
     F1: Fn(&mut RobotController) -> () + Sync,
     F2: Fn(&mut RobotController) -> () + Sync,
@@ -93,8 +124,8 @@ where
             let starting_board = gen_random_starting_board();
             let mut manager = GameManager::new(
                 starting_board.clone(),
-                wrap_micro(&micro1),
-                wrap_micro(&micro2),
+                &bot1,
+                &bot2,
             );
             manager.step_until_game_over(200);
             for robot in manager.board().robots().iter() {
@@ -107,8 +138,8 @@ where
 
             let mut manager = GameManager::new(
                 starting_board.clone(),
-                wrap_micro(&micro2),
-                wrap_micro(&micro1),
+                &bot2,
+                &bot1,
             );
             manager.step_until_game_over(200);
             for robot in manager.board().robots().iter() {

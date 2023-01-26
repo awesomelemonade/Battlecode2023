@@ -130,6 +130,10 @@ impl<'a> RobotController<'a> {
             })
             .collect_vec()
     }
+    
+    pub fn get_turn_count(&self) -> u32 {
+        self.board.turn_count
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -191,6 +195,10 @@ impl Robot {
 
     pub fn health(&self) -> u32 {
         self.health
+    }
+
+    pub fn action_cooldown(&self) -> u32 {
+        self.action_cooldown
     }
 }
 
