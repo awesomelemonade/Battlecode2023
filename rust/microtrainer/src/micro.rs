@@ -1,7 +1,7 @@
 use rand::seq::SliceRandom;
 
-use crate::game::GameState;
 use crate::game::Direction;
+use crate::game::GameState;
 use crate::game::Position;
 use crate::game::RobotInfo;
 
@@ -55,9 +55,13 @@ pub fn get_scored_micro(coeffs: [f32; 12]) -> impl Fn(&mut GameState, u32) -> ()
                     num_enemies += 1;
                 }
             }
-            let enemy_close = if dist_to_nearest_enemy <= 9 {1.0} else {0.0};
-            let enemy_middle = if 9 < dist_to_nearest_enemy && dist_to_nearest_enemy <= 16 {1.0} else {0.0};
-            let enemy_far = if 16 < dist_to_nearest_enemy {1.0} else {0.0};
+            let enemy_close = if dist_to_nearest_enemy <= 9 { 1.0 } else { 0.0 };
+            let enemy_middle = if 9 < dist_to_nearest_enemy && dist_to_nearest_enemy <= 16 {
+                1.0
+            } else {
+                0.0
+            };
+            let enemy_far = if 16 < dist_to_nearest_enemy { 1.0 } else { 0.0 };
 
             let mut num_allies_close = 0;
             let mut num_allies_far = 0;
@@ -76,21 +80,25 @@ pub fn get_scored_micro(coeffs: [f32; 12]) -> impl Fn(&mut GameState, u32) -> ()
                 }
             }
 
-            let ready_to_attack = if robot.action_cooldown < 10 {1.0} else {0.0};
-            let new_movement_cooldown = if robot.pos == pos {robot.move_cooldown} else {robot.move_cooldown + 10};
+            let ready_to_attack = if robot.action_cooldown < 10 { 1.0 } else { 0.0 };
+            let new_movement_cooldown = if robot.pos == pos {
+                robot.move_cooldown
+            } else {
+                robot.move_cooldown + 10
+            };
 
-            coeffs[0] * enemy_close * ready_to_attack +
-            coeffs[1] * enemy_middle * ready_to_attack +
-            coeffs[2] * enemy_far * ready_to_attack +
-            coeffs[3] * enemy_close * (1.0 - ready_to_attack) +
-            coeffs[4] * enemy_middle * (1.0 - ready_to_attack) +
-            coeffs[5] * enemy_far * (1.0 - ready_to_attack) +
-            coeffs[6] * lowest_enemy_health as f32 / 200.0 +
-            coeffs[7] * num_enemies as f32 +
-            coeffs[8] * num_allies_close as f32 / 5.0 +
-            coeffs[9] * num_allies_far as f32 / 5.0 +
-            coeffs[10] * ready_to_attack +
-            coeffs[11] * new_movement_cooldown as f32 / 10.0
+            coeffs[0] * enemy_close * ready_to_attack
+                + coeffs[1] * enemy_middle * ready_to_attack
+                + coeffs[2] * enemy_far * ready_to_attack
+                + coeffs[3] * enemy_close * (1.0 - ready_to_attack)
+                + coeffs[4] * enemy_middle * (1.0 - ready_to_attack)
+                + coeffs[5] * enemy_far * (1.0 - ready_to_attack)
+                + coeffs[6] * lowest_enemy_health as f32 / 200.0
+                + coeffs[7] * num_enemies as f32
+                + coeffs[8] * num_allies_close as f32 / 5.0
+                + coeffs[9] * num_allies_far as f32 / 5.0
+                + coeffs[10] * ready_to_attack
+                + coeffs[11] * new_movement_cooldown as f32 / 10.0
         };
 
         let mut best_dir = Direction::Center;
@@ -113,11 +121,13 @@ pub fn get_scored_micro(coeffs: [f32; 12]) -> impl Fn(&mut GameState, u32) -> ()
 
 pub fn sprint_micro(state: &mut GameState, id: u32) {
     fn get_best_move_direction<F>(state: &GameState, id: u32, scorer: F) -> Direction
-    where F: Fn(&GameState, u32, Position) -> f32 {
+    where
+        F: Fn(&GameState, u32, Position) -> f32,
+    {
         let robot = state.robots.get(&id).unwrap();
         let mut best_direction = Direction::Center;
         let mut best_score = -1e18;
-        
+
         for direction in ALL_DIRS {
             if !state.can_move(robot.id, direction) {
                 continue;
@@ -137,7 +147,7 @@ pub fn sprint_micro(state: &mut GameState, id: u32) {
         let sensed_robots = state.sense_nearby_robots(id);
 
         let mut score = 0.0;
-        
+
         // prefer squares where attackers can't see you
         let mut num_enemies = 0;
         for other in sensed_robots {
@@ -161,7 +171,12 @@ pub fn sprint_micro(state: &mut GameState, id: u32) {
         score
     }
 
-    fn get_score_with_action_single_enemy_attacker(state: &GameState, id: u32, pos: Position, enemy: &RobotInfo) -> f32 {
+    fn get_score_with_action_single_enemy_attacker(
+        state: &GameState,
+        id: u32,
+        pos: Position,
+        enemy: &RobotInfo,
+    ) -> f32 {
         let robot = state.robots.get(&id).unwrap();
 
         let mut score = 0.0;
