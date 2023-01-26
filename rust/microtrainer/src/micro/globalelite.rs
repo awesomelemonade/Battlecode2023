@@ -60,66 +60,21 @@
 //         score
 //     }
 
-//     fn get_score_with_action_single_enemy_attacker(
-//         controller: &RobotController,
-//         pos: Position,
-//         enemy: &Robot,
-//     ) -> f32 {
-//         let mut score = 0.0;
-
-//         // todo: prefer non-clouds if we're not in a cloud
-
-//         // prefer squares that we can attack the enemy
-//         if pos.distance_squared(enemy.position()) <= 16 {
-//             score += 1000000.0;
-//         }
-
-//         // prefer straight moves
-//         if controller.current_position().distance_squared(pos) == 1 {
-//             score += 1000.0;
-//         }
-
-//         // prefer squares where you're further away from the enemy
-//         score += pos.distance_squared(enemy.position()) as f32;
-
-//         score
-//     }
-
 //     let our_robot = controller.current_robot();
-//     let sensed_robots = controller.sense_nearby_robots_in_vision();
-//     if our_robot.action_cooldown() < 10 {
-//         // getSingleAttackerOrNull
-//         let mut enemy = None;
-//         for other in sensed_robots {
-//             if our_robot.team() != other.team() {
-//                 if enemy.is_some() {
-//                     enemy = None;
-//                     break;
-//                 }
-//                 enemy = Some(other);
+
+//     if let Some(target) = controller
+//         .sense_nearby_robots_in_vision()
+//         .iter()
+//         .filter(|r| r.team() != our_robot.team())
+//         .min_by_key(|r| (r.position().distance_squared(our_robot.position())))
+//     {
+//         if our_robot.action_cooldown() < 10 {
+//             return;
+//         } else {
+//             let dir = get_best_move_direction(controller, get_score_for_kiting);
+//             if controller.can_move(dir) {
+//                 controller.move_exn(dir);
 //             }
 //         }
-
-//         if let Some(enemy) = enemy {
-//             // shouldAttackSingleEnemyWithAction
-//             let damage = 30;
-//             let num_attacks_to_enemy = (enemy.health() + damage - 1) / damage;
-//             let num_attacks_to_us = (our_robot.health() + damage - 1) / damage;
-//             let should_attack = num_attacks_to_us >= num_attacks_to_enemy;
-
-//             if should_attack {
-//                 let dir = get_best_move_direction(controller, |controller, pos| {
-//                     get_score_with_action_single_enemy_attacker(controller, pos, enemy)
-//                 });
-//                 if controller.can_move(dir) {
-//                     controller.move_exn(dir);
-//                 }
-//                 return;
-//             }
-//         }
-//     }
-//     let dir = get_best_move_direction(controller, get_score_for_kiting);
-//     if controller.can_move(dir) {
-//         controller.move_exn(dir);
 //     }
 // }

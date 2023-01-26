@@ -14,6 +14,7 @@ mod arena;
 mod game;
 mod micro;
 mod simulated_annealing;
+mod bot;
 use game::Board;
 
 mod direction;
@@ -104,19 +105,19 @@ where
     while !rl.window_should_close() && !manager.board().is_game_over() {
         draw(&mut rl, &thread, manager.board());
         manager.step().unwrap();
-        thread::sleep(time::Duration::from_millis(50)); // TODO: probably need to adjust time
+        thread::sleep(time::Duration::from_millis(100)); // TODO: probably need to adjust time
     }
 }
 
 pub fn run() {
     let winrate = arena::get_score(
-        arena::wrap_micro_scp(micro::sprint1::micro()),
+        arena::wrap_micro_persistant(micro::globalelite::micro()),
         arena::wrap_micro(micro::sprint1::micro()),
         500
     );
     println!("winrate = {}", winrate);
     show_game(
-        arena::wrap_micro_scp(micro::sprint1::micro()),
+        arena::wrap_micro_persistant(micro::globalelite::micro()),
         arena::wrap_micro(micro::sprint1::micro()),
     );
     // simulated_annealing::train(0.025, 1000);
