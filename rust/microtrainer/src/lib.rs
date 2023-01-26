@@ -90,7 +90,7 @@ fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, state: &Board) {
     // }
 }
 
-fn show_game<F1, F2>(micro1: F1, micro2: F2)
+fn show_game<F1, F2>(red_bot: F1, blue_bot: F2)
 where
     F1: Fn(&mut RobotController) -> (),
     F2: Fn(&mut RobotController) -> (),
@@ -99,21 +99,19 @@ where
     let (mut rl, thread) = raylib::init().title("Micro Trainer").build();
 
     let state = arena::gen_random_starting_board();
-    let mut manager = GameManager::new(
-        state,
-        crate::arena::wrap_micro(micro1),
-        crate::arena::wrap_micro(micro2),
-    );
+    let mut manager = GameManager::new(state, red_bot, blue_bot);
 
     while !rl.window_should_close() && !manager.board().is_game_over() {
         draw(&mut rl, &thread, manager.board());
         manager.step().unwrap();
-        thread::sleep(time::Duration::from_millis(5)); // TODO: probably need to adjust time
+        thread::sleep(time::Duration::from_millis(50)); // TODO: probably need to adjust time
     }
 }
 
 pub fn run() {
-    // let scored_micro = get_scored_micro([-1.0, 1.0, 0.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
-    // show_game(micro::sprint_micro, scored_micro);
-    simulated_annealing::train(0.025, 1000);
+    show_game(
+        crate::arena::wrap_micro(micro::sprint_micro()),
+        crate::arena::wrap_micro(micro::sprint_micro())
+    );
+    // simulated_annealing::train(0.025, 1000);
 }
