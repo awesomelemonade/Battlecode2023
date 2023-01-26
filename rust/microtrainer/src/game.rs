@@ -5,11 +5,7 @@ use crate::{
     Direction, Position,
 };
 
-pub struct GameManager<F1, F2>
-where
-    F1: Fn(RobotController) -> (),
-    F2: Fn(RobotController) -> (),
-{
+pub struct GameManager<F1, F2> {
     board: Board,
     red_controller: F1,
     blue_controller: F2,
@@ -17,8 +13,8 @@ where
 
 impl<F1, F2> GameManager<F1, F2>
 where
-    F1: Fn(RobotController) -> (),
-    F2: Fn(RobotController) -> (),
+    F1: Fn(&mut RobotController) -> (),
+    F2: Fn(&mut RobotController) -> (),
 {
     pub fn new(state: Board, red_controller: F1, blue_controller: F2) -> Self {
         GameManager {
@@ -28,20 +24,35 @@ where
         }
     }
 
-    pub fn step_game(&mut self) -> OrError<()> {
-        if self.board.is_game_over() {
-            return Err(Error!("Tried stepping game when game is over"));
-        }
+    fn step_exn(&mut self) {
         self.board
-            .step(|controller| match controller.current_robot().team() {
-                Team::Red => (self.red_controller)(controller),
-                Team::Blue => (self.blue_controller)(controller),
+            .step(|mut controller| match controller.current_robot().team() {
+                Team::Red => (self.red_controller)(&mut controller),
+                Team::Blue => (self.blue_controller)(&mut controller),
             });
-        Ok(())
+    }
+
+    pub fn step(&mut self) -> OrError<()> {
+        if self.board.is_game_over() {
+            Err(Error!("Game is already over"))
+        } else {
+            self.step_exn();
+            Ok(())
+        }
+    }
+
+    pub fn step_until_game_over(&mut self, max_turns: u32) {
+        while !self.board.is_game_over() && self.board.turn_count < max_turns {
+            self.step_exn();
+        }
+    }
+
+    pub fn board(&self) -> &Board {
+        &self.board
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Board {
     turn_count: u32,
     width: usize,

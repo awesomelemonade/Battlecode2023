@@ -11,6 +11,16 @@ pub struct Grid<T> {
     data: Vec<Vec<T>>,
 }
 
+impl<T: Clone> Clone for Grid<T> {
+    fn clone(&self) -> Self {
+        Self {
+            width: self.width,
+            height: self.height,
+            data: self.data.clone(),
+        }
+    }
+}
+
 impl<T: Default> Grid<T> {
     pub fn new(width: usize, height: usize) -> Self {
         Self::new_with_func(width, height, |_, _| Default::default())

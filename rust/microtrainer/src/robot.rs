@@ -96,7 +96,7 @@ impl<'a> RobotController<'a> {
             .get_robot_if_alive(self.robot_id)
             .expect("Controlled robot is not alive")
     }
-    pub fn current_robot_mut(&mut self) -> &Robot {
+    fn current_robot_mut(&mut self) -> &Robot {
         self.board
             .robots_mut()
             .get_robot_if_alive_mut(self.robot_id)
@@ -106,6 +106,9 @@ impl<'a> RobotController<'a> {
         self.current_robot().position
     }
 
+    pub fn sense_nearby_robots_in_vision(&self) -> Vec<&Robot> {
+        self.sense_nearby_robots(self.current_robot().kind.vision_radius_squared())
+    }
     pub fn sense_nearby_robots(&self, distance_squared: u32) -> Vec<&Robot> {
         // TODO: check vision radius?
         let current_position = self.current_position();
@@ -124,6 +127,7 @@ impl<'a> RobotController<'a> {
 pub enum RobotKind {
     Headquarter,
     Carrier,
+    Launcher,
 }
 
 impl RobotKind {
@@ -136,6 +140,9 @@ impl RobotKind {
     pub fn damage(&self) -> u32 {
         20
     }
+    pub fn starting_health(&self) -> u32 {
+        200
+    }
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]
@@ -144,7 +151,7 @@ pub enum Team {
     Blue,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Robot {
     id: RobotId,
     position: Position,
@@ -172,11 +179,15 @@ impl Robot {
     pub fn team(&self) -> Team {
         self.team
     }
+
+    pub fn health(&self) -> u32 {
+        self.health
+    }
 }
 
 pub type RobotId = u32;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RobotIdGenerator {
     next_id: RobotId,
 }
@@ -192,7 +203,7 @@ impl RobotIdGenerator {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Robots {
     id_generator: RobotIdGenerator,
     robot_turn_order: Vec<RobotId>,
@@ -212,16 +223,27 @@ impl Robots {
     pub fn robot_turn_order(&self) -> &Vec<RobotId> {
         &self.robot_turn_order
     }
-    pub fn spawn_robot(&mut self, robot: Robot) {
-        debug_assert!(self.robots_by_position.within_bounds(robot.position));
-        debug_assert!(!self.is_occupied(robot.position));
+    pub fn spawn_robot(&mut self, team: Team, kind: RobotKind, position: impl Into<Position>) {
+        let position = position.into();
+        debug_assert!(self.robots_by_position.within_bounds(position));
+        debug_assert!(!self.is_occupied(position));
         let robot_id = self.id_generator.next();
+        let health = kind.starting_health();
+        let robot = Robot {
+            id: robot_id,
+            position: todo!(),
+            move_cooldown: 0,
+            action_cooldown: 0,
+            kind,
+            team,
+            health,
+        };
         self.robot_turn_order.push(robot_id);
         self.robots_by_position[robot.position()] = Some(robot_id);
         self.robots_by_id.insert(robot_id, robot);
     }
-    pub fn is_occupied(&self, position: Position) -> bool {
-        self.find_robot_id_by_position(position).is_some()
+    pub fn is_occupied(&self, position: impl Into<Position>) -> bool {
+        self.find_robot_id_by_position(position.into()).is_some()
     }
     pub fn find_robot_id_by_position(&self, position: Position) -> Option<RobotId> {
         self.robots_by_position[position]
