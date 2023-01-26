@@ -1,4 +1,12 @@
-use micro::get_scored_micro;
+macro_rules! core {
+    () => {
+        #[allow(unused_imports)]
+        use crate::imports::*;
+    };
+}
+
+core!();
+
 use raylib::prelude::*;
 use std::{thread, time};
 
@@ -6,12 +14,22 @@ mod arena;
 mod game;
 mod micro;
 mod simulated_annealing;
-use game::GameState;
-use game::Team;
+use game::Board;
+
+mod direction;
+use direction::*;
+mod position;
+use position::*;
+mod robot;
+use robot::*;
+mod grid;
+use grid::*;
+
+mod imports;
 
 use crate::game::GameManager;
 
-fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, state: &GameState) {
+fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, state: &Board) {
     let cell_size: i32 = 20;
     rl.set_window_size(
         cell_size * state.width as i32,
@@ -75,8 +93,8 @@ fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, state: &GameState) {
 
 fn show_game<F1, F2>(micro1: F1, micro2: F2)
 where
-    F1: Fn(&mut GameState, u32) -> (),
-    F2: Fn(&mut GameState, u32) -> (),
+    F1: Fn(&mut Board, u32) -> (),
+    F2: Fn(&mut Board, u32) -> (),
 {
     raylib::core::logging::set_trace_log(raylib::ffi::TraceLogLevel::LOG_ERROR);
     let (mut rl, thread) = raylib::init().title("Micro Trainer").build();
