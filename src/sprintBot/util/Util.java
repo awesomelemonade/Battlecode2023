@@ -10,7 +10,6 @@ import java.util.function.Predicate;
 import static sprintBot.util.Constants.rc;
 
 public class Util {
-
     public static void init(RobotController controller) throws GameActionException {
         Constants.init(controller);
         Random.init();
