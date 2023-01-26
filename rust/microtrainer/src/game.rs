@@ -2,12 +2,21 @@ use std::collections::HashMap;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum Team {
-    Red, Blue
+    Red,
+    Blue,
 }
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum Direction {
-    Center, North, Northeast, East, Southeast, South, Southwest, West, Northwest
+    Center,
+    North,
+    Northeast,
+    East,
+    Southeast,
+    South,
+    Southwest,
+    West,
+    Northwest,
 }
 
 impl Direction {
@@ -24,7 +33,7 @@ impl Direction {
             Self::Northwest => -1,
         }
     }
-    
+
     pub fn dy(&self) -> i32 {
         match *self {
             Self::Center => 0,
@@ -60,16 +69,20 @@ impl Position {
 }
 
 pub struct GameManager<F1, F2>
-where F1: Fn(&mut GameState, u32) -> (),
-      F2: Fn(&mut GameState, u32) -> () {
+where
+    F1: Fn(&mut GameState, u32) -> (),
+    F2: Fn(&mut GameState, u32) -> (),
+{
     pub state: GameState,
     red_controller: F1,
     blue_controller: F2,
 }
 
-impl <F1, F2> GameManager<F1, F2>
-where F1: Fn(&mut GameState, u32) -> (),
-      F2: Fn(&mut GameState, u32) -> () {
+impl<F1, F2> GameManager<F1, F2>
+where
+    F1: Fn(&mut GameState, u32) -> (),
+    F2: Fn(&mut GameState, u32) -> (),
+{
     pub fn new(state: GameState, red_controller: F1, blue_controller: F2) -> Self {
         GameManager {
             state,
@@ -145,7 +158,7 @@ impl GameState {
             attack_vectors: Vec::new(),
         }
     }
-    
+
     pub fn is_game_over(&self) -> bool {
         let mut has_red = false;
         let mut has_blue = false;
@@ -211,7 +224,7 @@ impl GameState {
         if !self.can_move(id, direction) {
             panic!("Cannot move");
         }
-        
+
         let robot = self.robots.get_mut(&id).expect("Invalid id");
         let new_pos = robot.pos.add(direction);
 
@@ -240,17 +253,21 @@ impl GameState {
         if !self.can_attack(id, target_id) {
             panic!("Cannot attack");
         }
-        
+
         let mut robot = self.robots.get_mut(&id).expect("Invalid id");
         robot.action_cooldown += 10;
         let robot_pos = robot.pos;
         let robot_team = robot.team;
         let mut enemy = self.robots.get_mut(&target_id).expect("Invalid id");
         self.attack_vectors.push((robot_team, robot_pos, enemy.pos));
-        
+
         enemy.health = enemy.health.saturating_sub(30);
         if enemy.health == 0 {
-            let idx = self.turn_queue.iter().position(|x| *x == target_id).unwrap();
+            let idx = self
+                .turn_queue
+                .iter()
+                .position(|x| *x == target_id)
+                .unwrap();
             self.turn_queue.remove(idx);
             if idx < self.turn_queue_index {
                 self.turn_queue_index -= 1;

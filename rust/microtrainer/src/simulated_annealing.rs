@@ -1,6 +1,9 @@
 use rand::Rng;
 
-use crate::{micro::{get_scored_micro, self}, arena};
+use crate::{
+    arena,
+    micro::{self, get_scored_micro},
+};
 
 fn get_energy(parameters: [f32; 12]) -> f32 {
     let scored_micro = get_scored_micro(parameters);
@@ -19,17 +22,19 @@ fn get_energy(parameters: [f32; 12]) -> f32 {
         }
     }
     let mean = statistical::mean(winrates.as_slice());
-    1.0 - mean 
+    1.0 - mean
 }
 
 pub fn train(initial_temperature: f32, num_steps: u32) {
     let mut rng = rand::thread_rng();
-    let mut current_parameters = [-1.0, 1.0, 0.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+    let mut current_parameters = [
+        -1.0, 1.0, 0.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    ];
     let mut current_energy = get_energy(current_parameters);
     println!("Parameters: {:?}", current_parameters);
-    println!("Winrate: {}", 1.0-current_energy);
+    println!("Winrate: {}", 1.0 - current_energy);
     for k in 0..num_steps {
-        let temperature = initial_temperature * (1.0 - ((k+1) as f32) / num_steps as f32);
+        let temperature = initial_temperature * (1.0 - ((k + 1) as f32) / num_steps as f32);
         println!("Temperature: {}", temperature);
         let mut new_parameters = [0.0; 12];
         for i in 0..12 {
@@ -47,7 +52,7 @@ pub fn train(initial_temperature: f32, num_steps: u32) {
             current_energy = new_energy;
         }
         println!("Parameters: {:?}", current_parameters);
-        println!("Winrate: {}", 1.0-current_energy);
+        println!("Winrate: {}", 1.0 - current_energy);
         println!("");
     }
 }
