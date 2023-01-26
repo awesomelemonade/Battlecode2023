@@ -1,4 +1,4 @@
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Direction {
     Center,
     North,
@@ -38,6 +38,19 @@ impl Direction {
             Self::West => 0,
             Self::Northwest => 1,
         }
+    }
+
+    pub fn ordinal_directions() -> [Direction; 8] {
+        [
+            Direction::North,
+            Direction::Northeast,
+            Direction::East,
+            Direction::Southeast,
+            Direction::South,
+            Direction::Southwest,
+            Direction::West,
+            Direction::Northwest,
+        ]
     }
 }
 

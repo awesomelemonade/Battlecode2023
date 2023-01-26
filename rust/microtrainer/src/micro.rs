@@ -5,23 +5,24 @@ use crate::robot::RobotController;
 use crate::Direction;
 use crate::Position;
 
-const ORDINAL_DIRECTIONS: [Direction; 8] = [
-    Direction::North,
-    Direction::Northeast,
-    Direction::East,
-    Direction::Southeast,
-    Direction::South,
-    Direction::Southwest,
-    Direction::West,
-    Direction::Northwest,
-];
-
-pub fn random_micro(controller: &mut RobotController) {
-    let mut rng = rand::thread_rng();
-    let direction = *ORDINAL_DIRECTIONS.choose(&mut rng).unwrap();
-    if controller.can_move(direction) {
-        controller.move_exn(direction);
+pub fn random_micro() -> impl Fn(&mut RobotController) {
+    |controller| {
+        let mut rng = rand::thread_rng();
+        let direction = *Direction::ordinal_directions().choose(&mut rng).unwrap();
+        if controller.can_move(direction) {
+            controller.move_exn(direction);
+        }
     }
+}
+
+// TODO: FnMut instead of Fn?
+pub fn scored_micro(_coeffs: [f32; 12]) -> impl Fn(&mut RobotController) {
+    random_micro()
+}
+
+// TODO: FnMut instead of Fn?
+pub fn sprint_micro() -> impl Fn(&mut RobotController) {
+    random_micro()
 }
 
 // pub fn get_scored_micro(coeffs: [f32; 12]) -> impl Fn(&mut Board, u32) -> () {

@@ -1,137 +1,121 @@
 use crate::{
     game::{Board, GameManager},
-    robot::Team,
+    robot::{RobotController, RobotKind, Team},
     Direction, Position,
 };
 use rand::Rng;
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 
-pub fn wrap_micro<F>(micro: F) -> impl Fn(&mut Board, u32) -> ()
+pub fn wrap_micro<F>(micro: F) -> impl Fn(&mut RobotController) -> ()
 where
-    F: Fn(&mut Board, u32) -> (),
+    F: Fn(&mut RobotController) -> (),
 {
-    fn try_attack(state: &mut Board, id: u32) {
-        let robot = state.robots.get(&id).expect("Invalid id");
-
-        let nearby = state.sense_nearby_robots(id);
-        let mut best_health = 10000;
-        let mut best_id = robot.id;
-        for other in nearby {
-            if state.can_attack(id, other.id) {
-                if other.health < best_health {
-                    best_health = other.health;
-                    best_id = other.id;
-                }
-            }
-        }
-        if state.can_attack(id, best_id) {
-            state.do_attack(id, best_id);
+    fn try_attack(controller: &mut RobotController) {
+        let position = controller.current_position();
+        if let Some(target) = controller
+            .sense_nearby_robots_in_vision()
+            .iter()
+            .filter(|r| controller.can_attack(r.position()))
+            .min_by_key(|r| (r.health(), r.position().distance_squared(position)))
+        {
+            controller.attack_exn(target.position());
         }
     }
 
-    move |state, id| {
-        try_attack(state, id);
-        let closest_enemy = state.get_nearest_enemy_omnipotent(id);
-        if closest_enemy.is_none() {
-            return ();
-        }
-        let closest_enemy = closest_enemy.unwrap();
-        let robot = state.robots.get(&id).unwrap();
-        let dist = robot.pos.distance_squared(closest_enemy.pos);
-        if dist > 20 {
-            let all_dirs = [
-                Direction::North,
-                Direction::Northeast,
-                Direction::East,
-                Direction::Southeast,
-                Direction::South,
-                Direction::Southwest,
-                Direction::West,
-                Direction::Northwest,
-            ];
-            let mut best_dir = Direction::Center;
-            let mut best_dist = dist;
-            for dir in all_dirs {
-                if state.can_move(id, dir) {
-                    let new_pos = robot.pos.add(dir);
-                    let dist = new_pos.distance_squared(closest_enemy.pos);
-                    if dist < best_dist {
-                        best_dist = dist;
-                        best_dir = dir;
-                    }
+    // TODO: we should continue to micro X turns after seeing an enemy
+    move |controller| {
+        try_attack(controller);
+        if let Some(closest_enemy) = controller.get_nearest_enemy_omnipotent() {
+            let position = controller.current_position();
+            let dist = position.distance_squared(closest_enemy.position());
+            if dist > 20 {
+                // omnipotent move
+                if let Some(&move_direction) = Direction::ordinal_directions()
+                    .iter()
+                    .filter(|&&dir| controller.can_move(dir))
+                    .min_by_key(|&&dir| {
+                        position
+                            .add_exn(dir)
+                            .distance_squared(closest_enemy.position())
+                    })
+                {
+                    controller.move_exn(move_direction);
                 }
+            } else {
+                micro(controller);
             }
-            if state.can_move(id, best_dir) {
-                state.do_move(id, best_dir);
-            }
-        } else {
-            micro(state, id);
         }
-        try_attack(state, id);
+        try_attack(controller);
     }
 }
 
-pub fn gen_random_starting_state() -> Board {
+pub fn gen_random_starting_board() -> Board {
     let mut rng = rand::thread_rng();
 
-    let mut state = Board::new(32, 32);
+    let mut board = Board::new(32, 32);
     let num_robots = rng.gen_range(3..=15);
     for _ in 0..num_robots {
-        let mut x = rng.gen_range(0..state.width);
-        let mut y = rng.gen_range(0..state.height / 3);
-        while state.map[x as usize][y as usize] != -1 {
-            x = rng.gen_range(0..state.width);
-            y = rng.gen_range(0..state.height / 3);
+        let mut x = rng.gen_range(0..board.width());
+        let mut y = rng.gen_range(0..board.height() / 3);
+        while board.robots().is_occupied((x, y)) {
+            x = rng.gen_range(0..board.width());
+            y = rng.gen_range(0..board.height() / 3);
         }
-        state.place_robot(Team::Red, Position { x, y });
+        board
+            .robots_mut()
+            .spawn_robot(Team::Red, RobotKind::Launcher, (x, y));
     }
     for _ in 0..num_robots {
-        let mut x = rng.gen_range(0..state.width);
-        let mut y = state.height - 1 - rng.gen_range(0..state.height / 3);
-        while state.map[x as usize][y as usize] != -1 {
-            x = rng.gen_range(0..state.width);
-            y = state.height - 1 - rng.gen_range(0..state.height / 3);
+        let mut x = rng.gen_range(0..board.width());
+        let mut y = board.height() - 1 - rng.gen_range(0..board.height() / 3);
+        while board.robots().is_occupied((x, y)) {
+            x = rng.gen_range(0..board.width());
+            y = board.height() - 1 - rng.gen_range(0..board.height() / 3);
         }
-        state.place_robot(Team::Blue, Position { x, y });
+        board
+            .robots_mut()
+            .spawn_robot(Team::Blue, RobotKind::Launcher, (x, y));
     }
 
-    state
+    board
 }
 
 pub fn get_score<F1, F2>(micro1: F1, micro2: F2, samples: u32) -> f32
 where
-    F1: Fn(&mut Board, u32) -> () + Sync,
-    F2: Fn(&mut Board, u32) -> () + Sync,
+    F1: Fn(&mut RobotController) -> () + Sync,
+    F2: Fn(&mut RobotController) -> () + Sync,
 {
     let total_healths: Vec<_> = (0..samples)
         .into_par_iter()
         .map(|_| {
             let mut total_health_1 = 0.0;
             let mut total_health_2 = 0.0;
-            let state = gen_random_starting_state();
-            let mut manager =
-                GameManager::new(state.clone(), wrap_micro(&micro1), wrap_micro(&micro2));
-            while !manager.state.is_game_over() && manager.state.turn_count < 200 {
-                manager.step_game();
-            }
-            for (_, robot) in &manager.state.robots {
-                if robot.team == Team::Red {
-                    total_health_1 += robot.health as f32;
+            let starting_board = gen_random_starting_board();
+            let mut manager = GameManager::new(
+                starting_board.clone(),
+                wrap_micro(&micro1),
+                wrap_micro(&micro2),
+            );
+            manager.step_until_game_over(200);
+            for robot in manager.board().robots().iter() {
+                if robot.team() == Team::Red {
+                    total_health_1 += robot.health() as f32;
                 } else {
-                    total_health_2 += robot.health as f32;
+                    total_health_2 += robot.health() as f32;
                 }
             }
 
-            let mut manager =
-                GameManager::new(state.clone(), wrap_micro(&micro2), wrap_micro(&micro1));
-            while !manager.state.is_game_over() && manager.state.turn_count < 200 {
-                manager.step_game();
-            }
-            for (_, robot) in &manager.state.robots {
-                if robot.team == Team::Blue {
-                    total_health_1 += robot.health as f32;
+            let mut manager = GameManager::new(
+                starting_board.clone(),
+                wrap_micro(&micro2),
+                wrap_micro(&micro1),
+            );
+            manager.step_until_game_over(200);
+            for robot in manager.board().robots().iter() {
+                if robot.team() == Team::Blue {
+                    total_health_1 += robot.health() as f32;
                 } else {
-                    total_health_2 += robot.health as f32;
+                    total_health_2 += robot.health() as f32;
                 }
             }
             (total_health_1, total_health_2)

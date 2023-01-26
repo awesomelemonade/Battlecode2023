@@ -2,15 +2,14 @@ use rand::Rng;
 
 use crate::{
     arena,
-    micro::{self, get_scored_micro},
+    micro::{self, scored_micro, sprint_micro},
 };
 
 fn get_energy(parameters: [f32; 12]) -> f32 {
-    let scored_micro = get_scored_micro(parameters);
     let mut winrates = Vec::new();
     let mut num_samples: f32 = 0.0;
     loop {
-        let winrate = arena::get_score(&scored_micro, micro::sprint_micro, 500);
+        let winrate = arena::get_score(&scored_micro(parameters), sprint_micro(), 500);
         winrates.push(winrate);
         num_samples += 1.0;
         if num_samples >= 2.0 {
