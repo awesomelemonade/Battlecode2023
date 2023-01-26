@@ -79,14 +79,20 @@ impl Board {
         self.turn_count += 1;
         // move all robots
         let robots = self.robots.robot_turn_order().clone();
+        for robot_id in &robots {
+            if !self.robots.is_alive(*robot_id) {
+                continue;
+            }
+            let controller = RobotController::new(self, *robot_id);
+            f(controller);
+        }
+        // decrement cooldowns
         for robot_id in robots {
             if let Some(robot) = self.robots.get_robot_if_alive_mut(robot_id) {
                 robot.decrement_cooldowns();
             } else {
                 continue;
             }
-            let controller = RobotController::new(self, robot_id);
-            f(controller);
         }
     }
 

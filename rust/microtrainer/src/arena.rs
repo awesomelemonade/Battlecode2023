@@ -63,7 +63,7 @@ pub fn gen_random_starting_board() -> Board {
         }
         board
             .robots_mut()
-            .spawn_robot(Team::Red, RobotKind::Launcher, (x, y));
+            .spawn_robot(Team::Red, RobotKind::Launcher, rng.gen_range(0..20), (x, y));
     }
     for _ in 0..num_robots {
         let mut x = rng.gen_range(0..board.width());
@@ -74,7 +74,7 @@ pub fn gen_random_starting_board() -> Board {
         }
         board
             .robots_mut()
-            .spawn_robot(Team::Blue, RobotKind::Launcher, (x, y));
+            .spawn_robot(Team::Blue, RobotKind::Launcher, rng.gen_range(0..20), (x, y));
     }
 
     board

@@ -33,6 +33,7 @@ impl<'a> RobotController<'a> {
         let robot = robots
             .get_robot_if_alive_mut(self.robot_id)
             .expect("Controlled robot is not alive");
+        robot.move_cooldown += 20;
         let old_position = robot.position();
         *robot.position_mut() = position;
         robots.robots_by_position[old_position] = None;
@@ -47,14 +48,22 @@ impl<'a> RobotController<'a> {
     pub fn attack_exn(&mut self, position: Position) {
         assert!(self.can_attack(position));
         let robot = self.current_robot_mut();
-        robot.action_cooldown = robot.action_cooldown.saturating_sub(10);
+        robot.action_cooldown += 10;
         let team = robot.team;
         let damage = robot.kind.damage();
-        if let Some(target) = self.board.robots_mut().find_robot_by_position_mut(position) {
+        drop(robot);
+
+        let robots = self.board.robots_mut();
+        if let Some(target) = robots.find_robot_by_position_mut(position) {
             if target.team != team {
                 target.health = target.health.saturating_sub(damage);
-                // TODO: check for death
-                // TODO: remove robot if dead
+                if target.health == 0 {
+                    let id = target.id;
+                    let x = target.position.x;
+                    let y = target.position.y;
+                    robots.robots_by_id.remove(&id);
+                    robots.robots_by_position.data_mut()[x][y] = None;
+                }
             }
         }
     }
@@ -223,7 +232,7 @@ impl Robots {
     pub fn robot_turn_order(&self) -> &Vec<RobotId> {
         &self.robot_turn_order
     }
-    pub fn spawn_robot(&mut self, team: Team, kind: RobotKind, position: impl Into<Position>) {
+    pub fn spawn_robot(&mut self, team: Team, kind: RobotKind, move_cooldown: u32, position: impl Into<Position>) {
         let position = position.into();
         debug_assert!(self.robots_by_position.within_bounds(position));
         debug_assert!(!self.is_occupied(position));
@@ -232,7 +241,7 @@ impl Robots {
         let robot = Robot {
             id: robot_id,
             position,
-            move_cooldown: 0,
+            move_cooldown,
             action_cooldown: 0,
             kind,
             team,
