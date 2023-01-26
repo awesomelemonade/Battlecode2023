@@ -2,7 +2,7 @@ use rand::Rng;
 
 use crate::{
     arena,
-    micro::{self, scored_micro, sprint_micro},
+    micro::{scored_micro, sprint_micro},
 };
 
 fn get_energy(parameters: [f32; 12]) -> f32 {
