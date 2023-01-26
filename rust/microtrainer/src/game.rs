@@ -1,9 +1,6 @@
 core!();
 
-use crate::{
-    robot::{RobotController, Robots, Team},
-    Direction, Position,
-};
+use crate::robot::{RobotController, Robots, Team};
 
 pub struct GameManager<F1, F2> {
     board: Board,
@@ -104,9 +101,5 @@ impl Board {
     pub fn is_game_over(&self) -> bool {
         self.robots.iter().all(|r| r.team() == Team::Red)
             || self.robots.iter().all(|r| r.team() == Team::Blue)
-    }
-
-    pub fn in_bounds(&self, pos: Position) -> bool {
-        0 <= pos.x && pos.x < self.width && 0 <= pos.y && pos.y < self.height
     }
 }

@@ -96,7 +96,7 @@ impl<'a> RobotController<'a> {
             .get_robot_if_alive(self.robot_id)
             .expect("Controlled robot is not alive")
     }
-    fn current_robot_mut(&mut self) -> &Robot {
+    fn current_robot_mut(&mut self) -> &mut Robot {
         self.board
             .robots_mut()
             .get_robot_if_alive_mut(self.robot_id)
@@ -125,8 +125,8 @@ impl<'a> RobotController<'a> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RobotKind {
-    Headquarter,
-    Carrier,
+    // Headquarter,
+    // Carrier,
     Launcher,
 }
 
@@ -231,7 +231,7 @@ impl Robots {
         let health = kind.starting_health();
         let robot = Robot {
             id: robot_id,
-            position: todo!(),
+            position,
             move_cooldown: 0,
             action_cooldown: 0,
             kind,

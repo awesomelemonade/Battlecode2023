@@ -1,9 +1,7 @@
 use rand::seq::SliceRandom;
 
-use crate::game::Board;
 use crate::robot::RobotController;
 use crate::Direction;
-use crate::Position;
 
 pub fn random_micro() -> impl Fn(&mut RobotController) {
     |controller| {

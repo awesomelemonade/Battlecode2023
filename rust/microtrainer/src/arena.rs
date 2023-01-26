@@ -1,7 +1,7 @@
 use crate::{
     game::{Board, GameManager},
     robot::{RobotController, RobotKind, Team},
-    Direction, Position,
+    Direction,
 };
 use rand::Rng;
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};

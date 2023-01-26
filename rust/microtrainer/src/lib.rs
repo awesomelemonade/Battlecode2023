@@ -23,7 +23,6 @@ use position::*;
 mod robot;
 use robot::*;
 mod grid;
-use grid::*;
 
 mod imports;
 

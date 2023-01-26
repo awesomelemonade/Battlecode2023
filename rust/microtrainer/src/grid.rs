@@ -56,7 +56,7 @@ impl<T> Grid<T> {
         &mut self.data
     }
     pub fn within_bounds(&self, Position { x, y }: Position) -> bool {
-        x >= 0 && y >= 0 && x < self.width && y < self.height
+        x < self.width && y < self.height
     }
 }
 
