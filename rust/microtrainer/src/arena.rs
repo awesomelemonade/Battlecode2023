@@ -1,7 +1,7 @@
 use crate::{
     game::{Board, GameManager},
     robot::{RobotController, RobotKind, Team},
-    Direction,
+    Direction, bot::Bot,
 };
 use rand::Rng;
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
@@ -18,9 +18,9 @@ fn try_attack(controller: &mut RobotController) {
     }
 }
 
-pub fn wrap_micro<F>(micro: F) -> impl Fn(&mut RobotController) -> ()
+pub fn wrap_micro<T>(gen: impl Fn() -> T) -> impl Fn() -> T
 where
-    F: Fn(&mut RobotController) -> (),
+    T: Bot
 {
     move |controller| {
         try_attack(controller);
@@ -58,7 +58,7 @@ where
             let position = controller.current_position();
             let dist = position.distance_squared(closest_enemy.position());
             if dist > 20 {
-                if controller.get_turn_count() % 2 == 0 {
+                if controller.get_turn_count() % 3 == 0 {
                     // omnipotent move
                     if let Some(&move_direction) = Direction::ordinal_directions()
                         .iter()
@@ -74,6 +74,40 @@ where
                 }
             } else {
                 micro(controller);
+            }
+        }
+        try_attack(controller);
+    }
+}
+
+pub fn wrap_micro_persistant<F>(micro: F) -> impl Fn(&mut RobotController) -> ()
+where
+    F: Fn(&mut RobotController) -> (),
+{
+    move |controller| {
+        static mut turns_since_micro: i32 = 100;
+        unsafe { turns_since_micro += 1; }
+        try_attack(controller);
+        if let Some(closest_enemy) = controller.get_nearest_enemy_omnipotent() {
+            let position = controller.current_position();
+            let dist = position.distance_squared(closest_enemy.position());
+            // println!("{}", unsafe{turns_since_micro});
+            if dist > 20 && unsafe {turns_since_micro > 10} {
+                // omnipotent move
+                if let Some(&move_direction) = Direction::ordinal_directions()
+                    .iter()
+                    .filter(|&&dir| controller.can_move(dir))
+                    .min_by_key(|&&dir| {
+                        position
+                            .add_exn(dir)
+                            .distance_squared(closest_enemy.position())
+                    })
+                {
+                    controller.move_exn(move_direction);
+                }
+            } else {
+                micro(controller);
+                unsafe{ turns_since_micro = 0; }
             }
         }
         try_attack(controller);
