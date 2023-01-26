@@ -1,12 +1,16 @@
-use crate::game::{Direction, GameManager, GameState, Position, Team};
+use crate::{
+    game::{Board, GameManager},
+    robot::Team,
+    Direction, Position,
+};
 use rand::Rng;
-use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 
-pub fn wrap_micro<F>(micro: F) -> impl Fn(&mut GameState, u32) -> ()
+pub fn wrap_micro<F>(micro: F) -> impl Fn(&mut Board, u32) -> ()
 where
-    F: Fn(&mut GameState, u32) -> (),
+    F: Fn(&mut Board, u32) -> (),
 {
-    fn try_attack(state: &mut GameState, id: u32) {
+    fn try_attack(state: &mut Board, id: u32) {
         let robot = state.robots.get(&id).expect("Invalid id");
 
         let nearby = state.sense_nearby_robots(id);
@@ -67,10 +71,10 @@ where
     }
 }
 
-pub fn gen_random_starting_state() -> GameState {
+pub fn gen_random_starting_state() -> Board {
     let mut rng = rand::thread_rng();
 
-    let mut state = GameState::new(32, 32);
+    let mut state = Board::new(32, 32);
     let num_robots = rng.gen_range(3..=15);
     for _ in 0..num_robots {
         let mut x = rng.gen_range(0..state.width);
@@ -96,8 +100,8 @@ pub fn gen_random_starting_state() -> GameState {
 
 pub fn get_score<F1, F2>(micro1: F1, micro2: F2, samples: u32) -> f32
 where
-    F1: Fn(&mut GameState, u32) -> () + Sync,
-    F2: Fn(&mut GameState, u32) -> () + Sync,
+    F1: Fn(&mut Board, u32) -> () + Sync,
+    F2: Fn(&mut Board, u32) -> () + Sync,
 {
     let total_healths: Vec<_> = (0..samples)
         .into_par_iter()
