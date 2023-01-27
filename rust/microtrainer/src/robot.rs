@@ -43,13 +43,15 @@ impl<'a> RobotController<'a> {
         robots.robots_by_position[old_position] = None;
         robots.robots_by_position[position] = Some(self.robot_id);
     }
-    pub fn can_attack(&self, position: Position) -> bool {
+    pub fn can_attack(&self, position: impl Into<Position>) -> bool {
+        let position = position.into();
         let robot = self.current_robot();
         robot.is_action_ready()
             && robot.position.distance_squared(position) <= robot.kind.action_radius_squared()
     }
 
-    pub fn attack_exn(&mut self, position: Position) {
+    pub fn attack_exn(&mut self, position: impl Into<Position>) {
+        let position = position.into();
         assert!(self.can_attack(position));
         let robot = self.current_robot_mut();
         robot.action_cooldown += 10;
