@@ -8,7 +8,7 @@ pub trait Bot {
     where
         Self: Default,
     {
-        &|r: &Robot| Default::default()
+        &|_: &Robot| Default::default()
     }
 }
 
@@ -33,8 +33,6 @@ where
         }
     }
 }
-
-// pub trait BotProvider<T: Bot> = Fn(&Robot) -> T;
 
 pub trait BotProvider {
     type BotType: Bot;

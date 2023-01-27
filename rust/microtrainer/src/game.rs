@@ -26,6 +26,7 @@ pub fn new_game_manager_with_red_and_blue<
     })
 }
 
+#[derive(Debug)]
 pub struct GameManager<F, T> {
     board: Board,
     provider: F,
