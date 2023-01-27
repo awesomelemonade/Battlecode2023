@@ -52,6 +52,19 @@ impl Direction {
             Direction::Northwest,
         ]
     }
+    pub fn all_directions() -> [Direction; 9] {
+        [
+            Direction::Center,
+            Direction::North,
+            Direction::Northeast,
+            Direction::East,
+            Direction::Southeast,
+            Direction::South,
+            Direction::Southwest,
+            Direction::West,
+            Direction::Northwest,
+        ]
+    }
 }
 
 impl From<Direction> for (i32, i32) {
