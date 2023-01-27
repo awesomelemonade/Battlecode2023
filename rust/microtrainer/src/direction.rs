@@ -65,6 +65,91 @@ impl Direction {
             Direction::Northwest,
         ]
     }
+    pub fn attempt_order(direction: Direction) -> [Direction; 8] {
+        match direction {
+            Direction::North => [
+                Direction::North,
+                Direction::Northwest,
+                Direction::Northeast,
+                Direction::West,
+                Direction::East,
+                Direction::Southwest,
+                Direction::Southeast,
+                Direction::South,
+            ],
+            Direction::Northeast => [
+                Direction::Northeast,
+                Direction::North,
+                Direction::East,
+                Direction::Northwest,
+                Direction::Southeast,
+                Direction::West,
+                Direction::South,
+                Direction::Southwest,
+            ],
+            Direction::East => [
+                Direction::East,
+                Direction::Northeast,
+                Direction::Southeast,
+                Direction::North,
+                Direction::South,
+                Direction::Northwest,
+                Direction::Southwest,
+                Direction::West,
+            ],
+            Direction::Southeast => [
+                Direction::Southeast,
+                Direction::East,
+                Direction::South,
+                Direction::Northeast,
+                Direction::Southwest,
+                Direction::North,
+                Direction::West,
+                Direction::Northwest,
+            ],
+            Direction::South => [
+                Direction::South,
+                Direction::Southeast,
+                Direction::Southwest,
+                Direction::East,
+                Direction::West,
+                Direction::Northeast,
+                Direction::Northwest,
+                Direction::North,
+            ],
+            Direction::Southwest => [
+                Direction::Southwest,
+                Direction::South,
+                Direction::West,
+                Direction::Southeast,
+                Direction::Northwest,
+                Direction::East,
+                Direction::North,
+                Direction::Northeast,
+            ],
+            Direction::West => [
+                Direction::West,
+                Direction::Southwest,
+                Direction::Northwest,
+                Direction::South,
+                Direction::North,
+                Direction::Southeast,
+                Direction::Northeast,
+                Direction::East,
+            ],
+            Direction::Northwest => [
+                Direction::Northwest,
+                Direction::West,
+                Direction::North,
+                Direction::Southwest,
+                Direction::Northeast,
+                Direction::South,
+                Direction::East,
+                Direction::Southeast,
+            ],
+            Direction::Center => panic!("No attempt order for center"),
+        }
+    }
 }
 
 impl From<Direction> for (i32, i32) {
