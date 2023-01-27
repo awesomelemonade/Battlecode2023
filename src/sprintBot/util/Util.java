@@ -31,7 +31,7 @@ public class Util {
     public static void postLoop() throws GameActionException {
         Cache.postLoop();
         BFSVision.postLoop();
-        //BFSCheckpoints.postLoop();
+        BFSCheckpoints.postLoop();
 
         // consider disintegrating in the late game
         if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS

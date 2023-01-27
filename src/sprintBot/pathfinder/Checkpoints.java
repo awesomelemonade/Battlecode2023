@@ -11,6 +11,8 @@ import static sprintBot.util.Constants.rc;
 public class Checkpoints {
     // 15 x 15 grid of checkpoints. Each checkpoint requires 8 bits.
     public static final int SIZE = 15;
+    public static final int HALF_SIZE = SIZE / 2;
+    public static final int SIZE_MINUS_ONE = SIZE - 1;
     private static final int CYCLES_PER_FULL_REFRESH = 6;
     private static final int CHECKPOINTS_PER_CYCLE = (SIZE * SIZE + CYCLES_PER_FULL_REFRESH - 1) / CYCLES_PER_FULL_REFRESH; // number of checkpoints = 38
     private static final int COMM_INTS_PER_CYCLE = (CHECKPOINTS_PER_CYCLE + 1) / 2; // 2 checkpoints per comm int: 19 ints
@@ -22,31 +24,51 @@ public class Checkpoints {
     private static int pendingSize = 0;
 
     private static final int MASK_8 = 0b1111_1111; // 8 bits
+    private static int HALF_MAP_WIDTH;
+    private static int HALF_MAP_HEIGHT;
+
+    public static void init() {
+        HALF_MAP_WIDTH = Constants.MAP_WIDTH / 2;
+        HALF_MAP_HEIGHT = Constants.MAP_HEIGHT / 2;
+    }
 
     public static void debug_render() {
         if (Profile.CHECKPOINTS.enabled()) {
-            for (int i = 0; i < SIZE; i++) {
-                for (int j = 0; j < SIZE; j++) {
-                    ChunkCoord chunk = new ChunkCoord(i, j);
-
-                    boolean isPending = false;
-                    for (int k = pendingSize; --k >= 0; ) {
-                        if (pending[k].equals(chunk)) {
-                            isPending = true;
-                            break;
-                        }
+            if (rc.getRoundNum() <= 1) {
+                // For debugging getNearestChunkCoord
+                for (int i = 0; i < Constants.MAP_WIDTH; i++) {
+                    for (int j = 0; j < Constants.MAP_WIDTH; j++) {
+                        MapLocation location = new MapLocation(i, j);
+                        ChunkCoord chunkCoord = getNearestChunkCoord(location);
+                        MapLocation chunkLocation = chunkToMapLocation(chunkCoord);
+                        Debug.setIndicatorLine(location, chunkLocation, 0, 255, 0);
+                        Debug.setIndicatorDot(chunkLocation, 0, 255, 0);
                     }
+                }
+            } else {
+                for (int i = 0; i < SIZE; i++) {
+                    for (int j = 0; j < SIZE; j++) {
+                        ChunkCoord chunk = new ChunkCoord(i, j);
 
-                    int checkpoint = checkpoints[chunk.chunkX * SIZE + chunk.chunkY];
-                    MapLocation location = chunkToMapLocation(chunk);
-                    if (checkpoint != 0) {
-                        if (isPending) {
-                            Debug.setIndicatorDot(Profile.CHECKPOINTS, location, 255, 255, 0); // yellow
-                        } else {
-                            Debug.setIndicatorDot(Profile.CHECKPOINTS, location, 0, 255, 0); // green
+                        boolean isPending = false;
+                        for (int k = pendingSize; --k >= 0; ) {
+                            if (pending[k].equals(chunk)) {
+                                isPending = true;
+                                break;
+                            }
                         }
-                    } else {
-                        Debug.setIndicatorDot(Profile.CHECKPOINTS, location, 255, 0, 0); // red
+
+                        int checkpoint = checkpoints[chunk.chunkX * SIZE + chunk.chunkY];
+                        MapLocation location = chunkToMapLocation(chunk);
+                        if (checkpoint != 0) {
+                            if (isPending) {
+                                Debug.setIndicatorDot(Profile.CHECKPOINTS, location, 255, 255, 0); // yellow
+                            } else {
+                                Debug.setIndicatorDot(Profile.CHECKPOINTS, location, 0, 255, 0); // green
+                            }
+                        } else {
+                            Debug.setIndicatorDot(Profile.CHECKPOINTS, location, 255, 0, 0); // red
+                        }
                     }
                 }
             }
@@ -81,25 +103,9 @@ public class Checkpoints {
             for (int i = COMM_INTS_PER_CYCLE; --i >= 0;) {
                 int read = rc.readSharedArray(i + Communication.CHECKPOINTS_OFFSET);
                 int index = CHECKPOINTS_PER_CYCLE * cycleIndex + i * 2;
+                // TODO: invalidate BFSCheckpoints?
                 checkpoints[index] |= read & MASK_8;
                 checkpoints[index + 1] |= (read >> 8) & MASK_8;
-            }
-        }
-        // update checkpoint for current chunk
-        BFSVision bfs = BFSVision.getBFSIfCompleted();
-        if (bfs != null) {
-            ChunkCoord unexplored = getNearestUnexplored(bfs); // TODO: very costly
-            if (unexplored != null) {
-                int checkpoint = 0;
-                // TODO - very costly
-                for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
-                    ChunkCoord neighborChunk = unexplored.add(Constants.ORDINAL_DIRECTIONS[i]);
-                    if (bfsCanReachChunk(bfs, neighborChunk)) { // TODO: maybe bfsCanReachChunk can be cached - we do the same computation in getNearestUnexplored()
-                        // assumed: i = direction.ordinal()
-                        checkpoint |= (1 << i);
-                    }
-                }
-                addPendingCheckpoint(unexplored, checkpoint);
             }
         }
         // flush pending
@@ -115,6 +121,27 @@ public class Checkpoints {
             if (pendingSize > 0) {
                 Debug.println("Warning: Out of space to write pending checkpoints");
             }
+        }
+    }
+
+    public static void onBFSCompleted(BFSVision bfs) {
+        debug_onBFSCompleted(bfs);
+    }
+
+    public static void debug_onBFSCompleted(BFSVision bfs) {
+        ChunkCoord chunk = getNearestChunkCoord(bfs.origin);
+        if (bfsCanReachChunk(bfs, chunk) && chunkIsUnexplored(chunk)) {
+            int checkpoint = 0;
+            // TODO - very costly
+            for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
+                ChunkCoord neighborChunk = chunk.add(Constants.ORDINAL_DIRECTIONS[i]);
+                if (bfsCanReachChunk(bfs, neighborChunk)) { // TODO: maybe bfsCanReachChunk can be cached - we do the same computation in getNearestUnexplored()
+                    // assumed: i = direction.ordinal()
+                    checkpoint |= (1 << i);
+                }
+            }
+            addPendingCheckpoint(chunk, checkpoint);
+            BFSCheckpoints.invalidate();
         }
     }
 
@@ -201,15 +228,10 @@ public class Checkpoints {
     }
 
     public static MapLocation chunkToMapLocation(ChunkCoord chunk) {
-        return new MapLocation(chunk.chunkX * Constants.MAP_WIDTH / SIZE, chunk.chunkY * Constants.MAP_HEIGHT / SIZE);
+        return new MapLocation((chunk.chunkX * Constants.MAP_WIDTH + HALF_SIZE) / SIZE, (chunk.chunkY * Constants.MAP_HEIGHT + HALF_SIZE) / SIZE);
     }
 
     public static ChunkCoord getNearestChunkCoord(MapLocation location) {
-        // TODO: not necessarily the nearest...
-        return new ChunkCoord(location.x * SIZE / Constants.MAP_WIDTH, location.y * SIZE / Constants.MAP_HEIGHT);
-    }
-
-    public static ChunkCoord toChunkCoord(MapLocation location) {
-        return new ChunkCoord(location.x * SIZE / Constants.MAP_WIDTH, location.y * SIZE / Constants.MAP_HEIGHT);
+        return new ChunkCoord(Math.min((location.x * SIZE + HALF_MAP_WIDTH) / Constants.MAP_WIDTH, SIZE_MINUS_ONE), Math.min((location.y * SIZE + HALF_MAP_HEIGHT) / Constants.MAP_HEIGHT, SIZE_MINUS_ONE));
     }
 }

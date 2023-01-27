@@ -247,6 +247,7 @@ public class Communication {
                     (pack(Cache.MY_LOCATION) << HEADQUARTERS_LOCATIONS_LOCATION_BIT) |
                             (1 << HEADQUARTERS_LOCATIONS_SET_BIT));
         }
+        Checkpoints.init();
     }
 
     public static void loop() throws GameActionException {
@@ -283,8 +284,8 @@ public class Communication {
         // Update enemy hqs from comms
         EnemyHqGuesser.update();
         WellTracker.update();
-        //Checkpoints.update();
-        //BFSCheckpoints.debug_render();
+        Checkpoints.update();
+        BFSCheckpoints.debug_render();
     }
 
     public static int pack(MapLocation location) {

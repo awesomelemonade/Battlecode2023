@@ -66,7 +66,7 @@ def run_match(bot, map):
         gameLengthB = retrieveGameLength(outputB)
         gameBResigned = resignedString in outputB
 
-        flagRegex = "FLAG{*}"
+        flagRegex = "FLAG{.*}"
         gameAFlags = list(set(re.findall(flagRegex, outputA)))
         gameBFlags = list(set(re.findall(flagRegex, outputA)))
         gameAFlags = ", ".join([s[5:-1] for s in gameAFlags])

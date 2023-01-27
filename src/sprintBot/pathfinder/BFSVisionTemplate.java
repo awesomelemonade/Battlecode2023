@@ -21,7 +21,7 @@ public class BFSVisionTemplate {
     private int[][] moveDirections;
     private int[][] distances;
     private boolean completed = false;
-    private MapLocation origin;
+    public MapLocation origin;
 
 
     public static void init() {
@@ -209,7 +209,18 @@ public class BFSVisionTemplate {
                     Debug.failFast("Unknown result from isPassable");
             }
         }
-        completed = queue.isEmpty();
+        if (!completed && queue.isEmpty()) {
+            completed = queue.isEmpty();
+            // so much for encapsulation...
+//            Checkpoints.onBFSCompleted(this); // we need a macro to do this
+            /*
+            macro! onBFSCompleted
+            ---
+            Checkpoints.onBFSCompleted(this);
+            ---
+             */
+            // onBFSCompleted!
+        }
         if (Profile.BFS.enabled()) {
             if (completed) {
                 Debug.setIndicatorDot(Profile.BFS, origin, 0, 255, 0); // green

@@ -14456,6 +14456,15 @@ public class FastQueueWithRemove {
         builder.insert(0, s);
     }
 
+    // O(1)
+    public void addToBackIfNonExistent(int x) {
+        String s = toString(x);
+        int index = builder.indexOf(s);
+        if (index != -1) {
+            builder.append(s);
+        }
+    }
+
     // O(n)
     public void retain(IntPredicate predicate, int bytecodeThreshold) {
         int length = builder.length();

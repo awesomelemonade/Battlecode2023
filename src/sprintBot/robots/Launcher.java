@@ -2,6 +2,7 @@ package sprintBot.robots;
 
 import battlecode.common.*;
 import sprintBot.fast.FastIntSet2D;
+import sprintBot.pathfinder.BFSCheckpoints;
 import sprintBot.pathfinder.Pathfinding;
 import sprintBot.util.*;
 
@@ -141,7 +142,9 @@ public class Launcher implements RunnableBot {
                 // try to circle around it
                 tryPathfindingTangent(location);
             } else {
-                Util.tryPathfindingMove(location);
+                if (!BFSCheckpoints.execute()) {
+                    Util.tryPathfindingMove(location);
+                }
             }
         }
     }
