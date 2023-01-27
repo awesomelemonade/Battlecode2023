@@ -72,6 +72,16 @@ fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, state: &Board) {
             cell_size as f32 / 3.0,
             color,
         );
+
+        // health bar
+        let hp = robot.health() as f32 / robot.kind().starting_health() as f32;
+        d.draw_rectangle(
+            robot.position().x as i32 * cell_size,
+            (state.height() as i32 - 1 - robot.position().y as i32) * cell_size + 4*cell_size / 5,
+            (hp * (cell_size as f32)) as i32,
+            cell_size/10,
+            Color::PURPLE,
+        );
     }
 
     // Draw attack vectors
