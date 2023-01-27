@@ -141,14 +141,16 @@ pub fn run() -> OrError<()> {
         -0.49600857,
     ];
     let winrate = arena::get_score(
-        &arena::wrap_micro(&micro::scored::ScoredMicro::provider(&parameters)),
+        // &arena::wrap_micro(&micro::scored::ScoredMicro::provider(&parameters)),
+        &arena::wrap_micro(micro::sprint2::Sprint2Micro::provider()),
         &arena::wrap_micro(micro::sprint1::Sprint1Micro::provider()),
         // &arena::wrap_micro(micro::random::RandomMicro::provider()),
         10000,
     );
     println!("winrate = {}", winrate);
     show_game(
-        &arena::wrap_micro(&micro::scored::ScoredMicro::provider(&parameters)),
+        // &arena::wrap_micro(&micro::scored::ScoredMicro::provider(&parameters)),
+        &arena::wrap_micro(micro::sprint2::Sprint2Micro::provider()),
         &arena::wrap_micro(micro::sprint1::Sprint1Micro::provider()),
     )?;
 
