@@ -1,9 +1,10 @@
 use rand::seq::SliceRandom;
 
-use crate::bot::{Bot, BotProvider};
-use crate::robot::{Robot, RobotController};
+use crate::bot::Bot;
+use crate::robot::RobotController;
 use crate::Direction;
 
+#[derive(Debug, Default)]
 pub struct RandomMicro {}
 
 impl Bot for RandomMicro {
@@ -13,14 +14,5 @@ impl Bot for RandomMicro {
         if controller.can_move(direction) {
             controller.move_exn(direction);
         }
-    }
-}
-
-impl RandomMicro {
-    pub fn new() -> Self {
-        RandomMicro {}
-    }
-    pub fn provider() -> &'static impl BotProvider<BotType = RandomMicro> {
-        &|r: &Robot| Self::new()
     }
 }
