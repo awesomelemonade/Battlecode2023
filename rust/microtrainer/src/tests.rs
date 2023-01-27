@@ -90,7 +90,7 @@ fn test_board_step() {
     board
         .robots_mut()
         .spawn_robot(Team::Red, RobotKind::Launcher, 2, (0, 1));
-    board.step(|mut controller| {
+    board.step(&mut |mut controller| {
         controller.move_exn(Direction::North);
         controller.attack_exn((0, 0));
     });
@@ -157,7 +157,7 @@ fn test_robot_cooldowns() {
     board
         .robots_mut()
         .spawn_robot(Team::Red, RobotKind::Launcher, 2, (0, 1));
-    board.step(|mut controller| {
+    board.step(&mut |mut controller| {
         controller.move_exn(Direction::North);
         controller.attack_exn((0, 0));
         let robot = controller.current_robot();
@@ -190,7 +190,7 @@ fn test_robot_attack_friendly() {
     board
         .robots_mut()
         .spawn_robot(Team::Red, RobotKind::Launcher, 2, (0, 1));
-    board.step(attack_controller);
+    board.step(&mut attack_controller);
     expect!(
         board,
         r#"
@@ -260,7 +260,7 @@ fn test_robot_attack_enemy() {
     board
         .robots_mut()
         .spawn_robot(Team::Blue, RobotKind::Launcher, 2, (0, 1));
-    board.step(attack_controller);
+    board.step(&mut attack_controller);
     expect!(
         board,
         r#"
@@ -333,7 +333,7 @@ fn test_sense_robots_in_vision() {
     board
         .robots_mut()
         .spawn_robot(Team::Blue, RobotKind::Launcher, 2, (0, 99));
-    board.step(|controller| {
+    board.step(&mut |controller| {
         if controller.current_position() == (0, 0).into() {
             expect!(
                 controller.sense_nearby_robots_in_vision(),

@@ -46,9 +46,31 @@ where
         }
     }
 
+    fn substep_exn(&mut self) {
+        assert!(!self.board.is_game_over());
+        self.board.substep(&mut |mut controller| {
+            self.controllers
+                .entry(controller.robot_id())
+                .or_insert_with(|| self.provider.get(controller.current_robot()))
+                .step(&mut controller);
+        });
+        // remove all controllers that aren't alive
+        self.controllers
+            .retain(|&robot_id, _| self.board.robots().is_alive(robot_id));
+    }
+
+    pub fn substep(&mut self) -> OrError<()> {
+        if self.board.is_game_over() {
+            Err(Error!("Game is already over"))
+        } else {
+            self.substep_exn();
+            Ok(())
+        }
+    }
+
     fn step_exn(&mut self) {
         assert!(!self.board.is_game_over());
-        self.board.step(|mut controller| {
+        self.board.step(&mut |mut controller| {
             self.controllers
                 .entry(controller.robot_id())
                 .or_insert_with(|| self.provider.get(controller.current_robot()))
@@ -113,19 +135,20 @@ impl Board {
         self.round_num
     }
 
-    pub fn step(&mut self, mut f: impl FnMut(RobotController)) {
-        self.round_num += 1;
-        // move all robots
-        let robots = self.robots.robot_turn_order().clone();
-        for robot_id in robots {
-            if !self.robots.is_alive(robot_id) {
-                continue;
-            }
-            let controller = RobotController::new(self, robot_id);
-            f(controller);
-            if let Some(robot) = self.robots.get_robot_if_alive_mut(robot_id) {
-                robot.decrement_cooldowns();
-            }
+    pub fn substep(&mut self, f: &mut impl FnMut(RobotController)) {
+        let robot_id = self.robots.get_current_robot_id();
+        let controller = RobotController::new(self, robot_id);
+        f(controller);
+        if let Some(robot) = self.robots.get_robot_if_alive_mut(robot_id) {
+            robot.decrement_cooldowns();
+        }
+        self.robots.next_subturn();
+    }
+
+    pub fn step(&mut self, f: &mut impl FnMut(RobotController)) {
+        let initial_round = self.robots.round_num();
+        while self.robots.round_num() == initial_round && !self.is_game_over() {
+            self.substep(f);
         }
     }
 

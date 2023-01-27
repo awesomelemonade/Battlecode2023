@@ -117,8 +117,8 @@ fn show_game<F1: BotProvider<BotType = impl Bot>, F2: BotProvider<BotType = impl
 
     while !rl.window_should_close() && !manager.board().is_game_over() {
         draw(&mut rl, &thread, manager.board());
-        manager.step()?;
-        thread::sleep(time::Duration::from_millis(100)); // TODO: probably need to adjust time
+        manager.substep()?;
+        thread::sleep(time::Duration::from_millis(5)); // TODO: probably need to adjust time
     }
     draw(&mut rl, &thread, manager.board());
     thread::sleep(time::Duration::from_millis(1000));
