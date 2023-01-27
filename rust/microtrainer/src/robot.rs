@@ -14,6 +14,10 @@ impl<'a> RobotController<'a> {
         Self { board, robot_id }
     }
 
+    pub fn robot_id(&self) -> RobotId {
+        self.robot_id
+    }
+
     pub fn can_move(&self, direction: Direction) -> bool {
         if let Some(position) =
             self.current_position()
@@ -51,20 +55,21 @@ impl<'a> RobotController<'a> {
         robot.action_cooldown += 10;
         let team = robot.team;
         let damage = robot.kind.damage();
-        drop(robot);
 
         let robots = self.board.robots_mut();
-        if let Some(target) = robots.find_robot_by_position_mut(position) {
-            if target.team != team {
+        if let Some(dead_robot_id) = robots
+            .find_robot_by_position_mut(position)
+            .filter(|r| r.team() != team)
+            .and_then(|target| {
                 target.health = target.health.saturating_sub(damage);
                 if target.health == 0 {
-                    let id = target.id;
-                    let x = target.position.x;
-                    let y = target.position.y;
-                    robots.robots_by_id.remove(&id);
-                    robots.robots_by_position.data_mut()[x][y] = None;
+                    Some(target.id)
+                } else {
+                    None
                 }
-            }
+            })
+        {
+            robots.despawn_robot(dead_robot_id);
         }
     }
 
@@ -130,9 +135,8 @@ impl<'a> RobotController<'a> {
             })
             .collect_vec()
     }
-    
-    pub fn get_turn_count(&self) -> u32 {
-        self.board.turn_count
+    pub fn get_round_num(&self) -> u32 {
+        self.board.round_num()
     }
 }
 
@@ -240,7 +244,13 @@ impl Robots {
     pub fn robot_turn_order(&self) -> &Vec<RobotId> {
         &self.robot_turn_order
     }
-    pub fn spawn_robot(&mut self, team: Team, kind: RobotKind, move_cooldown: u32, position: impl Into<Position>) {
+    pub fn spawn_robot(
+        &mut self,
+        team: Team,
+        kind: RobotKind,
+        move_cooldown: u32,
+        position: impl Into<Position>,
+    ) {
         let position = position.into();
         debug_assert!(self.robots_by_position.within_bounds(position));
         debug_assert!(!self.is_occupied(position));
@@ -258,6 +268,20 @@ impl Robots {
         self.robot_turn_order.push(robot_id);
         self.robots_by_position[robot.position()] = Some(robot_id);
         self.robots_by_id.insert(robot_id, robot);
+    }
+    pub fn despawn_robot(&mut self, robot_id: RobotId) {
+        // TODO-someday: consider changing robot_turn_order to a BTreeSet but with insertion order
+        self.robot_turn_order.remove(
+            self.robot_turn_order
+                .iter()
+                .position(|&r| r == robot_id)
+                .expect("Robot id not in turn order"),
+        );
+        let robot = self
+            .robots_by_id
+            .remove(&robot_id)
+            .expect("Robot is not alive");
+        self.robots_by_position[robot.position()] = None;
     }
     pub fn is_occupied(&self, position: impl Into<Position>) -> bool {
         self.find_robot_id_by_position(position.into()).is_some()

@@ -1,32 +1,61 @@
 core!();
 
-use crate::robot::{RobotController, Robots, Team};
+use std::collections::BTreeMap;
 
-pub struct GameManager<F1, F2> {
+use itertools::{Either, Itertools};
+
+use crate::{
+    bot::{Bot, BotProvider},
+    robot::{Robot, RobotController, RobotId, Robots, Team},
+};
+
+pub fn new_game_manager_with_red_and_blue<
+    'a,
+    F1: BotProvider<BotType = T1>,
+    T1: Bot,
+    F2: BotProvider<BotType = T2>,
+    T2: Bot,
+>(
     board: Board,
-    red_controller: F1,
-    blue_controller: F2,
+    red_provider: &'a F1,
+    blue_provider: &'a F2,
+) -> GameManager<impl BotProvider<BotType = Either<T1, T2>> + 'a, Either<T1, T2>> {
+    GameManager::new(board, move |robot: &Robot| match robot.team() {
+        Team::Red => Either::Left((&red_provider).get(robot)),
+        Team::Blue => Either::Right((&blue_provider).get(robot)),
+    })
 }
 
-impl<F1, F2> GameManager<F1, F2>
+pub struct GameManager<F, T> {
+    board: Board,
+    provider: F,
+    controllers: BTreeMap<RobotId, T>,
+}
+
+impl<F, T> GameManager<F, T>
 where
-    F1: Fn(&mut RobotController) -> (),
-    F2: Fn(&mut RobotController) -> (),
+    F: BotProvider<BotType = T>,
+    T: Bot,
 {
-    pub fn new(state: Board, red_controller: F1, blue_controller: F2) -> Self {
+    pub fn new(board: Board, provider: F) -> Self {
         GameManager {
-            board: state,
-            red_controller,
-            blue_controller,
+            board,
+            provider,
+            controllers: BTreeMap::new(),
         }
     }
 
     fn step_exn(&mut self) {
-        self.board
-            .step(|mut controller| match controller.current_robot().team() {
-                Team::Red => (self.red_controller)(&mut controller),
-                Team::Blue => (self.blue_controller)(&mut controller),
-            });
+        assert!(!self.board.is_game_over());
+        self.board.step(|mut controller| {
+            self.controllers
+                .entry(controller.robot_id())
+                .or_insert_with(|| self.provider.get(controller.current_robot()))
+                .step(&mut controller);
+        });
+        // remove all controllers that aren't alive
+        self.controllers
+            .retain(|&robot_id, _| self.board.robots().is_alive(robot_id));
     }
 
     pub fn step(&mut self) -> OrError<()> {
@@ -39,7 +68,7 @@ where
     }
 
     pub fn step_until_game_over(&mut self, max_turns: u32) {
-        while !self.board.is_game_over() && self.board.turn_count < max_turns {
+        while !self.board.is_game_over() && self.board.round_num < max_turns {
             self.step_exn();
         }
     }
@@ -51,7 +80,7 @@ where
 
 #[derive(Debug, Clone)]
 pub struct Board {
-    pub turn_count: u32,
+    round_num: u32,
     width: usize,
     height: usize,
     robots: Robots,
@@ -60,7 +89,7 @@ pub struct Board {
 impl Board {
     pub fn new(width: usize, height: usize) -> Self {
         Board {
-            turn_count: 0,
+            round_num: 0,
             width,
             height,
             robots: Robots::new(width, height),
@@ -75,23 +104,22 @@ impl Board {
         self.height
     }
 
+    pub fn round_num(&self) -> u32 {
+        self.round_num
+    }
+
     pub fn step(&mut self, mut f: impl FnMut(RobotController)) {
-        self.turn_count += 1;
+        self.round_num += 1;
         // move all robots
         let robots = self.robots.robot_turn_order().clone();
-        for robot_id in &robots {
-            if !self.robots.is_alive(*robot_id) {
+        for robot_id in robots {
+            if !self.robots.is_alive(robot_id) {
                 continue;
             }
-            let controller = RobotController::new(self, *robot_id);
+            let controller = RobotController::new(self, robot_id);
             f(controller);
-        }
-        // decrement cooldowns
-        for robot_id in robots {
             if let Some(robot) = self.robots.get_robot_if_alive_mut(robot_id) {
                 robot.decrement_cooldowns();
-            } else {
-                continue;
             }
         }
     }
@@ -105,7 +133,6 @@ impl Board {
     }
 
     pub fn is_game_over(&self) -> bool {
-        self.robots.iter().all(|r| r.team() == Team::Red)
-            || self.robots.iter().all(|r| r.team() == Team::Blue)
+        self.robots.iter().map(|r| r.team()).all_equal()
     }
 }
