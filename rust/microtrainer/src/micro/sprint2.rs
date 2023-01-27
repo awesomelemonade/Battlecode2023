@@ -1,6 +1,7 @@
 use itertools::Itertools;
 
 use crate::{
+    arena::try_attack,
     bot::Bot,
     direction::Direction,
     position::Position,
@@ -30,11 +31,13 @@ impl Ord for Score {
 }
 
 #[derive(Debug, Default)]
-pub struct Sprint2Micro {}
+pub struct Sprint2Micro {
+    prev_closest_enemy_attacker: Option<Position>,
+}
 
 impl Bot for Sprint2Micro {
     fn step(&mut self, controller: &mut RobotController) {
-        // TODO: does not include Cache.prevClosestEnemyAttacker and standing still
+        try_attack(controller);
         let our_robot = controller.current_robot();
 
         fn get_best_move_direction<F>(controller: &RobotController, scorer: F) -> Option<Direction>
@@ -96,7 +99,7 @@ impl Bot for Sprint2Micro {
             let mut score = 0.0;
 
             // prefer squares where attackers can't see you
-            let mut num_enemies_in_vision = enemy_robots
+            let num_enemies_in_vision = enemy_robots
                 .iter()
                 .filter(|r| r.position().distance_squared(pos) <= 20)
                 .count();
@@ -203,9 +206,36 @@ impl Bot for Sprint2Micro {
                 }
             }
         };
-        let dir = get_micro_direction();
-        if dir != Direction::Center && controller.can_move(dir) {
-            controller.move_exn(dir);
+
+        if let Some(closest_enemy) = controller.get_nearest_enemy_omnipotent() {
+            let position = controller.current_position();
+            let dist = position.distance_squared(closest_enemy.position());
+            if dist > 20 {
+                if self.prev_closest_enemy_attacker.is_some() {
+                    // stay still
+                } else {
+                    // omnipotent move
+                    let target = closest_enemy.position();
+                    if let Some(&move_direction) =
+                        Direction::attempt_order(position.direction_to(target))
+                            .iter()
+                            .filter(|&&dir| controller.can_move(dir))
+                            .next()
+                    {
+                        controller.move_exn(move_direction);
+                    }
+                }
+            } else {
+                let dir = get_micro_direction();
+                if dir != Direction::Center && controller.can_move(dir) {
+                    controller.move_exn(dir);
+                }
+            }
         }
+        try_attack(controller);
+        self.prev_closest_enemy_attacker = controller
+            .get_nearest_enemy_omnipotent()
+            .filter(|r| r.position().distance_squared(controller.current_position()) <= 20)
+            .map(|r| r.position());
     }
 }

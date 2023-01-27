@@ -1,3 +1,5 @@
+use crate::direction::Direction;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Position {
     pub x: usize,
@@ -34,6 +36,41 @@ impl Position {
             })
         } else {
             None
+        }
+    }
+    pub fn direction_to(&self, position: impl Into<Position>) -> Direction {
+        let position = position.into();
+        let dx = position.x as f32 - self.x as f32;
+        let dy = position.y as f32 - self.y as f32;
+
+        if dx.abs() >= 2.414 * dy.abs() {
+            if dx > 0f32 {
+                Direction::East
+            } else if dx < 0f32 {
+                Direction::West
+            } else {
+                Direction::Center
+            }
+        } else if dy.abs() >= 2.414 * dx.abs() {
+            if dy > 0f32 {
+                Direction::North
+            } else {
+                Direction::South
+            }
+        } else {
+            if dy > 0f32 {
+                if dx > 0f32 {
+                    Direction::Northeast
+                } else {
+                    Direction::Northwest
+                }
+            } else {
+                if dx > 0f32 {
+                    Direction::Southeast
+                } else {
+                    Direction::Southwest
+                }
+            }
         }
     }
 }
