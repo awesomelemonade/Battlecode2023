@@ -95,7 +95,7 @@ fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, state: &Board) {
 fn show_game<F1: BotProvider<BotType = impl Bot>, F2: BotProvider<BotType = impl Bot>>(
     red_bot: &F1,
     blue_bot: &F2,
-) {
+) -> OrError<()> {
     raylib::core::logging::set_trace_log(raylib::ffi::TraceLogLevel::LOG_ERROR);
     let (mut rl, thread) = raylib::init().title("Micro Trainer").build();
 
@@ -104,13 +104,15 @@ fn show_game<F1: BotProvider<BotType = impl Bot>, F2: BotProvider<BotType = impl
 
     while !rl.window_should_close() && !manager.board().is_game_over() {
         draw(&mut rl, &thread, manager.board());
-        manager.step().unwrap();
+        manager.step()?;
         thread::sleep(time::Duration::from_millis(100)); // TODO: probably need to adjust time
     }
+    draw(&mut rl, &thread, manager.board());
     thread::sleep(time::Duration::from_millis(1000));
+    Ok(())
 }
 
-pub fn run() {
+pub fn run() -> OrError<()> {
     let winrate = arena::get_score(
         &arena::wrap_micro(micro::sprint1::Sprint1Micro::provider()),
         &arena::wrap_micro(micro::random::RandomMicro::provider()),
@@ -120,8 +122,7 @@ pub fn run() {
     show_game(
         &arena::wrap_micro(micro::sprint1::Sprint1Micro::provider()),
         &arena::wrap_micro(micro::random::RandomMicro::provider()),
-        // arena::wrap_micro_persistant(micro::globalelite::micro()),
-        // arena::wrap_micro(micro::sprint1::micro()),
-    );
+    )?;
     // simulated_annealing::train(0.025, 1000);
+    Ok(())
 }

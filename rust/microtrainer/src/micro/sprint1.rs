@@ -5,9 +5,6 @@ use crate::{
     robot::{Robot, RobotController},
 };
 
-// use crate::position::Position;
-// use crate::robot::{RobotController, Robot};
-// use crate::Direction;
 #[derive(Debug, Default)]
 pub struct Sprint1Micro {}
 
@@ -94,7 +91,7 @@ impl Bot for Sprint1Micro {
 
         let our_robot = controller.current_robot();
         let sensed_robots = controller.sense_nearby_robots_in_vision();
-        if our_robot.action_cooldown() < 10 {
+        if our_robot.is_action_ready() {
             // getSingleAttackerOrNull
             let mut enemy = None;
             for other in sensed_robots {
