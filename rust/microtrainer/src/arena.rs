@@ -7,7 +7,7 @@ use crate::{
 use rand::Rng;
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 
-fn try_attack(controller: &mut RobotController) {
+pub fn try_attack(controller: &mut RobotController) {
     let position = controller.current_position();
     let team = controller.current_robot().team();
     if let Some(target) = controller
@@ -32,14 +32,12 @@ pub fn wrap_micro<'a, T: Bot>(
                 let dist = position.distance_squared(closest_enemy.position());
                 if dist > 20 {
                     // omnipotent move
-                    if let Some(&move_direction) = Direction::ordinal_directions()
-                        .iter()
-                        .filter(|&&dir| controller.can_move(dir))
-                        .min_by_key(|&&dir| {
-                            position
-                                .add_exn(dir)
-                                .distance_squared(closest_enemy.position())
-                        })
+                    let target = closest_enemy.position();
+                    if let Some(&move_direction) =
+                        Direction::attempt_order(position.direction_to(target))
+                            .iter()
+                            .filter(|&&dir| controller.can_move(dir))
+                            .next()
                     {
                         controller.move_exn(move_direction);
                     }
