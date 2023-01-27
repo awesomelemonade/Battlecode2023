@@ -57,6 +57,15 @@ impl<T> Grid<T> {
         let (x, y) = position.into();
         x < self.width && y < self.height
     }
+    pub fn width(&self) -> usize {
+        self.width
+    }
+    pub fn height(&self) -> usize {
+        self.height
+    }
+    pub fn dims(&self) -> (usize, usize) {
+        (self.width, self.height)
+    }
 }
 
 impl<T, U> Index<U> for Grid<T>

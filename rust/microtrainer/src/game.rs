@@ -105,6 +105,10 @@ impl Board {
         self.height
     }
 
+    pub fn dims(&self) -> (usize, usize) {
+        (self.width, self.height)
+    }
+
     pub fn round_num(&self) -> u32 {
         self.round_num
     }

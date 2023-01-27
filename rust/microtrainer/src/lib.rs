@@ -80,9 +80,9 @@ fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, state: &Board) {
         let hp = robot.health() as f32 / robot.kind().starting_health() as f32;
         d.draw_rectangle(
             robot.position().x as i32 * cell_size,
-            (state.height() as i32 - 1 - robot.position().y as i32) * cell_size + 4*cell_size / 5,
+            (state.height() as i32 - 1 - robot.position().y as i32) * cell_size + 4 * cell_size / 5,
             (hp * (cell_size as f32)) as i32,
-            cell_size/10,
+            cell_size / 10,
             Color::PURPLE,
         );
     }
@@ -126,16 +126,32 @@ fn show_game<F1: BotProvider<BotType = impl Bot>, F2: BotProvider<BotType = impl
 }
 
 pub fn run() -> OrError<()> {
+    let parameters = [
+        -0.5939289,
+        3.4727945,
+        2.6473014,
+        -3.0031765,
+        -1.7298985,
+        1.6754476,
+        -1.1707187,
+        -1.3061273,
+        4.78204,
+        2.2536876,
+        -1.2344918,
+        -0.49600857,
+    ];
     let winrate = arena::get_score(
+        &arena::wrap_micro(&micro::scored::ScoredMicro::provider(&parameters)),
         &arena::wrap_micro(micro::sprint1::Sprint1Micro::provider()),
-        &arena::wrap_micro(micro::random::RandomMicro::provider()),
-        500,
+        // &arena::wrap_micro(micro::random::RandomMicro::provider()),
+        10000,
     );
     println!("winrate = {}", winrate);
     show_game(
+        &arena::wrap_micro(&micro::scored::ScoredMicro::provider(&parameters)),
         &arena::wrap_micro(micro::sprint1::Sprint1Micro::provider()),
-        &arena::wrap_micro(micro::random::RandomMicro::provider()),
     )?;
+
     // simulated_annealing::train(0.025, 1000);
     Ok(())
 }
