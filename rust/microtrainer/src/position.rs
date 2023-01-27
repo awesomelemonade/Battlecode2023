@@ -22,8 +22,7 @@ impl Position {
     pub fn add_checked(
         &self,
         delta: impl Into<(i32, i32)>,
-        width: usize,
-        height: usize,
+        (width, height): (usize, usize),
     ) -> Option<Position> {
         let (dx, dy) = delta.into();
         let x = (self.x as i32) + dx;

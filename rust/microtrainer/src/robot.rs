@@ -19,9 +19,9 @@ impl<'a> RobotController<'a> {
     }
 
     pub fn can_move(&self, direction: Direction) -> bool {
-        if let Some(position) =
-            self.current_position()
-                .add_checked(direction, self.board.width(), self.board.height())
+        if let Some(position) = self
+            .current_position()
+            .add_checked(direction, self.board.dims())
         {
             let robot = self.current_robot();
             robot.is_move_ready()
@@ -88,13 +88,11 @@ impl<'a> RobotController<'a> {
         let sqrt = ((distance_squared as f64).sqrt() as i32) + 1;
         let current_position = self.current_position();
         let mut positions = Vec::new();
-        let board_width = self.board.width();
-        let board_height = self.board.height();
         for dx in -sqrt..=sqrt {
             for dy in -sqrt..=sqrt {
                 if (dx * dx + dy * dy) as u32 <= distance_squared {
                     if let Some(new_position) =
-                        current_position.add_checked((dx, dy), board_width, board_height)
+                        current_position.add_checked((dx, dy), self.board.dims())
                     {
                         positions.push(new_position);
                     }
@@ -102,6 +100,9 @@ impl<'a> RobotController<'a> {
             }
         }
         positions
+    }
+    pub fn board_dims(&self) -> (usize, usize) {
+        self.board.dims()
     }
     pub fn on_the_map(&self, position: Position) -> bool {
         position.x < self.board.width() && position.y < self.board.height()
