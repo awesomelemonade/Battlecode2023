@@ -216,6 +216,10 @@ impl Robot {
     pub fn action_cooldown(&self) -> u32 {
         self.action_cooldown
     }
+
+    pub fn kind(&self) -> RobotKind {
+        self.kind
+    }
 }
 
 pub type RobotId = u32;
