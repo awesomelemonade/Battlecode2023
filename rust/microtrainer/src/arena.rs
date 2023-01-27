@@ -9,10 +9,11 @@ use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 
 fn try_attack(controller: &mut RobotController) {
     let position = controller.current_position();
+    let team = controller.current_robot().team();
     if let Some(target) = controller
         .sense_nearby_robots_in_vision()
         .iter()
-        .filter(|r| controller.can_attack(r.position()))
+        .filter(|r| r.team() != team && controller.can_attack(r.position()))
         .min_by_key(|r| (r.health(), r.position().distance_squared(position)))
     {
         controller.attack_exn(target.position());
