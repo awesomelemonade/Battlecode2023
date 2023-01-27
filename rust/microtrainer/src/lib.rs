@@ -33,7 +33,7 @@ mod imports;
 #[cfg(test)]
 mod tests;
 
-fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, state: &Board) {
+fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, state: &Board, idx: usize) {
     let cell_size: i32 = 20;
     rl.set_window_size(
         cell_size * state.width() as i32,
@@ -103,6 +103,14 @@ fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, state: &Board) {
     //         color,
     //     );
     // }
+
+    d.draw_text(
+        &idx.to_string(),
+        (state.width()/5) as i32,
+        (state.height()/10) as i32,
+        30,
+        Color::BLACK
+    );
 }
 
 fn show_game<F1: BotProvider<BotType = impl Bot>, F2: BotProvider<BotType = impl Bot>>(
@@ -114,14 +122,40 @@ fn show_game<F1: BotProvider<BotType = impl Bot>, F2: BotProvider<BotType = impl
 
     let state = arena::gen_random_starting_board();
     let mut manager = new_game_manager_with_red_and_blue(state, red_bot, blue_bot);
+    let mut boards = Vec::new();
+    boards.push(manager.board().clone());
 
     while !rl.window_should_close() && !manager.board().is_game_over() {
-        draw(&mut rl, &thread, manager.board());
+        draw(&mut rl, &thread, boards.last().unwrap(), boards.len()-1);
         manager.substep()?;
-        thread::sleep(time::Duration::from_millis(5)); // TODO: probably need to adjust time
+        boards.push(manager.board().clone());
     }
-    draw(&mut rl, &thread, manager.board());
-    thread::sleep(time::Duration::from_millis(1000));
+
+    let mut idx = boards.len() - 1;
+    while !rl.window_should_close() {
+        draw(&mut rl, &thread, &boards[idx], idx);
+        if let Some(key) = rl.get_key_pressed() {
+            let amount = if rl.is_key_down(KeyboardKey::KEY_LEFT_CONTROL) {
+                100
+            } else if rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT) {
+                10
+            } else {
+                1
+            };
+            match key {
+                KeyboardKey::KEY_LEFT => {
+                    idx = idx.saturating_sub(amount);
+                },
+                KeyboardKey::KEY_RIGHT => {
+                    idx += amount;
+                    if idx >= boards.len() {
+                        idx = boards.len() - 1;
+                    }
+                },
+                _ => {}
+            }
+        }
+    }
     Ok(())
 }
 
