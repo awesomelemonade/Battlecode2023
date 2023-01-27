@@ -1,8 +1,8 @@
-use rand::seq::SliceRandom;
+// use rand::seq::SliceRandom;
 
-use crate::position::Position;
-use crate::robot::{RobotController, Robot};
-use crate::Direction;
+// use crate::position::Position;
+// use crate::robot::{RobotController, Robot};
+// use crate::Direction;
 
 // pub fn get_scored_micro(coeffs: [f32; 12]) -> impl Fn(&mut Board, u32) -> () {
 //     move |state, id| {

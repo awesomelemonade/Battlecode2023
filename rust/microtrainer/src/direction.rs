@@ -13,7 +13,7 @@ pub enum Direction {
 
 impl Direction {
     pub fn dx(&self) -> i32 {
-        match *self {
+        match self {
             Self::Center => 0,
             Self::North => 0,
             Self::Northeast => 1,
@@ -27,7 +27,7 @@ impl Direction {
     }
 
     pub fn dy(&self) -> i32 {
-        match *self {
+        match self {
             Self::Center => 0,
             Self::North => 1,
             Self::Northeast => 1,
