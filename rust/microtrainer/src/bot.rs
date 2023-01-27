@@ -4,6 +4,12 @@ use crate::robot::{Robot, RobotController};
 
 pub trait Bot {
     fn step(&mut self, controller: &mut RobotController);
+    fn provider() -> &'static impl BotProvider<BotType = Self>
+    where
+        Self: Default,
+    {
+        &|r: &Robot| Default::default()
+    }
 }
 
 impl<T> Bot for T

@@ -1,3 +1,5 @@
+#![allow(incomplete_features)]
+#![feature(return_position_impl_trait_in_trait)]
 macro_rules! core {
     () => {
         #[allow(unused_imports)]
@@ -27,8 +29,6 @@ use robot::*;
 mod grid;
 
 mod imports;
-
-use crate::game::GameManager;
 
 fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, state: &Board) {
     let cell_size: i32 = 20;
@@ -107,17 +107,18 @@ fn show_game<F1: BotProvider<BotType = impl Bot>, F2: BotProvider<BotType = impl
         manager.step().unwrap();
         thread::sleep(time::Duration::from_millis(100)); // TODO: probably need to adjust time
     }
+    thread::sleep(time::Duration::from_millis(1000));
 }
 
 pub fn run() {
-    // let winrate = arena::get_score(
-    //     arena::wrap_micro(micro::globalelite::micro()),
-    //     arena::wrap_micro(micro::sprint1::micro()),
-    //     500,
-    // );
-    // println!("winrate = {}", winrate);
-    show_game(
+    let winrate = arena::get_score(
+        &arena::wrap_micro(micro::sprint1::Sprint1Micro::provider()),
         &arena::wrap_micro(micro::random::RandomMicro::provider()),
+        500,
+    );
+    println!("winrate = {}", winrate);
+    show_game(
+        &arena::wrap_micro(micro::sprint1::Sprint1Micro::provider()),
         &arena::wrap_micro(micro::random::RandomMicro::provider()),
         // arena::wrap_micro_persistant(micro::globalelite::micro()),
         // arena::wrap_micro(micro::sprint1::micro()),

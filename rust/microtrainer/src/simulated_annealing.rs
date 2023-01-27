@@ -1,6 +1,6 @@
 use rand::Rng;
 
-use crate::{arena, micro};
+use crate::{arena, bot::Bot, micro};
 
 fn get_energy(parameters: [f32; 12]) -> f32 {
     let mut winrates = Vec::new();
