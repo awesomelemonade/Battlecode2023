@@ -139,7 +139,7 @@ impl<'a> RobotController<'a> {
             .collect_vec()
     }
     pub fn get_round_num(&self) -> u32 {
-        self.board.round_num()
+        self.board.robots().round_num()
     }
 }
 

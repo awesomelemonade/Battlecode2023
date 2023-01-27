@@ -91,7 +91,7 @@ where
     }
 
     pub fn step_until_game_over(&mut self, max_turns: u32) {
-        while !self.board.is_game_over() && self.board.round_num < max_turns {
+        while !self.board.is_game_over() && self.board.robots().round_num() < max_turns {
             self.step_exn();
         }
     }
@@ -103,7 +103,6 @@ where
 
 #[derive(Debug, Clone)]
 pub struct Board {
-    round_num: u32,
     width: usize,
     height: usize,
     robots: Robots,
@@ -112,7 +111,6 @@ pub struct Board {
 impl Board {
     pub fn new(width: usize, height: usize) -> Self {
         Board {
-            round_num: 0,
             width,
             height,
             robots: Robots::new(width, height),
@@ -129,10 +127,6 @@ impl Board {
 
     pub fn dims(&self) -> (usize, usize) {
         (self.width, self.height)
-    }
-
-    pub fn round_num(&self) -> u32 {
-        self.round_num
     }
 
     pub fn substep(&mut self, f: &mut impl FnMut(RobotController)) {
