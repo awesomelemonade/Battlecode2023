@@ -30,6 +30,9 @@ mod grid;
 
 mod imports;
 
+#[cfg(test)]
+mod tests;
+
 fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, state: &Board) {
     let cell_size: i32 = 20;
     rl.set_window_size(
