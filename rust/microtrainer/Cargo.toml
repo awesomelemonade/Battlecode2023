@@ -14,6 +14,7 @@ lazy_static = "1.4.0"
 itertools = "0.10.5"
 rayon = "1.5"
 ld4-expect = { git = "https://github.com/awesomelemonade/ld4-expect" }
+plotters = "0.3.4"
 
 [profile.dev]
 opt-level = 3

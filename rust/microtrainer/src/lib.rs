@@ -30,6 +30,8 @@ mod grid;
 
 mod imports;
 
+mod plot;
+
 #[cfg(test)]
 mod tests;
 
@@ -106,10 +108,10 @@ fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, state: &Board, idx: usize)
 
     d.draw_text(
         &idx.to_string(),
-        (state.width()/5) as i32,
-        (state.height()/10) as i32,
+        (state.width() / 5) as i32,
+        (state.height() / 10) as i32,
         30,
-        Color::BLACK
+        Color::BLACK,
     );
 }
 
@@ -126,7 +128,7 @@ fn show_game<F1: BotProvider<BotType = impl Bot>, F2: BotProvider<BotType = impl
     boards.push(manager.board().clone());
 
     while !rl.window_should_close() && !manager.board().is_game_over() {
-        draw(&mut rl, &thread, boards.last().unwrap(), boards.len()-1);
+        draw(&mut rl, &thread, boards.last().unwrap(), boards.len() - 1);
         manager.substep()?;
         boards.push(manager.board().clone());
     }
@@ -145,13 +147,13 @@ fn show_game<F1: BotProvider<BotType = impl Bot>, F2: BotProvider<BotType = impl
             match key {
                 KeyboardKey::KEY_LEFT => {
                     idx = idx.saturating_sub(amount);
-                },
+                }
                 KeyboardKey::KEY_RIGHT => {
                     idx += amount;
                     if idx >= boards.len() {
                         idx = boards.len() - 1;
                     }
-                },
+                }
                 _ => {}
             }
         }
@@ -160,6 +162,7 @@ fn show_game<F1: BotProvider<BotType = impl Bot>, F2: BotProvider<BotType = impl
 }
 
 pub fn run() -> OrError<()> {
+    // plot::main()
     let parameters = [
         -0.5939289,
         3.4727945,
