@@ -8,9 +8,11 @@ fn get_energy(parameters: [f32; 12]) -> f32 {
     loop {
         let winrate = arena::get_score(
             // arena::wrap_micro(micro::scored::micro(parameters)),
-            arena::wrap_micro(micro::sprint1::micro()),
-            arena::wrap_micro(micro::sprint1::micro()),
-            500
+            // arena::wrap_micro(micro::sprint1::micro()),
+            // arena::wrap_micro(micro::sprint1::micro()),
+            micro::random::RandomMicro::provider(),
+            micro::random::RandomMicro::provider(),
+            500,
         );
         winrates.push(winrate);
         num_samples += 1.0;

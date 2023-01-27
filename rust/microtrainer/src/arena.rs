@@ -1,7 +1,8 @@
 use crate::{
-    game::{Board, GameManager},
-    robot::{RobotController, RobotKind, Team},
-    Direction, bot::Bot,
+    bot::{Bot, BotProvider},
+    game::{new_game_manager_with_red_and_blue, Board},
+    robot::{Robot, RobotController, RobotKind, Team},
+    Direction,
 };
 use rand::Rng;
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
@@ -18,47 +19,17 @@ fn try_attack(controller: &mut RobotController) {
     }
 }
 
-pub fn wrap_micro<T>(gen: impl Fn() -> T) -> impl Fn() -> T
-where
-    T: Bot
-{
-    move |controller| {
-        try_attack(controller);
-        if let Some(closest_enemy) = controller.get_nearest_enemy_omnipotent() {
-            let position = controller.current_position();
-            let dist = position.distance_squared(closest_enemy.position());
-            if dist > 20 {
-                // omnipotent move
-                if let Some(&move_direction) = Direction::ordinal_directions()
-                    .iter()
-                    .filter(|&&dir| controller.can_move(dir))
-                    .min_by_key(|&&dir| {
-                        position
-                            .add_exn(dir)
-                            .distance_squared(closest_enemy.position())
-                    })
-                {
-                    controller.move_exn(move_direction);
-                }
-            } else {
-                micro(controller);
-            }
-        }
-        try_attack(controller);
-    }
-}
-
-pub fn wrap_micro_scp<F>(micro: F) -> impl Fn(&mut RobotController) -> ()
-where
-    F: Fn(&mut RobotController) -> (),
-{
-    move |controller| {
-        try_attack(controller);
-        if let Some(closest_enemy) = controller.get_nearest_enemy_omnipotent() {
-            let position = controller.current_position();
-            let dist = position.distance_squared(closest_enemy.position());
-            if dist > 20 {
-                if controller.get_turn_count() % 3 == 0 {
+pub fn wrap_micro<'a, T: Bot>(
+    micro: &'a impl BotProvider<BotType = T>,
+) -> impl BotProvider<BotType = impl Bot> + 'a {
+    move |robot: &Robot| {
+        let mut bot = micro.get(robot);
+        move |controller: &mut RobotController| {
+            try_attack(controller);
+            if let Some(closest_enemy) = controller.get_nearest_enemy_omnipotent() {
+                let position = controller.current_position();
+                let dist = position.distance_squared(closest_enemy.position());
+                if dist > 20 {
                     // omnipotent move
                     if let Some(&move_direction) = Direction::ordinal_directions()
                         .iter()
@@ -71,46 +42,12 @@ where
                     {
                         controller.move_exn(move_direction);
                     }
+                } else {
+                    bot.step(controller);
                 }
-            } else {
-                micro(controller);
             }
+            try_attack(controller);
         }
-        try_attack(controller);
-    }
-}
-
-pub fn wrap_micro_persistant<F>(micro: F) -> impl Fn(&mut RobotController) -> ()
-where
-    F: Fn(&mut RobotController) -> (),
-{
-    move |controller| {
-        static mut turns_since_micro: i32 = 100;
-        unsafe { turns_since_micro += 1; }
-        try_attack(controller);
-        if let Some(closest_enemy) = controller.get_nearest_enemy_omnipotent() {
-            let position = controller.current_position();
-            let dist = position.distance_squared(closest_enemy.position());
-            // println!("{}", unsafe{turns_since_micro});
-            if dist > 20 && unsafe {turns_since_micro > 10} {
-                // omnipotent move
-                if let Some(&move_direction) = Direction::ordinal_directions()
-                    .iter()
-                    .filter(|&&dir| controller.can_move(dir))
-                    .min_by_key(|&&dir| {
-                        position
-                            .add_exn(dir)
-                            .distance_squared(closest_enemy.position())
-                    })
-                {
-                    controller.move_exn(move_direction);
-                }
-            } else {
-                micro(controller);
-                unsafe{ turns_since_micro = 0; }
-            }
-        }
-        try_attack(controller);
     }
 }
 
@@ -126,9 +63,12 @@ pub fn gen_random_starting_board() -> Board {
             x = rng.gen_range(0..board.width());
             y = rng.gen_range(0..board.height() / 3);
         }
-        board
-            .robots_mut()
-            .spawn_robot(Team::Red, RobotKind::Launcher, rng.gen_range(0..20), (x, y));
+        board.robots_mut().spawn_robot(
+            Team::Red,
+            RobotKind::Launcher,
+            rng.gen_range(0..20),
+            (x, y),
+        );
     }
     for _ in 0..num_robots {
         let mut x = rng.gen_range(0..board.width());
@@ -137,18 +77,23 @@ pub fn gen_random_starting_board() -> Board {
             x = rng.gen_range(0..board.width());
             y = board.height() - 1 - rng.gen_range(0..board.height() / 3);
         }
-        board
-            .robots_mut()
-            .spawn_robot(Team::Blue, RobotKind::Launcher, rng.gen_range(0..20), (x, y));
+        board.robots_mut().spawn_robot(
+            Team::Blue,
+            RobotKind::Launcher,
+            rng.gen_range(0..20),
+            (x, y),
+        );
     }
 
     board
 }
 
-pub fn get_score<F1, F2>(bot1: F1, bot2: F2, samples: u32) -> f32
+pub fn get_score<F1, F2, T1, T2>(bot_provider1: &F1, bot_provider2: &F2, samples: u32) -> f32
 where
-    F1: Fn(&mut RobotController) -> () + Sync,
-    F2: Fn(&mut RobotController) -> () + Sync,
+    F1: BotProvider<BotType = T1> + Send + Sync,
+    F2: BotProvider<BotType = T2> + Send + Sync,
+    T1: Bot,
+    T2: Bot,
 {
     let total_healths: Vec<_> = (0..samples)
         .into_par_iter()
@@ -156,10 +101,10 @@ where
             let mut total_health_1 = 0.0;
             let mut total_health_2 = 0.0;
             let starting_board = gen_random_starting_board();
-            let mut manager = GameManager::new(
+            let mut manager = new_game_manager_with_red_and_blue(
                 starting_board.clone(),
-                &bot1,
-                &bot2,
+                bot_provider1,
+                bot_provider2,
             );
             manager.step_until_game_over(200);
             for robot in manager.board().robots().iter() {
@@ -169,11 +114,10 @@ where
                     total_health_2 += robot.health() as f32;
                 }
             }
-
-            let mut manager = GameManager::new(
+            let mut manager = new_game_manager_with_red_and_blue(
                 starting_board.clone(),
-                &bot2,
-                &bot1,
+                bot_provider2,
+                bot_provider1,
             );
             manager.step_until_game_over(200);
             for robot in manager.board().robots().iter() {

@@ -7,15 +7,16 @@ macro_rules! core {
 
 core!();
 
+use bot::{Bot, BotProvider};
 use raylib::prelude::*;
 use std::{thread, time};
 
 mod arena;
+mod bot;
 mod game;
 mod micro;
 mod simulated_annealing;
-mod bot;
-use game::Board;
+use game::{new_game_manager_with_red_and_blue, Board};
 
 mod direction;
 use direction::*;
@@ -91,16 +92,15 @@ fn draw(rl: &mut RaylibHandle, thread: &RaylibThread, state: &Board) {
     // }
 }
 
-fn show_game<F1, F2>(red_bot: F1, blue_bot: F2)
-where
-    F1: Fn(&mut RobotController) -> (),
-    F2: Fn(&mut RobotController) -> (),
-{
+fn show_game<F1: BotProvider<BotType = impl Bot>, F2: BotProvider<BotType = impl Bot>>(
+    red_bot: &F1,
+    blue_bot: &F2,
+) {
     raylib::core::logging::set_trace_log(raylib::ffi::TraceLogLevel::LOG_ERROR);
     let (mut rl, thread) = raylib::init().title("Micro Trainer").build();
 
     let state = arena::gen_random_starting_board();
-    let mut manager = GameManager::new(state, red_bot, blue_bot);
+    let mut manager = new_game_manager_with_red_and_blue(state, red_bot, blue_bot);
 
     while !rl.window_should_close() && !manager.board().is_game_over() {
         draw(&mut rl, &thread, manager.board());
@@ -110,15 +110,17 @@ where
 }
 
 pub fn run() {
-    let winrate = arena::get_score(
-        arena::wrap_micro_persistant(micro::globalelite::micro()),
-        arena::wrap_micro(micro::sprint1::micro()),
-        500
-    );
-    println!("winrate = {}", winrate);
+    // let winrate = arena::get_score(
+    //     arena::wrap_micro(micro::globalelite::micro()),
+    //     arena::wrap_micro(micro::sprint1::micro()),
+    //     500,
+    // );
+    // println!("winrate = {}", winrate);
     show_game(
-        arena::wrap_micro_persistant(micro::globalelite::micro()),
-        arena::wrap_micro(micro::sprint1::micro()),
+        &arena::wrap_micro(micro::random::RandomMicro::provider()),
+        &arena::wrap_micro(micro::random::RandomMicro::provider()),
+        // arena::wrap_micro_persistant(micro::globalelite::micro()),
+        // arena::wrap_micro(micro::sprint1::micro()),
     );
     // simulated_annealing::train(0.025, 1000);
 }

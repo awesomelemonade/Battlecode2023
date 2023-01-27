@@ -2,8 +2,6 @@ use std::ops::{Index, IndexMut};
 
 use itertools::Itertools;
 
-use crate::position::Position;
-
 #[derive(Debug)]
 pub struct Grid<T> {
     width: usize,
@@ -55,7 +53,8 @@ impl<T> Grid<T> {
     pub fn data_mut(&mut self) -> &mut Vec<Vec<T>> {
         &mut self.data
     }
-    pub fn within_bounds(&self, Position { x, y }: Position) -> bool {
+    pub fn within_bounds(&self, position: impl Into<(usize, usize)>) -> bool {
+        let (x, y) = position.into();
         x < self.width && y < self.height
     }
 }
