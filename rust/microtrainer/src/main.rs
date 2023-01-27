@@ -1,3 +1,3 @@
-fn main() {
-    microtrainer::run();
+fn main() -> anyhow::Result<()> {
+    microtrainer::run()
 }

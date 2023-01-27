@@ -24,7 +24,7 @@ impl<'a> RobotController<'a> {
                 .add_checked(direction, self.board.width(), self.board.height())
         {
             let robot = self.current_robot();
-            robot.move_cooldown < 10
+            robot.is_move_ready()
                 && (robot.position() == position || !self.board.robots().is_occupied(position))
         } else {
             false
@@ -45,7 +45,7 @@ impl<'a> RobotController<'a> {
     }
     pub fn can_attack(&self, position: Position) -> bool {
         let robot = self.current_robot();
-        robot.action_cooldown <= 10
+        robot.is_action_ready()
             && robot.position.distance_squared(position) <= robot.kind.action_radius_squared()
     }
 
@@ -199,6 +199,18 @@ impl Robot {
 
     pub fn health(&self) -> u32 {
         self.health
+    }
+
+    pub fn is_move_ready(&self) -> bool {
+        self.move_cooldown < 10
+    }
+
+    pub fn move_cooldown(&self) -> u32 {
+        self.move_cooldown
+    }
+
+    pub fn is_action_ready(&self) -> bool {
+        self.action_cooldown < 10
     }
 
     pub fn action_cooldown(&self) -> u32 {
