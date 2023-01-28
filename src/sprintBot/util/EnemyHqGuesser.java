@@ -51,9 +51,19 @@ public class EnemyHqGuesser {
         predictions[hqIndex * NUM_POSSIBLE_SYMMETRIES + 2] = new MapLocation(symX, symY);
     }
 
+    public static void addToEnemyHeadquartersLocations(MapLocation location) {
+        // Must check because two symmetries can yield the same headquarters locations
+        for (int i = numKnownEnemyHeadquarterLocations; --i >= 0; ) {
+            if (enemyHeadquartersLocations[i].equals(location)) {
+                return; // already have it in our list
+            }
+        }
+        enemyHeadquartersLocations[numKnownEnemyHeadquarterLocations++] = location;
+    }
+
     public static void markKnownEnemyHQ(int index) {
         if ((confirmed & (1 << index)) == 0) {
-            enemyHeadquartersLocations[numKnownEnemyHeadquarterLocations++] = predictions[index];
+            addToEnemyHeadquartersLocations(predictions[index]);
         }
         confirmed |= 1 << index;
     }
@@ -110,7 +120,7 @@ public class EnemyHqGuesser {
                 for (int i = predictions.length; --i >= 0; ) {
                     if ((confirmedDifferences & (1 << i)) != 0) {
                         // predictions[i] is now confirmed
-                        enemyHeadquartersLocations[numKnownEnemyHeadquarterLocations++] = predictions[i];
+                        addToEnemyHeadquartersLocations(predictions[i]);
                     }
                 }
             }
