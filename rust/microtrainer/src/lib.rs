@@ -11,9 +11,8 @@ macro_rules! core {
 core!();
 
 use bot::{Bot, BotProvider};
+use itertools::Itertools;
 use raylib::prelude::*;
-use std::{thread, time};
-
 mod arena;
 mod bot;
 mod game;
@@ -27,6 +26,8 @@ mod position;
 use position::*;
 mod robot;
 use robot::*;
+
+use crate::plot::histogram;
 mod grid;
 
 mod imports;
@@ -164,34 +165,38 @@ fn show_game<F1: BotProvider<BotType = impl Bot>, F2: BotProvider<BotType = impl
 
 pub fn run() -> OrError<()> {
     // plot::main()
-    let parameters = [
-        -0.5939289,
-        3.4727945,
-        2.6473014,
-        -3.0031765,
-        -1.7298985,
-        1.6754476,
-        -1.1707187,
-        -1.3061273,
-        4.78204,
-        2.2536876,
-        -1.2344918,
-        -0.49600857,
-    ];
-    let winrate = arena::get_score(
-        // &arena::wrap_micro(&micro::scored::ScoredMicro::provider(&parameters)),
-        micro::sprint2::Sprint2Micro::provider(),
-        &arena::wrap_micro(micro::sprint1::Sprint1Micro::provider()),
-        // &arena::wrap_micro(micro::random::RandomMicro::provider()),
-        10000,
-    );
-    println!("winrate = {}", winrate);
-    show_game(
-        // &arena::wrap_micro(&micro::scored::ScoredMicro::provider(&parameters)),
-        micro::sprint2::Sprint2Micro::provider(),
-        &arena::wrap_micro(micro::sprint1::Sprint1Micro::provider()),
-    )?;
+    // let parameters = [
+    //     -0.5939289,
+    //     3.4727945,
+    //     2.6473014,
+    //     -3.0031765,
+    //     -1.7298985,
+    //     1.6754476,
+    //     -1.1707187,
+    //     -1.3061273,
+    //     4.78204,
+    //     2.2536876,
+    //     -1.2344918,
+    //     -0.49600857,
+    // ];
+    // let scores = arena::get_scores(
+    //     // &arena::wrap_micro(&micro::scored::ScoredMicro::provider(&parameters)),
+    //     micro::sprint2::Sprint2Micro::provider(),
+    //     &arena::wrap_micro(micro::sprint1::Sprint1Micro::provider()),
+    //     // &arena::wrap_micro(micro::random::RandomMicro::provider()),
+    //     10000,
+    // );
+    // let scores_f64 = scores.iter().map(|&x| x as f64).collect_vec();
+    // histogram(scores_f64.as_slice(), 0.01)?;
 
-    // simulated_annealing::train(0.025, 1000);
+    // let average_score = scores.iter().sum::<f32>() / scores.len() as f32;
+    // println!("score = {}", average_score);
+    // show_game(
+    //     // &arena::wrap_micro(&micro::scored::ScoredMicro::provider(&parameters)),
+    //     micro::sprint2::Sprint2Micro::provider(),
+    //     &arena::wrap_micro(micro::sprint1::Sprint1Micro::provider()),
+    // )?;
+
+    simulated_annealing::train(0.025, 1000);
     Ok(())
 }

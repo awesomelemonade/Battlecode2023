@@ -106,7 +106,7 @@ impl Bot for Sprint1Micro {
 
             if let Some(enemy) = enemy {
                 // shouldAttackSingleEnemyWithAction
-                let damage = 30;
+                let damage = our_robot.kind().damage();
                 let num_attacks_to_enemy = (enemy.health() + damage - 1) / damage;
                 let num_attacks_to_us = (our_robot.health() + damage - 1) / damage;
                 let should_attack = num_attacks_to_us >= num_attacks_to_enemy;

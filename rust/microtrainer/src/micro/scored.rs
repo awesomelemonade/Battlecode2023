@@ -93,7 +93,7 @@ impl Bot for ScoredMicro {
                 + self.coeffs[7] * num_enemies as f32
                 + self.coeffs[8] * num_allies_close as f32 / 5.0
                 + self.coeffs[9] * num_allies_far as f32 / 5.0
-                + self.coeffs[10] * ready_to_attack
+                + self.coeffs[10] * ready_to_attack // useless
                 + self.coeffs[11] * new_movement_cooldown as f32 / 10.0
         };
 

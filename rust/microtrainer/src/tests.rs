@@ -12,7 +12,6 @@ fn test_board_new() {
         board,
         r#"
         Board {
-            round_num: 0,
             width: 5,
             height: 5,
             robots: Robots {
@@ -80,6 +79,8 @@ fn test_board_new() {
                     ],
                 },
             },
+            round_num: 0,
+            current_turn_queue: [],
         }"#
     );
 }
@@ -90,7 +91,7 @@ fn test_board_step() {
     board
         .robots_mut()
         .spawn_robot(Team::Red, RobotKind::Launcher, 2, (0, 1));
-    board.step(&mut |mut controller| {
+    board.step_new_round_exn(&mut |mut controller| {
         controller.move_exn(Direction::North);
         controller.attack_exn((0, 0));
     });
@@ -99,7 +100,6 @@ fn test_board_step() {
         board,
         r#"
         Board {
-            round_num: 1,
             width: 3,
             height: 3,
             robots: Robots {
@@ -147,6 +147,8 @@ fn test_board_step() {
                     ],
                 },
             },
+            round_num: 1,
+            current_turn_queue: [],
         }"#
     )
 }
@@ -157,7 +159,7 @@ fn test_robot_cooldowns() {
     board
         .robots_mut()
         .spawn_robot(Team::Red, RobotKind::Launcher, 2, (0, 1));
-    board.step(&mut |mut controller| {
+    board.step_new_round_exn(&mut |mut controller| {
         controller.move_exn(Direction::North);
         controller.attack_exn((0, 0));
         let robot = controller.current_robot();
@@ -190,12 +192,11 @@ fn test_robot_attack_friendly() {
     board
         .robots_mut()
         .spawn_robot(Team::Red, RobotKind::Launcher, 2, (0, 1));
-    board.step(&mut attack_controller);
+    board.step_new_round_exn(&mut attack_controller);
     expect!(
         board,
         r#"
         Board {
-            round_num: 1,
             width: 1,
             height: 2,
             robots: Robots {
@@ -247,6 +248,8 @@ fn test_robot_attack_friendly() {
                     ],
                 },
             },
+            round_num: 1,
+            current_turn_queue: [],
         }"#
     )
 }
@@ -260,12 +263,11 @@ fn test_robot_attack_enemy() {
     board
         .robots_mut()
         .spawn_robot(Team::Blue, RobotKind::Launcher, 2, (0, 1));
-    board.step(&mut attack_controller);
+    board.step_new_round_exn(&mut attack_controller);
     expect!(
         board,
         r#"
         Board {
-            round_num: 1,
             width: 1,
             height: 2,
             robots: Robots {
@@ -317,6 +319,8 @@ fn test_robot_attack_enemy() {
                     ],
                 },
             },
+            round_num: 1,
+            current_turn_queue: [],
         }"#
     );
 }
@@ -333,7 +337,7 @@ fn test_sense_robots_in_vision() {
     board
         .robots_mut()
         .spawn_robot(Team::Blue, RobotKind::Launcher, 2, (0, 99));
-    board.step(&mut |controller| {
+    board.step_new_round_exn(&mut |controller| {
         if controller.current_position() == (0, 0).into() {
             expect!(
                 controller.sense_nearby_robots_in_vision(),

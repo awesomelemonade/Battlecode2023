@@ -87,19 +87,24 @@ pub fn gen_random_starting_board() -> Board {
     board
 }
 
-pub fn get_score<F1, F2, T1, T2>(bot_provider1: &F1, bot_provider2: &F2, samples: u32) -> f32
+pub fn get_scores<F1, F2, T1, T2>(bot_provider1: &F1, bot_provider2: &F2, samples: u32) -> Vec<f32>
 where
     F1: BotProvider<BotType = T1> + Send + Sync,
     F2: BotProvider<BotType = T2> + Send + Sync,
     T1: Bot,
     T2: Bot,
 {
-    let total_healths: Vec<_> = (0..samples)
+    let scores: Vec<_> = (0..samples)
         .into_par_iter()
         .map(|_| {
             let mut total_health_1 = 0.0;
             let mut total_health_2 = 0.0;
             let starting_board = gen_random_starting_board();
+            let total_start_health = starting_board
+                .robots()
+                .iter()
+                .map(|r| r.health())
+                .sum::<u32>();
             let mut manager = new_game_manager_with_red_and_blue(
                 starting_board.clone(),
                 bot_provider1,
@@ -126,11 +131,11 @@ where
                     total_health_2 += robot.health() as f32;
                 }
             }
-            (total_health_1, total_health_2)
+            let remaining_health_ratio1 = total_health_1 / total_start_health as f32;
+            let remaining_health_ratio2 = total_health_2 / total_start_health as f32;
+            // need to somehow incentive winning by more
+            remaining_health_ratio1 - remaining_health_ratio2
         })
         .collect();
-    let (total_health_1, total_health_2): (Vec<_>, Vec<_>) = total_healths.into_iter().unzip();
-    let total_health_1: f32 = total_health_1.iter().sum();
-    let total_health_2: f32 = total_health_2.iter().sum();
-    total_health_1 / (total_health_1 + total_health_2)
+    scores
 }
