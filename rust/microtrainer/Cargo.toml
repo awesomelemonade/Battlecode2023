@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-raylib = { version = "3.7" }
 statistical = "1.0.0"
 rand = "0.8.5"
 anyhow = "1.0"
@@ -21,4 +20,13 @@ opt-level = 3
 
 [profile.release-with-debug]
 inherits = "release"
+default-features = false
 debug = 1
+
+[features]
+default = ["visualizer"]
+visualizer = ["raylib"]
+
+[dependencies.raylib]
+version = "3.7"
+optional = true
