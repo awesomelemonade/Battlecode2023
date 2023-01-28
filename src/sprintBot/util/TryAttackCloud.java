@@ -29,7 +29,7 @@ public class TryAttackCloud {
             MapLocation location = cloudLocations[i];
             if (!rc.canSenseLocation(location) && rc.canAttack(location)) {
                 int distanceSquared = location.distanceSquaredTo(enemyLocation);
-                if (distanceSquared < bestDistanceSquared) {
+                if (distanceSquared > 0 && distanceSquared < bestDistanceSquared) {
                     bestDistanceSquared = distanceSquared;
                     bestLocation = location;
                 }

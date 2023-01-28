@@ -61,9 +61,9 @@ public class Carrier implements RunnableBot {
         if (tryKiteFromEnemies()) {
             return;
         }
-        if (tryMoveToCommunicatePendingManaWell()) {
-            return;
-        }
+//        if (tryMoveToCommunicatePendingManaWell()) {
+//            return;
+//        }
         Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
         if (tryMoveToPickupAnchor()) {
             return;
