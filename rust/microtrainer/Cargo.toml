@@ -18,3 +18,7 @@ plotters = "0.3.4"
 
 [profile.dev]
 opt-level = 3
+
+[profile.release-with-debug]
+inherits = "release"
+debug = 1
