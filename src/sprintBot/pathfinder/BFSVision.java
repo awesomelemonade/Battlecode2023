@@ -360,10 +360,10 @@ public class BFSVision {
             /*
             macro! onBFSCompleted
             ---
-            Checkpoints.onBFSCompleted(this);
+            //Checkpoints.onBFSCompleted(this);
             ---
              */
-            Checkpoints.onBFSCompleted(this);
+            //Checkpoints.onBFSCompleted(this);
         }
         if (Profile.BFS.enabled()) {
             if (completed) {

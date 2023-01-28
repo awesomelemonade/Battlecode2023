@@ -216,7 +216,7 @@ public class BFSVisionTemplate {
             /*
             macro! onBFSCompleted
             ---
-            Checkpoints.onBFSCompleted(this);
+            //Checkpoints.onBFSCompleted(this);
             ---
              */
             // onBFSCompleted!
