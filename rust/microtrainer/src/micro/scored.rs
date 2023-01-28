@@ -31,70 +31,74 @@ impl Bot for ScoredMicro {
             .iter()
             .filter(|r| r.team() == team)
             .collect_vec();
+        let damage = robot.kind().damage();
+        let action_radius_squared = controller.current_robot().kind().action_radius_squared();
+        let vision_radius_squared = controller.current_robot().kind().vision_radius_squared();
+        let closest_enemy_location = enemy_robots
+            .iter()
+            .min_by_key(|r| r.position().distance_squared(robot.position()))
+            .map(|r| r.position())
+            .expect("Micro with no enemy?");
 
         let get_score = |pos: Position| -> f32 {
-            let mut dist_to_nearest_enemy = 1000;
-            let mut lowest_enemy = None;
-            let mut lowest_enemy_health = 200;
-            let mut num_enemies = 0;
-            for robot in &enemy_robots {
-                let dist = robot.position().distance_squared(pos);
+            let action_enemies = enemy_robots
+                .iter()
+                .filter(|r| r.position().distance_squared(pos) <= action_radius_squared)
+                .collect_vec();
+            let vision_enemies = enemy_robots
+                .iter()
+                .filter(|r| r.position().distance_squared(pos) <= vision_radius_squared)
+                .collect_vec();
+            let vision_enemy_health: u32 = vision_enemies.iter().map(|r| r.health()).sum();
+            let vision_enemy_damage = vision_enemies.len() as u32 * damage;
 
-                dist_to_nearest_enemy = dist_to_nearest_enemy.min(dist);
-                if dist <= 16 {
-                    lowest_enemy_health = lowest_enemy_health.min(robot.health());
-                    lowest_enemy = Some(robot);
-                    num_enemies += 1;
-                }
+            let health_factor = if vision_enemies.is_empty() {
+                0
+            } else {
+                let num_attacks_to_enemy = (vision_enemy_health + damage - 1) / damage;
+                let num_attacks_to_us =
+                    (robot.health() + vision_enemy_damage - 1) / vision_enemy_damage;
+                num_attacks_to_enemy as i32 - num_attacks_to_us as i32
+            };
+
+            let is_center_move = if robot.position() == pos { 1 } else { 0 };
+            let is_straight_move = if robot.position().distance_squared(pos) == 1 {
+                1
+            } else {
+                0
+            };
+
+            let closest_enemy_distance =
+                (closest_enemy_location.distance_squared(pos) as f32).sqrt();
+
+            if robot.is_action_ready() {
+                self.coeffs[0] * action_enemies.len() as f32
+                    + self.coeffs[1] * (vision_enemies.len() - action_enemies.len()) as f32
+                    + self.coeffs[2] * health_factor as f32 / 10.0
+                    + self.coeffs[3] * is_center_move as f32
+                    + self.coeffs[4] * is_straight_move as f32
+                    + self.coeffs[5] * closest_enemy_distance / 5.0
+            } else {
+                self.coeffs[6] * action_enemies.len() as f32
+                    + self.coeffs[7] * (vision_enemies.len() - action_enemies.len()) as f32
+                    + self.coeffs[8] * health_factor as f32 / 10.0
+                    + self.coeffs[9] * is_center_move as f32
+                    + self.coeffs[10] * is_straight_move as f32
+                    + self.coeffs[11] * closest_enemy_distance / 5.0
             }
-            let enemy_close = if dist_to_nearest_enemy <= 9 { 1.0 } else { 0.0 };
-            let enemy_middle = if 9 < dist_to_nearest_enemy && dist_to_nearest_enemy <= 16 {
-                1.0
-            } else {
-                0.0
-            };
-            let enemy_far = if 16 < dist_to_nearest_enemy { 1.0 } else { 0.0 };
 
-            let mut num_allies_close = 0;
-            let mut num_allies_far = 0;
-            if let Some(lowest_enemy) = lowest_enemy {
-                for robot in &ally_robots {
-                    if robot.action_cooldown() >= 10 {
-                        continue;
-                    }
-                    let dist = robot.position().distance_squared(lowest_enemy.position());
-
-                    if dist <= 16 {
-                        num_allies_close += 1;
-                    } else if dist <= 26 && robot.is_move_ready() {
-                        num_allies_far += 1;
-                    }
-                }
-            }
-
-            let ready_to_attack = if robot.action_cooldown() < 10 {
-                1.0
-            } else {
-                0.0
-            };
-            let new_movement_cooldown = if robot.position() == pos {
-                robot.move_cooldown()
-            } else {
-                robot.move_cooldown() + 10
-            };
-
-            self.coeffs[0] * enemy_close * ready_to_attack
-                + self.coeffs[1] * enemy_middle * ready_to_attack
-                + self.coeffs[2] * enemy_far * ready_to_attack
-                + self.coeffs[3] * enemy_close * (1.0 - ready_to_attack)
-                + self.coeffs[4] * enemy_middle * (1.0 - ready_to_attack)
-                + self.coeffs[5] * enemy_far * (1.0 - ready_to_attack)
-                + self.coeffs[6] * lowest_enemy_health as f32 / 200.0
-                + self.coeffs[7] * num_enemies as f32
-                + self.coeffs[8] * num_allies_close as f32 / 5.0
-                + self.coeffs[9] * num_allies_far as f32 / 5.0
-                + self.coeffs[10] * ready_to_attack // useless
-                + self.coeffs[11] * new_movement_cooldown as f32 / 10.0
+            // self.coeffs[0] * enemy_close * ready_to_attack
+            //     + self.coeffs[1] * enemy_middle * ready_to_attack
+            //     + self.coeffs[2] * enemy_far * ready_to_attack
+            //     + self.coeffs[3] * enemy_close * (1.0 - ready_to_attack)
+            //     + self.coeffs[4] * enemy_middle * (1.0 - ready_to_attack)
+            //     + self.coeffs[5] * enemy_far * (1.0 - ready_to_attack)
+            //     + self.coeffs[6] * lowest_enemy_health as f32 / 200.0
+            //     + self.coeffs[7] * num_enemies as f32
+            //     + self.coeffs[8] * num_allies_close as f32 / 5.0
+            //     + self.coeffs[9] * num_allies_far as f32 / 5.0
+            //     + self.coeffs[10] * ready_to_attack // useless
+            //     + self.coeffs[11] * new_movement_cooldown as f32 / 10.0
         };
 
         let mut best_dir = Direction::Center;

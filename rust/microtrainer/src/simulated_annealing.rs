@@ -1,16 +1,16 @@
-use rand::Rng;
+use rand::{seq::IteratorRandom, Rng};
 
 use crate::{arena, bot::Bot, micro};
 
 fn get_energy(parameters: [f32; 12]) -> f32 {
-    let parameters = parameters.map(|x| x.powi(3));
+    let parameters = parameters.map(|x| x.signum() * (x.abs().exp() - 1.0));
     let mut scores = Vec::new();
     let mut num_iterations = 0;
     loop {
         let current_scores = arena::get_scores(
             &arena::wrap_micro(&micro::scored::ScoredMicro::provider(&parameters)),
             &arena::wrap_micro(micro::sprint1::Sprint1Micro::provider()),
-            500,
+            100,
         );
         // let average_score = current_scores.iter().sum::<f32>() / scores.len() as f32;
         // scores.push(average_score);
@@ -28,7 +28,11 @@ fn get_energy(parameters: [f32; 12]) -> f32 {
     1.0 - mean
 }
 
-pub fn train(initial_temperature: f32, num_steps: u32) {
+pub fn train(
+    starting_parameters: [f32; 12],
+    initial_temperature: f32,
+    num_steps: u32,
+) -> [f32; 12] {
     let mut rng = rand::thread_rng();
     // let mut current_parameters = [
     //     -1.0, 1.0, 0.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -36,17 +40,23 @@ pub fn train(initial_temperature: f32, num_steps: u32) {
     // action ready, within 9 of enemy? (0 or 1)
     // action ready, within 10-16 of enemy? (0 or 1)
     // action ready, >17 of enemy? (0 or 1)
-    let mut current_parameters = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+    // let mut current_parameters = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+    let mut current_parameters = starting_parameters;
     let mut current_energy = get_energy(current_parameters);
-    println!("Parameters: {:?}", current_parameters);
-    println!("Score: {}", 1.0 - current_energy);
+    // println!("Parameters: {:?}", current_parameters);
+    // println!("Score: {}", 1.0 - current_energy);
     for k in 0..num_steps {
         let temperature = initial_temperature * (1.0 - ((k + 1) as f32) / num_steps as f32);
-        println!("Temperature: {}", temperature);
+        // println!("Temperature: {}", temperature);
         let mut new_parameters = current_parameters.clone();
 
-        let index = rng.gen_range(0..6);
-        new_parameters[index] += rng.gen_range(-0.5..0.5);
+        if rng.gen_bool(0.1) {
+            let indices = (0..12).choose_multiple(&mut rng, 2);
+            new_parameters.swap(indices[0], indices[1]);
+        } else {
+            let index = rng.gen_range(0..12);
+            new_parameters[index] += rng.gen_range(-1.0..1.0);
+        }
 
         let new_energy = get_energy(new_parameters);
 
@@ -59,8 +69,8 @@ pub fn train(initial_temperature: f32, num_steps: u32) {
             current_parameters = new_parameters;
             current_energy = new_energy;
         }
-        println!("Parameters: {:?}", current_parameters);
-        println!("Score: {}", 1.0 - current_energy);
-        println!("");
+        // println!("Parameters: {:?}", current_parameters);
+        // println!("Score: {}", 1.0 - current_energy);
     }
+    current_parameters
 }
