@@ -16,12 +16,12 @@ currentBot = 'sprintBot'
 bots = ['beforeAdjustments2', 'beforeAdjustments', 'beforeBetterMicro']
 #bots = ['manaOnly', 'sprintTesting1', 'sprintTesting2', 'sprintTesting3', 'sprintTesting5', 'sprintTesting8']
 botsSet = set(bots)
-#maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall']
+maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall']
 #maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall', 'generated_captain_america', 'generated_chalice', 'generated_charge', 'generated_chessboard', 'generated_cobra', 'generated_collaboration', 'generated_colosseum', 'generated_deer', 'generated_defenseless']
 
 
 # sprint 1 maps
-maps = ['ArtistRendition', 'BatSignal', 'BowAndArrow', 'Cat', 'Clown', 'Diagonal', 'Eyelands', 'Frog', 'Grievance', 'Hah', 'Jail', 'KingdomRush', 'Minefield', 'Movepls', 'Orbit', 'Pathfind', 'Pit', 'Pizza', 'Quiet', 'Rectangle', 'Scatter', 'Sun', 'Tacocat']
+#maps = ['ArtistRendition', 'BatSignal', 'BowAndArrow', 'Cat', 'Clown', 'Diagonal', 'Eyelands', 'Frog', 'Grievance', 'Hah', 'Jail', 'KingdomRush', 'Minefield', 'Movepls', 'Orbit', 'Pathfind', 'Pit', 'Pizza', 'Quiet', 'Rectangle', 'Scatter', 'Sun', 'Tacocat']
 #maps = ['Eyelands']
 
 mapsSet = set(maps)
@@ -66,7 +66,7 @@ def run_match(bot, map):
         gameLengthB = retrieveGameLength(outputB)
         gameBResigned = resignedString in outputB
 
-        flagRegex = "FLAG{.*}"
+        flagRegex = "FLAG{[^{}]*}"
         gameAFlags = list(set(re.findall(flagRegex, outputA)))
         gameBFlags = list(set(re.findall(flagRegex, outputA)))
         gameAFlags = ", ".join([s[5:-1] for s in gameAFlags])
