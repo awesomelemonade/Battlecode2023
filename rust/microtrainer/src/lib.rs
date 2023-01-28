@@ -48,7 +48,9 @@ pub fn show_game() -> OrError<()> {
 }
 
 #[cfg(not(feature = "visualizer"))]
-pub fn show_game() {}
+pub fn show_game() -> OrError<()> {
+    Ok(())
+}
 
 pub fn run() -> OrError<()> {
     // plot::main()
