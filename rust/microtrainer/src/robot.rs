@@ -138,9 +138,6 @@ impl<'a> RobotController<'a> {
             })
             .collect_vec()
     }
-    pub fn get_round_num(&self) -> u32 {
-        self.board.robots().round_num()
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -246,8 +243,6 @@ impl RobotIdGenerator {
 #[derive(Debug, Clone)]
 pub struct Robots {
     id_generator: RobotIdGenerator,
-    turn_index: usize,
-    round_num: u32,
     robot_turn_order: Vec<RobotId>,
     robots_by_id: BTreeMap<RobotId, Robot>,
     robots_by_position: Grid<Option<RobotId>>,
@@ -257,8 +252,6 @@ impl Robots {
     pub fn new(width: usize, height: usize) -> Self {
         Self {
             id_generator: RobotIdGenerator::new(),
-            turn_index: 0,
-            round_num: 0,
             robot_turn_order: Vec::new(),
             robots_by_id: BTreeMap::new(),
             robots_by_position: Grid::new(width, height),
@@ -294,15 +287,12 @@ impl Robots {
     }
     pub fn despawn_robot(&mut self, robot_id: RobotId) {
         // TODO-someday: consider changing robot_turn_order to a BTreeSet but with insertion order
-        let idx = self.robot_turn_order
-                    .iter()
-                    .position(|&r| r == robot_id)
-                    .expect("Robot id not in turn order");
-        self.robot_turn_order.remove(idx);
-        if idx < self.turn_index {
-            self.turn_index -= 1;
-        }
-
+        self.robot_turn_order.remove(
+            self.robot_turn_order
+                .iter()
+                .position(|&r| r == robot_id)
+                .expect("Robot id not in turn order"),
+        );
         let robot = self
             .robots_by_id
             .remove(&robot_id)
@@ -341,19 +331,5 @@ impl Robots {
     // no guarantees on turn order
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Robot> {
         self.robots_by_id.values_mut()
-    }
-
-    pub fn get_current_robot_id(&self) -> u32 {
-        self.robot_turn_order[self.turn_index]
-    }
-    pub fn next_subturn(&mut self) {
-        self.turn_index += 1;
-        if self.turn_index == self.robot_turn_order.len() {
-            self.turn_index = 0;
-            self.round_num += 1;
-        }
-    }
-    pub fn round_num(&self) -> u32 {
-        self.round_num
     }
 }

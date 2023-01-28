@@ -1,5 +1,6 @@
 #![allow(incomplete_features)]
 #![feature(return_position_impl_trait_in_trait)]
+#![feature(let_chains)]
 macro_rules! core {
     () => {
         #[allow(unused_imports)]
