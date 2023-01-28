@@ -1,11 +1,11 @@
-package sprintBot.util;
+package beforeMoveToCommunicateWells.util;
 
 import battlecode.common.*;
 
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static sprintBot.util.Constants.rc;
+import static beforeMoveToCommunicateWells.util.Constants.rc;
 
 public class WellTracker {
     private static final int NUM_WELLS_TRACKED = 12;
@@ -41,18 +41,7 @@ public class WellTracker {
         }
     }
 
-    public static MapLocation getKnownWell(ResourceType type) {
-        return knownWells[lastHqIndex * 3 + getResourceIndex(type)];
-    }
-
-    public static MapLocation getPendingWell(ResourceType type) {
-        if (lastHqIndex == -1) {
-            return null;
-        }
-        return pendingWells[lastHqIndex * 3 + getResourceIndex(type)];
-    }
-
-    public static MapLocation getClosestWell(Predicate<MapLocation> predicate) {
+    public static MapLocation getClosestKnownWell(Predicate<MapLocation> predicate) {
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MAX_VALUE;
         // look at wells in our vision radius
@@ -91,7 +80,7 @@ public class WellTracker {
         return bestLocation;
     }
 
-    public static MapLocation getClosestWell(ResourceType type, Predicate<MapLocation> predicate) {
+    public static MapLocation getClosestKnownWell(ResourceType type, Predicate<MapLocation> predicate) {
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MAX_VALUE;
         // look at wells in our vision radius
@@ -205,8 +194,8 @@ public class WellTracker {
                 elixirWells = rc.senseNearbyWells(2, ResourceType.ELIXIR);
             } else {
                 adamantiumWells = rc.senseNearbyWells(ResourceType.ADAMANTIUM);
-                manaWells = rc.senseNearbyWells(ResourceType.MANA);
-                elixirWells = rc.senseNearbyWells(ResourceType.ELIXIR);
+                manaWells =  rc.senseNearbyWells(ResourceType.MANA);
+                elixirWells =  rc.senseNearbyWells(ResourceType.ELIXIR);
                 // TODO: we want to be careful to not include wells that are not accessible from lastHqIndex
             }
         }

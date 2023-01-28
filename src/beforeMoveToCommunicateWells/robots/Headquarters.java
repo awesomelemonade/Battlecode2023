@@ -1,14 +1,14 @@
-package sprintBot.robots;
+package beforeMoveToCommunicateWells.robots;
 
 import battlecode.common.*;
-import sprintBot.fast.FastDoubleTracker;
-import sprintBot.fast.FastIntMap;
-import sprintBot.fast.FastIntTracker;
-import sprintBot.util.*;
+import beforeMoveToCommunicateWells.fast.FastDoubleTracker;
+import beforeMoveToCommunicateWells.fast.FastIntMap;
+import beforeMoveToCommunicateWells.fast.FastIntTracker;
+import beforeMoveToCommunicateWells.util.*;
 
 import java.util.function.ToIntFunction;
 
-import static sprintBot.util.Constants.rc;
+import static beforeMoveToCommunicateWells.util.Constants.rc;
 
 public class Headquarters implements RunnableBot {
     private static FastIntMap carrierTasks;
@@ -213,7 +213,7 @@ public class Headquarters implements RunnableBot {
                     }
                     // maybe we're missing carriers to carry the anchors
                     if (tryBuildCarrierRandomAdjacent()) {
-                        Flags.flag(Flags.HEADQUARTERS_BUILDING_CARRIER_FOR_ANCHOR);
+                        Flags.flag("%");
                         return;
                     }
                     // if we have a ton of ally launchers, let's just save mana for anchors and tiebreakers
@@ -316,7 +316,7 @@ public class Headquarters implements RunnableBot {
                 return false;
             }
         }
-        MapLocation knownWellLocation = WellTracker.getClosestWell(location -> true);
+        MapLocation knownWellLocation = WellTracker.getClosestKnownWell(location -> true);
         MapLocation spawnTowardsLocation = knownWellLocation == null ? mapMidLocation() : knownWellLocation;
         return tryBuildByScore(RobotType.CARRIER, location -> {
             // we want to be as close to a well as possible
