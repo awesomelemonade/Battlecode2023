@@ -1,6 +1,6 @@
 core!();
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 
 use itertools::{Either, Itertools};
 
@@ -70,7 +70,7 @@ where
 
     fn step_exn(&mut self) {
         assert!(!self.board.is_game_over());
-        self.board.step(&mut |mut controller| {
+        self.board.step_new_round_exn(&mut |mut controller| {
             self.controllers
                 .entry(controller.robot_id())
                 .or_insert_with(|| self.provider.get(controller.current_robot()))
@@ -91,7 +91,7 @@ where
     }
 
     pub fn step_until_game_over(&mut self, max_turns: u32) {
-        while !self.board.is_game_over() && self.board.robots().round_num() < max_turns {
+        while !self.board.is_game_over() && self.board.round_num() < max_turns {
             self.step_exn();
         }
     }
@@ -106,6 +106,8 @@ pub struct Board {
     width: usize,
     height: usize,
     robots: Robots,
+    round_num: u32,
+    current_turn_queue: VecDeque<RobotId>,
 }
 
 impl Board {
@@ -114,6 +116,8 @@ impl Board {
             width,
             height,
             robots: Robots::new(width, height),
+            round_num: 0,
+            current_turn_queue: VecDeque::new(),
         }
     }
 
@@ -129,21 +133,50 @@ impl Board {
         (self.width, self.height)
     }
 
+    // TODO-someday: may want to create a substepper object to eliminate exn in step_new_round
+    // when the substepper object gets dropped, it should step_remaining_round
     pub fn substep(&mut self, f: &mut impl FnMut(RobotController)) {
-        let robot_id = self.robots.get_current_robot_id();
-        let controller = RobotController::new(self, robot_id);
-        f(controller);
-        if let Some(robot) = self.robots.get_robot_if_alive_mut(robot_id) {
-            robot.decrement_cooldowns();
+        // check if it's a new round
+        if self.current_turn_queue.is_empty() {
+            let turn_order = self.robots().robot_turn_order().clone();
+            self.current_turn_queue.extend(turn_order);
+            self.round_num += 1;
         }
-        self.robots.next_subturn();
+        // remove robots that are no longer alive
+        while let Some(&robot_id) = self.current_turn_queue.front() && !self.robots.is_alive(robot_id) {
+            self.current_turn_queue.pop_front();
+        }
+        // execute a robot's turn
+        if let Some(robot_id) = self.current_turn_queue.pop_front() {
+            let controller = RobotController::new(self, robot_id);
+            f(controller);
+            if let Some(robot) = self.robots.get_robot_if_alive_mut(robot_id) {
+                robot.decrement_cooldowns();
+            }
+        }
     }
 
-    pub fn step(&mut self, f: &mut impl FnMut(RobotController)) {
-        let initial_round = self.robots.round_num();
-        while self.robots.round_num() == initial_round && !self.is_game_over() {
-            self.substep(f);
+    pub fn step_new_round_exn(&mut self, f: &mut impl FnMut(RobotController)) {
+        assert!(
+            self.current_turn_queue.is_empty(),
+            "Cannot step new round in the middle of an existing round"
+        );
+        self.round_num += 1;
+        let turn_order = self.robots.robot_turn_order().clone();
+        for robot_id in turn_order {
+            if !self.robots.is_alive(robot_id) {
+                continue;
+            }
+            let controller = RobotController::new(self, robot_id);
+            f(controller);
+            if let Some(robot) = self.robots.get_robot_if_alive_mut(robot_id) {
+                robot.decrement_cooldowns();
+            }
         }
+    }
+
+    pub fn step_remaining_round(&mut self, f: &mut impl FnMut(RobotController)) {
+        todo!()
     }
 
     pub fn robots(&self) -> &Robots {
@@ -156,5 +189,9 @@ impl Board {
 
     pub fn is_game_over(&self) -> bool {
         self.robots.iter().map(|r| r.team()).all_equal()
+    }
+
+    pub fn round_num(&self) -> u32 {
+        self.round_num
     }
 }
