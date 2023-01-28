@@ -8,7 +8,7 @@ on:
 name: Run Unit Tests
 
 env:
-  REPO: Battlecode2023
+  REPO_NAME: Battlecode2023
   REPO_PATH: Battlecode2023/rust/microtrainer
   EXECUTABLE_NAME: microtrainer
 jobs:
@@ -16,15 +16,10 @@ jobs:
     name: Flamegraph Profiling
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout ${{ env.REPO }}
+      - name: Checkout ${{ env.REPO_NAME }}
         uses: actions/checkout@v3
         with:
-          path: ${{ env.REPO }}
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          cache: 'pip'
+          path: ${{ env.REPO_NAME }}
       - name: Update
         run: sudo apt-get update
       - uses: actions-rs/toolchain@v1
@@ -63,12 +58,12 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./${{ env.REPO }}
+        working-directory: ./${{ env.REPO_PATH }}
     steps:
-      - name: Checkout ${{ env.REPO }}
+      - name: Checkout ${{ env.REPO_NAME }}
         uses: actions/checkout@v3
         with:
-          path: ${{ env.REPO }}
+          path: ${{ env.REPO_NAME }}
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -89,12 +84,12 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./${{ env.REPO }}
+        working-directory: ./${{ env.REPO_PATH }}
     steps:
-      - name: Checkout ${{ env.REPO }}
+      - name: Checkout ${{ env.REPO_NAME }}
         uses: actions/checkout@v3
         with:
-          path: ${{ env.REPO }}
+          path: ${{ env.REPO_NAME }}
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -121,4 +116,4 @@ jobs:
         with:
           check_name: Test Results
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          files: ./${{ env.REPO }}/results.xml
+          files: ./${{ env.REPO_NAME }}/results.xml
