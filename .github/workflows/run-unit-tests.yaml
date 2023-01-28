@@ -30,7 +30,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --profile=release-with-debug --all-features --manifest-path ./${{ env.REPO_PATH }}/Cargo.toml
+          args: --profile=release-with-debug --manifest-path ./${{ env.REPO_PATH }}/Cargo.toml
       - name: Install perf
         run: sudo apt install linux-tools-common linux-tools-generic linux-tools-`uname -r`
       - run: cargo install flamegraph
@@ -75,7 +75,7 @@ jobs:
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features --manifest-path ./${{ env.REPO_PATH }}/Cargo.toml -- -D warnings
+          args: --manifest-path ./${{ env.REPO_PATH }}/Cargo.toml -- -D warnings
           name: Clippy Output
   test:
     name: Run Unit Tests
