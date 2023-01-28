@@ -16,7 +16,15 @@ pub fn histogram(raw_data: &[f64], bucket_size: f64) -> OrError<()> {
         // round down
         let min = (min / bucket_size).floor() * bucket_size;
         let max = (max / bucket_size).ceil() * bucket_size;
-        let max_count = 10u32;
+        let max_count = raw_data
+            .iter()
+            .sorted_by(|a, b| a.partial_cmp(b).unwrap())
+            .group_by(|&&x| (x / bucket_size).round() as i32)
+            .into_iter()
+            .map(|(_key, group)| group.count() as u32)
+            .max()
+            .unwrap_or(5)
+            + 5;
 
         let root = BitMapBackend::new(OUT_FILE_NAME, (1024, 768)).into_drawing_area();
 
