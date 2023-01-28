@@ -268,6 +268,7 @@ public class Util {
     }
 
     public static void tryKiteFrom(MapLocation location) {
+        Pathfinding.reset(); // Reset pathfinding - squares we move now are irrelevant
         int bestDistanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
         Direction bestDirection = null;
         for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {

@@ -28,6 +28,9 @@ public class Pathfinding {
 		}
 		return visitedSet.getCounter();
 	}
+	public static void reset() {
+		lastTarget = null;
+	}
 	public static boolean execute(MapLocation target) {
 		if (lastTarget == null || !lastTarget.equals(target)) {
 			lastTarget = target;
