@@ -20,11 +20,10 @@ opt-level = 3
 
 [profile.release-with-debug]
 inherits = "release"
-default-features = false
 debug = 1
 
 [features]
-default = ["visualizer"]
+#default = ["visualizer"]
 visualizer = ["raylib"]
 
 [dependencies.raylib]
