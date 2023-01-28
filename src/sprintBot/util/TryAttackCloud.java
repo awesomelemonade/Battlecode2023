@@ -7,9 +7,9 @@ import static sprintBot.util.Constants.rc;
 
 public class TryAttackCloud {
     public static MapLocation getEnemyLocation() {
-        MapLocation location = EnemyHqTracker.getClosest();
+        MapLocation location = EnemyHqGuesser.getClosestConfirmed();
         if (location == null) {
-            location = EnemyHqGuesser.getClosest(loc -> true);
+            location = EnemyHqGuesser.getClosestPrediction(loc -> true);
         }
         return location;
     }

@@ -2,7 +2,6 @@ package sprintBot.pathfinder;
 
 import battlecode.common.*;
 import sprintBot.fast.FastGrid;
-import sprintBot.fast.FastMapLocationGridWithDefault;
 import sprintBot.fast.FastMapLocationQueue;
 import sprintBot.util.*;
 
@@ -22,7 +21,7 @@ public class BFSVisionTemplate {
     private int[][] moveDirections;
     private int[][] distances;
     private boolean completed = false;
-    private MapLocation origin;
+    public MapLocation origin;
 
 
     public static void init() {
@@ -118,7 +117,7 @@ public class BFSVisionTemplate {
     }
 
     public static void debug_render() {
-//        renderAllBfs();
+        debug_renderAllBfs();
 //        PassabilityCache.debug_render();
 //        BFSVisionTemplate bfs = allBFS.get(Cache.MY_LOCATION);
 //        if (bfs != null) {
@@ -126,7 +125,7 @@ public class BFSVisionTemplate {
 //        }
     }
 
-    public static void renderAllBfs() {
+    public static void debug_renderAllBfs() {
         if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS && Profile.BFS.enabled()) {
             Debug.setIndicatorString(Profile.BFS, "sz: " + bfsQueue.size());
             for (int i = 0; i < Constants.MAP_WIDTH; i++) {
@@ -173,6 +172,7 @@ public class BFSVisionTemplate {
                 case PassabilityCache.UNPASSABLE:
                     madeProgress = true;
                     queue.poll();
+                    moveDirections[location.x][location.y] = 0; // no moves can reach here
                     break;
                 case PassabilityCache.PASSABLE:
                     madeProgress = true;
@@ -209,7 +209,18 @@ public class BFSVisionTemplate {
                     Debug.failFast("Unknown result from isPassable");
             }
         }
-        completed = queue.isEmpty();
+        if (!completed && queue.isEmpty()) {
+            completed = queue.isEmpty();
+            // so much for encapsulation...
+//            Checkpoints.onBFSCompleted(this); // we need a macro to do this
+            /*
+            macro! onBFSCompleted
+            ---
+            //Checkpoints.onBFSCompleted(this);
+            ---
+             */
+            // onBFSCompleted!
+        }
         if (Profile.BFS.enabled()) {
             if (completed) {
                 Debug.setIndicatorDot(Profile.BFS, origin, 0, 255, 0); // green

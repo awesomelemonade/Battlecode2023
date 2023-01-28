@@ -28,6 +28,9 @@ public class Pathfinding {
 		}
 		return visitedSet.getCounter();
 	}
+	public static void reset() {
+		lastTarget = null;
+	}
 	public static boolean execute(MapLocation target) {
 		if (lastTarget == null || !lastTarget.equals(target)) {
 			lastTarget = target;
@@ -55,11 +58,9 @@ public class Pathfinding {
 			return true;
 		}
 		visitedSet.add(currentLocation.x, currentLocation.y);
-		Direction idealDirection = currentLocation.directionTo(target);
-		Direction[] directions = Constants.getAttemptOrder(idealDirection);
 		Direction fallbackDirection = null;
 		int bestFallbackCount = Integer.MAX_VALUE;
-		for (Direction direction : directions) {
+		for (Direction direction : Constants.getAttemptOrder(currentLocation.directionTo(target))) {
 			if (Util.canMoveAndCheckCurrents(direction)) {
 				// has to be on the map
 				MapLocation location = currentLocation.add(direction);

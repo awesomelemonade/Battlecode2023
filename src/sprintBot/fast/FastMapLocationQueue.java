@@ -29,4 +29,8 @@ public class FastMapLocationQueue {
     public void add(MapLocation location) {
         queue[(index + size++) % maxSize] = location;
     }
+
+    public void clear() {
+        this.size = 0;
+    }
 }

@@ -1,6 +1,7 @@
 package sprintBot.util;
 
 import battlecode.common.*;
+import sprintBot.pathfinder.BFSCheckpoints;
 import sprintBot.pathfinder.BFSVision;
 import sprintBot.pathfinder.Pathfinding;
 
@@ -30,6 +31,7 @@ public class Util {
     public static void postLoop() throws GameActionException {
         Cache.postLoop();
         BFSVision.postLoop();
+        //BFSCheckpoints.postLoop();
 
         // consider disintegrating in the late game
         if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS
@@ -54,13 +56,6 @@ public class Util {
 
     public static Direction randomAdjacentDirection() {
         return random(Constants.ORDINAL_DIRECTIONS);
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> T[] trimArray(T[] array, int length) {
-        Object[] newArray = new Object[length];
-        System.arraycopy(array, 0, newArray, 0, length);
-        return (T[]) newArray;
     }
 
     public static boolean isAttacker(RobotType type) {
@@ -214,7 +209,7 @@ public class Util {
             MapLocation bestLocation = null;
             for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
                 MapLocation adjacentLocation = location.add(Constants.ORDINAL_DIRECTIONS[i]);
-                if (!rc.canSenseRobotAtLocation(adjacentLocation)) {
+                if (rc.onTheMap(adjacentLocation) && !rc.canSenseRobotAtLocation(adjacentLocation) && PassabilityCache.isPassableOrTrue(adjacentLocation)) {
                     int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(adjacentLocation);
                     if (distanceSquared < bestDistanceSquared) {
                         bestDistanceSquared = distanceSquared;
@@ -243,7 +238,7 @@ public class Util {
             MapLocation bestLocation = null;
             for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
                 MapLocation adjacentLocation = location.add(Constants.ORDINAL_DIRECTIONS[i]);
-                if (rc.onTheMap(adjacentLocation) && CurrentsCache.hasNoKnownCurrent(adjacentLocation) && !rc.canSenseRobotAtLocation(adjacentLocation)) {
+                if (rc.onTheMap(adjacentLocation) && CurrentsCache.hasNoKnownCurrent(adjacentLocation) && !rc.canSenseRobotAtLocation(adjacentLocation) && PassabilityCache.isPassableOrTrue(adjacentLocation)) {
                     int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(adjacentLocation);
                     if (distanceSquared < bestDistanceSquared) {
                         bestDistanceSquared = distanceSquared;
@@ -273,6 +268,7 @@ public class Util {
     }
 
     public static void tryKiteFrom(MapLocation location) {
+        Pathfinding.reset(); // Reset pathfinding - squares we move now are irrelevant
         int bestDistanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
         Direction bestDirection = null;
         for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {

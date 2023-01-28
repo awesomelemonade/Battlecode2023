@@ -6,8 +6,9 @@ public enum Profile {
     EXPLORER(false),
     MINING(false),
     ATTACKING(false),
+    BFS(false), // BFS_VISION
     CHECKPOINTS(false),
-    BFS(false);
+    BFS_CHECKPOINTS(false);
 
     private final boolean enabled;
 

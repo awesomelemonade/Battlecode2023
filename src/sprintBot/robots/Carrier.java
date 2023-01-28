@@ -274,26 +274,10 @@ public class Carrier implements RunnableBot {
                     blacklist.add(commedWell);
                 }
             }
-            Util.tryPathfindingMoveAdjacent(commedWell);
+            Util.tryPathfindingMoveAdjacentCheckCurrents(commedWell);
             return true;
         }
         return false;
-//        WellInfo well = getWell();
-//        if (well == null) {
-//            return false;
-//        } else {
-//            MapLocation wellLocation = well.getMapLocation();
-//            if (!Cache.MY_LOCATION.isAdjacentTo(wellLocation)) {
-//                if (Util.numAllyRobotsWithin(wellLocation, 5) >= 12) {
-//                    // blacklist from future
-//                    blacklist.add(wellLocation);
-//                }
-//            }
-//            Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, wellLocation, 0, 128, 0); // dark green
-//            // move towards well
-//            Util.tryPathfindingMoveAdjacent(well.getMapLocation());
-//            return true;
-//        }
     }
 
     // bigger score = better
