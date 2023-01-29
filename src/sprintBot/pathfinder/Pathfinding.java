@@ -57,6 +57,31 @@ public class Pathfinding {
 		if (currentLocation.equals(target)) {
 			return true;
 		}
+//		if (true) {
+//			BFSVision bfs = BFSVision.getBFSIfCompleted();
+//			if (bfs != null) {
+//				Direction direction = bfs.getImmediateMoveDirectionFarTarget(target);
+//				if (direction != null) {
+//					Util.move(direction);
+//					return true;
+//				}
+//			}
+//			int bestDistanceSquared = Integer.MAX_VALUE;
+//			Direction bestDirection = null;
+//			for (Direction direction : Constants.ALL_DIRECTIONS) {
+//				if (direction == Direction.CENTER || rc.canMove(direction)) {
+//					int distanceSquared = target.distanceSquaredTo(Cache.MY_LOCATION.add(direction));
+//					if (distanceSquared < bestDistanceSquared) {
+//						bestDistanceSquared = distanceSquared;
+//						bestDirection = direction;
+//					}
+//				}
+//			}
+//			if (bestDirection != null && bestDirection != Direction.CENTER) {
+//				Util.tryMove(bestDirection);
+//			}
+//			return true;
+//		}
 		visitedSet.add(currentLocation.x, currentLocation.y);
 		Direction fallbackDirection = null;
 		int bestFallbackCount = Integer.MAX_VALUE;

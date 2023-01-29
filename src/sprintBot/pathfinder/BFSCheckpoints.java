@@ -158,7 +158,7 @@ public class BFSCheckpoints {
                 Flags.flag(Flags.BFS_CHECKPOINTS_INVALIDATE);
                 return false;
             }
-            Direction direction = bfs.getImmediateMoveDirection(nextChunkLocation);
+            Direction direction = bfs.getImmediateMoveDirectionNearbyTarget(nextChunkLocation);
             if (direction == null) {
                 // traffic - let's just wait
                 return true;

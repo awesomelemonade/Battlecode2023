@@ -195,7 +195,7 @@ public class BFSVisionTemplate {
                     macro! addNeighbor
                     ---
                     MapLocation neighbor = location.add(direction);
-                    if (rc.onTheMap(neighbor)) {
+                    if (rc.onTheMap(neighbor) && !neighbor.isWithinDistanceSquared(origin, location.distanceSquaredTo(origin))) {
                         neighbor = CurrentsCache.get(neighbor);
                         // should never be out of bounds because currents should never put a robot out of the map
                         if (origin.isWithinDistanceSquared(neighbor, Constants.ROBOT_TYPE.visionRadiusSquared)) {
@@ -242,7 +242,7 @@ public class BFSVisionTemplate {
         }
     }
 
-    public Direction getImmediateMoveDirection(MapLocation target) {
+    public Direction getImmediateMoveDirectionNearbyTarget(MapLocation target) {
         if (Cache.MY_LOCATION.equals(target)) {
             return Direction.CENTER;
         }
@@ -258,6 +258,34 @@ public class BFSVisionTemplate {
         }
         return null;
     }
+
+//    public Direction getImmediateMoveDirectionFarTarget(MapLocation target) {
+//        Debug.setIndicatorDot(Cache.MY_LOCATION, 255, 255, 0);
+//        double bestDistance = Double.MAX_VALUE;
+//        MapLocation bestTarget = null;
+//        for (int i = this.queue.index; --i >= 0; ) { // TODO: it cannot use all - it can only be ones that yield no neighbors?
+//            MapLocation potentialLocation = this.queue.queue[i];
+//            if (PassabilityCache.isPassableOrTrue(potentialLocation)) {
+//                Debug.setIndicatorDot(potentialLocation, 0, 255, 255);
+//                double distance = distances[potentialLocation.x][potentialLocation.y] + 8 * Math.sqrt(potentialLocation.distanceSquaredTo(target));
+//                if (distance < bestDistance) {
+//                    bestDistance = distance;
+//                    bestTarget = potentialLocation;
+//                }
+//            }
+//        }
+//        if (bestTarget == null) {
+//            return null;
+//        }
+//        Debug.setIndicatorDot(bestTarget, 0, 0, 255);
+//        int moveDirection = moveDirections[bestTarget.x][bestTarget.y];
+//        for (Direction direction : Constants.getAttemptOrder(Cache.MY_LOCATION.directionTo(target))) {
+//            if (rc.canMove(direction) && (moveDirection & (1 << direction.ordinal())) != 0) {
+//                return direction;
+//            }
+//        }
+//        return null;
+//    }
 
     public boolean hasMoveDirection(MapLocation target) {
         int[] array = moveDirections[target.x];
