@@ -305,7 +305,7 @@ public class Launcher implements RunnableBot {
             if (Util.isAttacker(enemy.type)) {
                 int distanceSquared = afterCurrent.distanceSquaredTo(enemy.location);
                 closestEnemyAttackerDistanceSquared = Math.min(closestEnemyAttackerDistanceSquared, distanceSquared);
-                if (distanceSquared < Constants.ROBOT_TYPE.visionRadiusSquared) {
+                if (distanceSquared <= Constants.ROBOT_TYPE.visionRadiusSquared) {
                     numEnemyAttackerRobotsWithin++;
                 }
             }
