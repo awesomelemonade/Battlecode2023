@@ -1,29 +1,28 @@
 package sprintBot.util;
 
 import battlecode.common.*;
-
-import static sprintBot.util.Constants.rc;
+import sprintBot.pathfinder.Pathfinding;
 
 public class Explorer {
     private static Direction[] buffer = new Direction[8];
     private static int bufferLength = 0;
-    private static Direction previousDirection = Util.randomAdjacentDirection();
+    private static Direction exploreDirection = Util.randomAdjacentDirection();
 
     public static void init() throws GameActionException {
     }
 
     public static boolean smartExplore() {
         Debug.setIndicatorDot(Profile.EXPLORER, Cache.MY_LOCATION, 255, 128, 0); // orange
-        if (!Util.canMoveAndCheckCurrents(previousDirection)) {
+        if (!Util.canMoveAndCheckCurrents(exploreDirection) || !Pathfinding.predicate.test(Cache.MY_LOCATION.add(exploreDirection))) {
             // find new direction
             bufferLength = 0;
             for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
                 Direction direction = Constants.ORDINAL_DIRECTIONS[i];
                 // new direction cannot be directly opposite of previous direction
-                if (direction.equals(previousDirection) || direction.opposite().equals(previousDirection)) {
+                if (direction.equals(exploreDirection) || direction.opposite().equals(exploreDirection)) {
                     continue;
                 }
-                if (!Util.canMoveAndCheckCurrents(direction)) {
+                if (!Util.canMoveAndCheckCurrents(direction) || !Pathfinding.predicate.test(Cache.MY_LOCATION.add(direction))) {
                     continue;
                 }
                 // possible valid direction
@@ -31,13 +30,13 @@ public class Explorer {
             }
             if (bufferLength == 0) {
                 // can't explore :(
-                previousDirection = Util.randomAdjacentDirection();
+                exploreDirection = Util.randomAdjacentDirection();
             } else {
-                previousDirection = buffer[(int) (Math.random() * bufferLength)];
+                exploreDirection = buffer[(int) (Math.random() * bufferLength)];
             }
         }
-        if (Util.canMoveAndCheckCurrents(previousDirection)) {
-            Util.move(previousDirection);
+        if (Util.canMoveAndCheckCurrents(exploreDirection) && Pathfinding.predicate.test(Cache.MY_LOCATION.add(exploreDirection))) {
+            Util.move(exploreDirection);
             return true;
         }
         return false;

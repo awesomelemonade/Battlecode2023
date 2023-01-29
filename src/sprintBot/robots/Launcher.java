@@ -107,6 +107,18 @@ public class Launcher implements RunnableBot {
             }
             return;
         }
+        // do not go to squares within 9 distance of hq
+        if (EnemyHqGuesser.anyConfirmed(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(Cache.MY_LOCATION, 9))) {
+            // we are currently next to enemy hq - let's just try to leave
+            RobotInfo enemyHq = Util.getClosestEnemyRobot(r -> r.type == RobotType.HEADQUARTERS);
+            if (enemyHq != null) {
+                Util.tryKiteFrom(enemyHq.location);
+                return;
+            }
+        }
+        Pathfinding.predicate = loc -> {
+            return !EnemyHqGuesser.anyConfirmed(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(loc, 9));
+        };
         // camp the headquarters
         MapLocation location = getMacroAttackLocation();
         if (location == null) {
@@ -126,18 +138,6 @@ public class Launcher implements RunnableBot {
                 Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, location, 0, 0, 0); // black
                 Debug.setIndicatorString(Profile.ATTACKING, "Num: " + numAllyAttackers);
             }
-            // do not go to squares within 9 distance of hq
-            if (EnemyHqGuesser.anyConfirmed(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(Cache.MY_LOCATION, 9))) {
-                // we are currently next to enemy hq - let's just try to leave
-                RobotInfo enemyHq = Util.getClosestEnemyRobot(r -> r.type == RobotType.HEADQUARTERS);
-                if (enemyHq != null) {
-                    Util.tryKiteFrom(enemyHq.location);
-                    return;
-                }
-            }
-            Pathfinding.predicate = loc -> {
-                return !EnemyHqGuesser.anyConfirmed(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(loc, 9));
-            };
             if (Cache.MY_LOCATION.isWithinDistanceSquared(location, 16)) {
                 // try to circle around it
                 tryPathfindingTangent(location);
