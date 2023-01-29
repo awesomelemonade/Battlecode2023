@@ -1,5 +1,10 @@
 core!();
 
+use crate::{
+    game::Board,
+    robot::{RobotController, RobotKind, Team},
+};
+
 use super::*;
 
 #[test]

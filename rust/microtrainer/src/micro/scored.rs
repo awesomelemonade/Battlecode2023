@@ -27,10 +27,6 @@ impl Bot for ScoredMicro {
             .iter()
             .filter(|r| r.team() != team)
             .collect_vec();
-        let ally_robots = nearby_robots
-            .iter()
-            .filter(|r| r.team() == team)
-            .collect_vec();
         let damage = robot.kind().damage();
         let action_radius_squared = controller.current_robot().kind().action_radius_squared();
         let vision_radius_squared = controller.current_robot().kind().vision_radius_squared();
@@ -39,6 +35,15 @@ impl Bot for ScoredMicro {
             .min_by_key(|r| r.position().distance_squared(robot.position()))
             .map(|r| r.position())
             .expect("Micro with no enemy?");
+
+        // let has_closer_ally = ally_robots.iter().any(|r| todo!());
+        // let factors = [
+        //     controller.round_num() % 2 == 0,
+        //     robot.is_action_ready(),
+        //     robot.health() <= damage,
+        //     enemy_robots.is_empty(),
+        //     has_closer_ally,
+        // ];
 
         let get_score = |pos: Position| -> f32 {
             let action_enemies = enemy_robots
