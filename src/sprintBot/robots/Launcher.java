@@ -96,7 +96,6 @@ public class Launcher implements RunnableBot {
         cachedClosestAllyAttackerLocation = closestAllyAttacker == null ? null : closestAllyAttacker.location;
         Pathfinding.predicate = loc -> true;
         if (executeMicro()) {
-            Pathfinding.reset();
             return;
         }
         // go to attack random other enemies (non-attackers)
@@ -106,7 +105,6 @@ public class Launcher implements RunnableBot {
             if (direction != Direction.CENTER) {
                 Util.tryMove(direction);
             }
-            Pathfinding.reset();
             return;
         }
         // camp the headquarters
