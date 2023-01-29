@@ -1,11 +1,11 @@
-package sprintBot.robots;
+package beforeMoveToCommunicateWells.robots;
 
 import battlecode.common.*;
-import sprintBot.fast.FastIntSet2D;
-import sprintBot.pathfinder.Pathfinding;
-import sprintBot.util.*;
+import beforeMoveToCommunicateWells.fast.FastIntSet2D;
+import beforeMoveToCommunicateWells.pathfinder.Pathfinding;
+import beforeMoveToCommunicateWells.util.*;
 
-import static sprintBot.util.Constants.rc;
+import static beforeMoveToCommunicateWells.util.Constants.rc;
 
 public class Carrier implements RunnableBot {
     private static Communication.CarrierTask currentTask;
@@ -19,16 +19,8 @@ public class Carrier implements RunnableBot {
 
     private static void debug_render() {
         if (Profile.MINING.enabled()) {
-            WellTracker.forEachPending(location -> Debug.setIndicatorDot(Profile.MINING, location.add(Direction.SOUTH), 0, 255, 255)); // cyan
+            WellTracker.forEachPending(location -> Debug.setIndicatorDot(Profile.MINING, location, 0, 255, 255)); // cyan
             WellTracker.forEachKnown(location -> Debug.setIndicatorDot(Profile.MINING, location, 0, 0, 255)); // blue
-            MapLocation knownManaWell = WellTracker.getKnownWell(ResourceType.MANA);
-            if (knownManaWell != null) {
-                Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, knownManaWell, 0, 0, 255); // blue
-            }
-            MapLocation pendingManaWell = WellTracker.getPendingWell(ResourceType.MANA);
-            if (pendingManaWell != null) {
-                Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, pendingManaWell, 0, 255, 255); // cyan
-            }
         }
     }
 
@@ -61,9 +53,6 @@ public class Carrier implements RunnableBot {
         if (tryKiteFromEnemies()) {
             return;
         }
-//        if (tryMoveToCommunicatePendingManaWell()) {
-//            return;
-//        }
         Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
         if (tryMoveToPickupAnchor()) {
             return;
@@ -139,28 +128,6 @@ public class Carrier implements RunnableBot {
 //        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y - 2)); }
 //        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x - 2, y + 2)); }
 //        if (Clock.getBytecodesLeft() > 500) { MapCache.precalculate(new MapLocation(x + 2, y + 2)); }
-    }
-
-    public boolean tryMoveToCommunicatePendingManaWell() {
-        if (rc.getWeight() > 20) {
-            return false;
-        }
-        MapLocation pendingManaWell = WellTracker.getPendingWell(ResourceType.MANA);
-        if (pendingManaWell == null) {
-            return false;
-        }
-        int ourDistanceSquared = Cache.MY_LOCATION.distanceSquaredTo(pendingManaWell);
-
-        // if there's a carrier that can see this well and is farther
-        if (LambdaUtil.arraysAnyMatch(Cache.ALLY_ROBOTS, r -> {
-            int distanceSquared = r.location.distanceSquaredTo(pendingManaWell);
-            return r.type == RobotType.CARRIER && distanceSquared > ourDistanceSquared && distanceSquared <= RobotType.CARRIER.visionRadiusSquared;
-        })) {
-            return false;
-        }
-        Flags.flag(Flags.CARRIER_MOVE_TO_COMMUNICATE_PENDING_MANA_WELL);
-        Util.tryPathfindingMoveAdjacent(Cache.NEAREST_ALLY_HQ);
-        return true;
     }
 
     public static boolean willDie() {
@@ -291,12 +258,12 @@ public class Carrier implements RunnableBot {
         // go to commed well
         MapLocation commedWell;
         if (targetResource == null) {
-            commedWell = WellTracker.getClosestWell(location -> !blacklist.contains(location));
+            commedWell = WellTracker.getClosestKnownWell(location -> !blacklist.contains(location));
         } else {
-            commedWell = WellTracker.getClosestWell(targetResource, location -> !blacklist.contains(location));
+            commedWell = WellTracker.getClosestKnownWell(targetResource, location -> !blacklist.contains(location));
             if (commedWell == null && targetResource == ResourceType.ADAMANTIUM) {
-                commedWell = WellTracker.getClosestWell(location -> !blacklist.contains(location));
-                Flags.flag(Flags.CARRIER_GAVE_UP_TARGET_RESOURCE);
+                commedWell = WellTracker.getClosestKnownWell(location -> !blacklist.contains(location));
+                Flags.flag("^");
             }
         }
         if (commedWell != null) {

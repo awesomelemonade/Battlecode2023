@@ -1,9 +1,9 @@
-package sprintBot.pathfinder;
+package beforeMoveToCommunicateWells.pathfinder;
 
 import battlecode.common.Clock;
 import battlecode.common.Direction;
 import battlecode.common.MapLocation;
-import sprintBot.util.*;
+import beforeMoveToCommunicateWells.util.*;
 
 public class BFSCheckpoints {
     private static final int SIZE = Checkpoints.SIZE;
@@ -155,7 +155,7 @@ public class BFSCheckpoints {
                 Debug.setIndicatorDot(Profile.BFS_CHECKPOINTS, currentChunkLocation, 255, 0, 255);
                 Debug.setIndicatorLine(Profile.BFS_CHECKPOINTS, currentChunkLocation, nextChunkLocation, 255, 0, 255);
                 BFSCheckpoints.invalidate();
-                Flags.flag(Flags.BFS_CHECKPOINTS_INVALIDATE);
+                Flags.flag("?");
                 return false;
             }
             Direction direction = bfs.getImmediateMoveDirection(nextChunkLocation);
@@ -163,7 +163,7 @@ public class BFSCheckpoints {
                 // traffic - let's just wait
                 return true;
             }
-            Flags.flag(Flags.BFS_CHECKPOINTS_EXECUTE);
+            Flags.flag("!");
             Debug.setIndicatorDot(Profile.BFS_CHECKPOINTS, currentChunkLocation, 128, 255, 0);
             Debug.setIndicatorLine(Profile.BFS_CHECKPOINTS, currentChunkLocation, nextChunkLocation, 128, 255, 0);
             if (direction != Direction.CENTER) {

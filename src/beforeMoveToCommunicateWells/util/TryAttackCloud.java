@@ -1,9 +1,9 @@
-package sprintBot.util;
+package beforeMoveToCommunicateWells.util;
 
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 
-import static sprintBot.util.Constants.rc;
+import static beforeMoveToCommunicateWells.util.Constants.rc;
 
 public class TryAttackCloud {
     public static MapLocation getEnemyLocation() {
@@ -29,7 +29,7 @@ public class TryAttackCloud {
             MapLocation location = cloudLocations[i];
             if (!rc.canSenseLocation(location) && rc.canAttack(location)) {
                 int distanceSquared = location.distanceSquaredTo(enemyLocation);
-                if (distanceSquared > 0 && distanceSquared < bestDistanceSquared) {
+                if (distanceSquared < bestDistanceSquared) {
                     bestDistanceSquared = distanceSquared;
                     bestLocation = location;
                 }
