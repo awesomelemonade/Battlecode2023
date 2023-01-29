@@ -193,6 +193,9 @@ public class Util {
     }
 
     public static void tryPathfindingMove(MapLocation loc) {
+        if (rc.getRoundNum() % 2 == 0) {
+            return;
+        }
         Pathfinding.execute(loc);
     }
 

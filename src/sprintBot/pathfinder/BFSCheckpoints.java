@@ -140,7 +140,7 @@ public class BFSCheckpoints {
             MapLocation nextChunkLocation = Checkpoints.chunkToMapLocation(nextChunk);
             Debug.setIndicatorDot(Profile.BFS_CHECKPOINTS, Cache.MY_LOCATION, 255, 255, 0); // yellow
             Debug.setIndicatorLine(Profile.BFS_CHECKPOINTS, Cache.MY_LOCATION, nextChunkLocation, 255, 255, 0); // yellow
-            Pathfinding.execute(nextChunkLocation);
+            Util.tryPathfindingMove(nextChunkLocation);
             return true;
         } else {
             // let's use bfs because it's completed
