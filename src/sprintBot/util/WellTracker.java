@@ -12,8 +12,22 @@ public class WellTracker {
 
     public static MapLocation[] knownWells = new MapLocation[NUM_WELLS_TRACKED];
     public static MapLocation[] pendingWells = new MapLocation[NUM_WELLS_TRACKED];
+    public static MapLocation[] lastSeenClosestWells = new MapLocation[3]; // 3 kinds of wells
 
     private static int lastHqIndex = -1;
+
+    public static void onNewWells() {
+        for (int i = Cache.NEARBY_WELLS.length; --i >= 0; ) {
+            WellInfo well = Cache.NEARBY_WELLS[i];
+            MapLocation location = well.getMapLocation();
+            ResourceType resourceType = well.getResourceType();
+            int index = getResourceIndex(resourceType);
+            MapLocation lastSeenWell = lastSeenClosestWells[index];
+            if (lastSeenWell == null || location.isWithinDistanceSquared(Cache.MY_LOCATION, lastSeenWell.distanceSquaredTo(Cache.MY_LOCATION) - 1)) {
+                lastSeenClosestWells[index] = location;
+            }
+        }
+    }
 
     public static MapLocation lastHqLocation() {
         if (lastHqIndex == -1) {
@@ -56,7 +70,7 @@ public class WellTracker {
         MapLocation bestLocation = null;
         int bestDistanceSquared = Integer.MAX_VALUE;
         // look at wells in our vision radius
-        WellInfo[] visionWells = rc.senseNearbyWells();
+        WellInfo[] visionWells = Cache.NEARBY_WELLS;
         for (int i = visionWells.length; --i >= 0; ) {
             MapLocation location = visionWells[i].getMapLocation();
             if (predicate.test(location)) {
@@ -64,6 +78,42 @@ public class WellTracker {
                 if (distanceSquared < bestDistanceSquared) {
                     bestDistanceSquared = distanceSquared;
                     bestLocation = location;
+                }
+            }
+        }
+        {
+            MapLocation well = lastSeenClosestWells[0];
+            if (well != null) {
+                if (predicate.test(well)) {
+                    int distanceSquared = well.distanceSquaredTo(Cache.MY_LOCATION);
+                    if (distanceSquared < bestDistanceSquared) {
+                        bestDistanceSquared = distanceSquared;
+                        bestLocation = well;
+                    }
+                }
+            }
+        }
+        {
+            MapLocation well = lastSeenClosestWells[1];
+            if (well != null) {
+                if (predicate.test(well)) {
+                    int distanceSquared = well.distanceSquaredTo(Cache.MY_LOCATION);
+                    if (distanceSquared < bestDistanceSquared) {
+                        bestDistanceSquared = distanceSquared;
+                        bestLocation = well;
+                    }
+                }
+            }
+        }
+        {
+            MapLocation well = lastSeenClosestWells[2];
+            if (well != null) {
+                if (predicate.test(well)) {
+                    int distanceSquared = well.distanceSquaredTo(Cache.MY_LOCATION);
+                    if (distanceSquared < bestDistanceSquared) {
+                        bestDistanceSquared = distanceSquared;
+                        bestLocation = well;
+                    }
                 }
             }
         }
@@ -103,6 +153,18 @@ public class WellTracker {
                 if (distanceSquared < bestDistanceSquared) {
                     bestDistanceSquared = distanceSquared;
                     bestLocation = location;
+                }
+            }
+        }
+        {
+            MapLocation well = lastSeenClosestWells[getResourceIndex(type)];
+            if (well != null) {
+                if (predicate.test(well)) {
+                    int distanceSquared = well.distanceSquaredTo(Cache.MY_LOCATION);
+                    if (distanceSquared < bestDistanceSquared) {
+                        bestDistanceSquared = distanceSquared;
+                        bestLocation = well;
+                    }
                 }
             }
         }
