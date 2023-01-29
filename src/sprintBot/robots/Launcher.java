@@ -96,6 +96,7 @@ public class Launcher implements RunnableBot {
         cachedClosestAllyAttackerLocation = closestAllyAttacker == null ? null : closestAllyAttacker.location;
         Pathfinding.predicate = loc -> true;
         if (executeMicro()) {
+            Pathfinding.reset();
             return;
         }
         // go to attack random other enemies (non-attackers)
@@ -105,6 +106,7 @@ public class Launcher implements RunnableBot {
             if (direction != Direction.CENTER) {
                 Util.tryMove(direction);
             }
+            Pathfinding.reset();
             return;
         }
         // camp the headquarters
@@ -198,7 +200,6 @@ public class Launcher implements RunnableBot {
                 }
             } else {
                 if (shouldAttackSingleEnemyWithAction(enemy)) {
-                    Debug.setIndicatorDot(Profile.ATTACKING, Cache.MY_LOCATION, 0, 255, 0);
                     return getBestMoveDirection((beforeCurrent, afterCurrent) -> getScoreWithActionSingleEnemyAttacker(beforeCurrent, afterCurrent, enemy));
                 } else {
                     // we think we will lose the 1 on 1

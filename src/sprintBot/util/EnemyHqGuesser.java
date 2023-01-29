@@ -23,6 +23,8 @@ public class EnemyHqGuesser {
     private static int confirmed; // commed confirmed - bit field
     private static int lastConfirmedRead;
 
+    private static int knownSymmetry = -1;
+
     public static void generateHQGuessList() {
         if (initialized) {
             return;
@@ -99,6 +101,9 @@ public class EnemyHqGuesser {
     }
 
     public static void update() {
+        if (knownSymmetry != -1) {
+            Debug.setIndicatorDot(Profile.ATTACKING, Cache.MY_LOCATION, 0, 255, 0);
+        }
         if (Constants.ROBOT_TYPE == RobotType.CARRIER && Cache.TURN_COUNT == 1) {
             // save bytecodes
             return;
@@ -168,6 +173,7 @@ public class EnemyHqGuesser {
                 for (int j = possibleSymmetry; j < predictions.length; j += NUM_POSSIBLE_SYMMETRIES) {
                     markKnownEnemyHQ(j);
                 }
+                knownSymmetry = possibleSymmetry;
             }
         }
 
