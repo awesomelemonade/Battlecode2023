@@ -2,6 +2,7 @@ package sprintBot.robots;
 
 import battlecode.common.*;
 import sprintBot.fast.FastIntSet2D;
+import sprintBot.micro.GeneratedMicro;
 import sprintBot.pathfinder.BFSCheckpoints;
 import sprintBot.pathfinder.Pathfinding;
 import sprintBot.util.*;
@@ -12,6 +13,9 @@ import static sprintBot.util.Constants.rc;
 
 public class Launcher implements RunnableBot {
     private static MapLocation cachedClosestAllyAttackerLocation = null;
+    private static int lastTurnWithEnemy = -1;
+    private static MapLocation prevEnemyLocation = null;
+
     @Override
     public void init() throws GameActionException {
         blacklist = new FastIntSet2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
@@ -27,6 +31,9 @@ public class Launcher implements RunnableBot {
     @Override
     public void loop() throws GameActionException {
         debug_render();
+        if (LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> Util.isAttacker(r.type))) {
+            lastTurnWithEnemy = rc.getRoundNum();
+        }
     }
 
     @Override
@@ -43,6 +50,12 @@ public class Launcher implements RunnableBot {
     
     @Override
     public void postLoop() throws GameActionException {
+        RobotInfo enemy = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
+        if (enemy == null) {
+            prevEnemyLocation = null;
+        } else {
+            prevEnemyLocation = enemy.location;
+        }
         TryAttackCloud.tryAttackCloud();
     }
 
@@ -159,25 +172,25 @@ public class Launcher implements RunnableBot {
     }
 
     public static boolean executeMicro() {
-        RobotInfo enemy = Util.getClosestEnemyRobot(robot -> Util.isAttacker(robot.type));
-        if (enemy == null) {
-            if (Cache.prevClosestEnemyAttacker != null) {
-                // stay still and let them run into our vision
-                // TODO: unless a friendly is in front? if we have action maybe go towards it?
+        if (lastTurnWithEnemy != -1 && lastTurnWithEnemy >= rc.getRoundNum() - 1) {
+            // micro
+            RobotInfo enemy = Util.getClosestEnemyRobot(robot -> Util.isAttacker(robot.type));
+            if (Cache.ALLY_ROBOTS.length > 15) {
+                if (enemy != null) {
+                    Util.tryPathfindingMove(enemy.location);
+                }
+                return true;
+            } else {
+                if (enemy == null) {
+                    GeneratedMicro.executeMicro(prevEnemyLocation);
+                } else {
+                    GeneratedMicro.executeMicro(enemy.location);
+                }
                 return true;
             }
+        } else {
             return false;
         }
-        if (Cache.ALLY_ROBOTS.length > 15) {
-            Util.tryPathfindingMove(enemy.location);
-        } else {
-            Direction direction = getMicroDirection(enemy);
-            Debug.setIndicatorString(Profile.ATTACKING, "Micro direction: " + direction);
-            if (direction != Direction.CENTER) {
-                Util.tryMove(direction);
-            }
-        }
-        return true;
     }
 
     // TODO: remember the enemies of the previous turn?
@@ -305,7 +318,7 @@ public class Launcher implements RunnableBot {
             if (Util.isAttacker(enemy.type)) {
                 int distanceSquared = afterCurrent.distanceSquaredTo(enemy.location);
                 closestEnemyAttackerDistanceSquared = Math.min(closestEnemyAttackerDistanceSquared, distanceSquared);
-                if (distanceSquared < Constants.ROBOT_TYPE.visionRadiusSquared) {
+                if (distanceSquared <= Constants.ROBOT_TYPE.visionRadiusSquared) {
                     numEnemyAttackerRobotsWithin++;
                 }
             }
