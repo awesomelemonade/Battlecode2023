@@ -87,36 +87,36 @@ pub fn run() -> OrError<()> {
     // show_game()?;
 
     // TRAINING
-    let mut parameters = Scored2Parameters::default();
+    // let mut parameters = Scored2Parameters::default();
 
-    let mut best_parameters = parameters.clone();
-    let mut best_score = {
-        let scores = arena::get_scores(
-            &micro::scored2::ScoredMicro2::provider(&best_parameters),
-            micro::sprint2::Sprint2Micro::provider(),
-            50000,
-        );
-        scores.iter().sum::<f32>() / scores.len() as f32
-    };
-    for i in 0..100000 {
-        parameters = simulated_annealing::train(&parameters, 0.025, 10000);
-        let score = {
-            let scores = arena::get_scores(
-                &micro::scored2::ScoredMicro2::provider(&parameters),
-                micro::sprint2::Sprint2Micro::provider(),
-                50000,
-            );
-            scores.iter().sum::<f32>() / scores.len() as f32
-        };
-        println!("Score = {}, Parameters = {:?}", score, parameters);
-        if score > best_score {
-            best_score = score;
-            best_parameters = parameters.clone();
-        }
-        println!(
-            "i = {}, Best Score = {}, Best Parameters = {:?}",
-            i, best_score, best_parameters
-        );
-    }
+    // let mut best_parameters = parameters.clone();
+    // let mut best_score = {
+    //     let scores = arena::get_scores(
+    //         &micro::scored2::ScoredMicro2::provider(&best_parameters),
+    //         micro::sprint2::Sprint2Micro::provider(),
+    //         50000,
+    //     );
+    //     scores.iter().sum::<f32>() / scores.len() as f32
+    // };
+    // for i in 0..100000 {
+    //     parameters = simulated_annealing::train(&parameters, 0.025, 10000);
+    //     let score = {
+    //         let scores = arena::get_scores(
+    //             &micro::scored2::ScoredMicro2::provider(&parameters),
+    //             micro::sprint2::Sprint2Micro::provider(),
+    //             50000,
+    //         );
+    //         scores.iter().sum::<f32>() / scores.len() as f32
+    //     };
+    //     println!("Score = {}, Parameters = {:?}", score, parameters);
+    //     if score > best_score {
+    //         best_score = score;
+    //         best_parameters = parameters.clone();
+    //     }
+    //     println!(
+    //         "i = {}, Best Score = {}, Best Parameters = {:?}",
+    //         i, best_score, best_parameters
+    //     );
+    // }
     Ok(())
 }
