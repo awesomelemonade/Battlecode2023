@@ -21,8 +21,8 @@ botsSet = set(bots)
 
 
 # sprint 1 maps
-maps = ['ArtistRendition', 'BatSignal', 'BowAndArrow', 'Cat', 'Clown', 'Diagonal', 'Eyelands', 'Frog', 'Grievance', 'Hah', 'Jail', 'KingdomRush', 'Minefield', 'Movepls', 'Orbit', 'Pathfind', 'Pit', 'Pizza', 'Quiet', 'Rectangle', 'Scatter', 'Sun', 'Tacocat']
-#maps = ['Eyelands']
+#maps = ['ArtistRendition', 'BatSignal', 'BowAndArrow', 'Cat', 'Clown', 'Diagonal', 'Eyelands', 'Frog', 'Grievance', 'Hah', 'Jail', 'KingdomRush', 'Minefield', 'Movepls', 'Orbit', 'Pathfind', 'Pit', 'Pizza', 'Quiet', 'Rectangle', 'Scatter', 'Sun', 'Tacocat']
+maps = ['Eyelands']
 
 mapsSet = set(maps)
 
