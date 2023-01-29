@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitOrAssign, Shl};
+use std::ops::{BitAnd, BitOrAssign, BitXor, BitXorAssign, Shl};
 
 use itertools::Itertools;
 use rand::{seq::IteratorRandom, Rng};
@@ -47,6 +47,12 @@ impl<const NUM_PARAMETERS: usize, const PARAM_LEN: usize> Parameters<NUM_PARAMET
         ret.parameters[index] = ret.parameters[index].random_neighbor();
         ret
     }
+    pub fn squashed_parameters(&self) -> Vec<(usize, [usize; PARAM_LEN])> {
+        self.parameters
+            .map(|parameter| (parameter.max_or_min, parameter.permutation.data))
+            .into_iter()
+            .collect_vec()
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -91,7 +97,7 @@ impl<const LEN: usize> SubParameters<LEN> {
         if rng.gen_bool(0.5) {
             // flip max_or_min bit
             ret.max_or_min
-                .bitor_assign(1usize.shl(rng.gen_range(0..LEN)));
+                .bitxor_assign(1usize.shl(rng.gen_range(0..LEN)));
         } else {
             // swap 2 elements in the permutation
             let indices = (0..LEN).choose_multiple(&mut rng, 2);

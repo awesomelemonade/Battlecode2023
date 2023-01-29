@@ -14,7 +14,7 @@ fn get_energy(parameters: &Scored2Parameters) -> f32 {
         let current_scores = arena::get_scores(
             &micro::scored2::ScoredMicro2::provider(&parameters),
             micro::sprint2::Sprint2Micro::provider(),
-            100,
+            500,
         );
         // let average_score = current_scores.iter().sum::<f32>() / scores.len() as f32;
         // scores.push(average_score);
@@ -57,7 +57,7 @@ pub fn train(
 
         if k % 100 == 0 {
             println!("Score: {}, Temperature: {}", -current_energy, temperature);
-            println!("Parameters: {:?}", current_parameters);
+            println!("Parameters: {:?}", current_parameters.squashed_parameters());
         }
     }
     current_parameters
