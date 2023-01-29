@@ -175,9 +175,9 @@ impl Board {
         }
     }
 
-    pub fn step_remaining_round(&mut self, f: &mut impl FnMut(RobotController)) {
-        todo!()
-    }
+    // pub fn step_remaining_round(&mut self, f: &mut impl FnMut(RobotController)) {
+    //     todo!()
+    // }
 
     pub fn robots(&self) -> &Robots {
         &self.robots

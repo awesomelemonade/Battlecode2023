@@ -138,6 +138,9 @@ impl<'a> RobotController<'a> {
             })
             .collect_vec()
     }
+    pub fn round_num(&self) -> u32 {
+        self.board.round_num()
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

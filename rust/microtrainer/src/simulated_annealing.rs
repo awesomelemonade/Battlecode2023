@@ -1,15 +1,19 @@
-use rand::{seq::IteratorRandom, Rng};
+use rand::Rng;
 
-use crate::{arena, bot::Bot, micro};
+use crate::{
+    arena,
+    bot::Bot,
+    micro::{self, scored2::Scored2Parameters},
+};
 
-fn get_energy(parameters: [f32; 12]) -> f32 {
-    let parameters = parameters.map(|x| x.signum() * (x.abs().exp() - 1.0));
+// we want to minimize energy
+fn get_energy(parameters: &Scored2Parameters) -> f32 {
     let mut scores = Vec::new();
     let mut num_iterations = 0;
     loop {
         let current_scores = arena::get_scores(
-            &arena::wrap_micro(&micro::scored::ScoredMicro::provider(&parameters)),
-            &arena::wrap_micro(micro::sprint1::Sprint1Micro::provider()),
+            &micro::scored2::ScoredMicro2::provider(&parameters),
+            micro::sprint2::Sprint2Micro::provider(),
             100,
         );
         // let average_score = current_scores.iter().sum::<f32>() / scores.len() as f32;
@@ -25,40 +29,21 @@ fn get_energy(parameters: [f32; 12]) -> f32 {
         }
     }
     let mean = statistical::mean(scores.as_slice());
-    1.0 - mean
+    -mean // we want to maximize score
 }
 
 pub fn train(
-    starting_parameters: [f32; 12],
+    starting_parameters: &Scored2Parameters,
     initial_temperature: f32,
     num_steps: u32,
-) -> [f32; 12] {
+) -> Scored2Parameters {
     let mut rng = rand::thread_rng();
-    // let mut current_parameters = [
-    //     -1.0, 1.0, 0.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    // ];
-    // action ready, within 9 of enemy? (0 or 1)
-    // action ready, within 10-16 of enemy? (0 or 1)
-    // action ready, >17 of enemy? (0 or 1)
-    // let mut current_parameters = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
-    let mut current_parameters = starting_parameters;
-    let mut current_energy = get_energy(current_parameters);
-    // println!("Parameters: {:?}", current_parameters);
-    // println!("Score: {}", 1.0 - current_energy);
+    let mut current_parameters = starting_parameters.clone();
+    let mut current_energy = get_energy(&current_parameters);
     for k in 0..num_steps {
         let temperature = initial_temperature * (1.0 - ((k + 1) as f32) / num_steps as f32);
-        // println!("Temperature: {}", temperature);
-        let mut new_parameters = current_parameters.clone();
-
-        if rng.gen_bool(0.1) {
-            let indices = (0..12).choose_multiple(&mut rng, 2);
-            new_parameters.swap(indices[0], indices[1]);
-        } else {
-            let index = rng.gen_range(0..12);
-            new_parameters[index] += rng.gen_range(-1.0..1.0);
-        }
-
-        let new_energy = get_energy(new_parameters);
+        let new_parameters = current_parameters.random_neighbor();
+        let new_energy = get_energy(&new_parameters);
 
         let mut acceptance_probability = 1.0;
         if new_energy > current_energy {
@@ -69,8 +54,11 @@ pub fn train(
             current_parameters = new_parameters;
             current_energy = new_energy;
         }
-        // println!("Parameters: {:?}", current_parameters);
-        // println!("Score: {}", 1.0 - current_energy);
+
+        if k % 100 == 0 {
+            println!("Score: {}, Temperature: {}", -current_energy, temperature);
+            println!("Parameters: {:?}", current_parameters);
+        }
     }
     current_parameters
 }
