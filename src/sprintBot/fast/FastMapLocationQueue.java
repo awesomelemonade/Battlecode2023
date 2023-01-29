@@ -3,10 +3,10 @@ package sprintBot.fast;
 import battlecode.common.MapLocation;
 
 public class FastMapLocationQueue {
-    private MapLocation[] queue;
+    public MapLocation[] queue;
     private int maxSize;
-    private int index = 0;
-    private int size = 0;
+    public int index = 0;
+    public int size = 0;
 
     public FastMapLocationQueue(int maxSize) {
         this.queue = new MapLocation[maxSize];
@@ -18,16 +18,16 @@ public class FastMapLocationQueue {
     }
 
     public MapLocation peek() {
-        return queue[index % maxSize];
+        return queue[index];
     }
 
     public MapLocation poll() {
         size--;
-        return queue[(index++) % maxSize];
+        return queue[index++];
     }
 
     public void add(MapLocation location) {
-        queue[(index + size++) % maxSize] = location;
+        queue[index + size++] = location;
     }
 
     public void clear() {

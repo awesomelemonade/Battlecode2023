@@ -198,7 +198,6 @@ public class Launcher implements RunnableBot {
                 }
             } else {
                 if (shouldAttackSingleEnemyWithAction(enemy)) {
-                    Debug.setIndicatorDot(Profile.ATTACKING, Cache.MY_LOCATION, 0, 255, 0);
                     return getBestMoveDirection((beforeCurrent, afterCurrent) -> getScoreWithActionSingleEnemyAttacker(beforeCurrent, afterCurrent, enemy));
                 } else {
                     // we think we will lose the 1 on 1

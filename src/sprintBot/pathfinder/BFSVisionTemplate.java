@@ -1,6 +1,7 @@
 package sprintBot.pathfinder;
 
 import battlecode.common.*;
+import sprintBot.fast.FastBooleanArray2D;
 import sprintBot.fast.FastGrid;
 import sprintBot.fast.FastMapLocationQueue;
 import sprintBot.util.*;
@@ -17,6 +18,8 @@ public class BFSVisionTemplate {
 
     private static FastQueueWithRemove bfsQueue = new FastQueueWithRemove();
 
+    private static FastBooleanArray2D hasSensedNearbyMapInfos;
+
     private FastMapLocationQueue queue;
     private int[][] moveDirections;
     private int[][] distances;
@@ -26,24 +29,31 @@ public class BFSVisionTemplate {
 
     public static void init() {
         allBFS = new FastGrid<>(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
+        hasSensedNearbyMapInfos = new FastBooleanArray2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
     }
-
-    private static MapLocation lastLocation = new MapLocation(-1, -1);
 
     public static void postLoop() throws GameActionException {
         if (Cache.TURN_COUNT > 1) { // save bytecodes on turn 1
-            if (!lastLocation.equals(Cache.MY_LOCATION)) {
+            if (!hasSensedNearbyMapInfos.get(Cache.MY_LOCATION)) {
                 // update passability and currents
                 MapInfo[] infos = rc.senseNearbyMapInfos();
                 for (int i = infos.length; --i >= 0; ) {
                     MapInfo info = infos[i];
                     MapLocation location = info.getMapLocation();
-                    CurrentsCache.set(location.x, location.y, location.add(info.getCurrentDirection()));
-//                PassabilityCache.setPassable(location, info.isPassable()); // INLINED BELOW TO SAVE BYTECODES
-                    PassabilityCache.data.setCharAt(location.x * Constants.MAX_MAP_SIZE + location.y,
-                            info.isPassable() ? PassabilityCache.PASSABLE : PassabilityCache.UNPASSABLE);
+                    int index = location.x * Constants.MAX_MAP_SIZE + location.y;
+                    if (PassabilityCache.data.charAt(index) == PassabilityCache.UNKNOWN) {
+                        CurrentsCache.set(location.x, location.y, location.add(info.getCurrentDirection()));
+//                        PassabilityCache.setPassable(location, info.isPassable()); // INLINED BELOW TO SAVE BYTECODES
+                        PassabilityCache.data.setCharAt(index, info.isPassable() ? PassabilityCache.PASSABLE : PassabilityCache.UNPASSABLE);
+                    }
                 }
-                lastLocation = Cache.MY_LOCATION;
+                MapLocation[] cloudLocations = rc.senseNearbyCloudLocations();
+                for (int i = cloudLocations.length; --i >= 0; ) {
+                    MapLocation location = cloudLocations[i];
+                    // cloud locations always do not have a current and are passable
+                    PassabilityCache.data.setCharAt(location.x * Constants.MAX_MAP_SIZE + location.y, PassabilityCache.PASSABLE);
+                }
+                hasSensedNearbyMapInfos.setTrue(Cache.MY_LOCATION);
             }
             BFSVisionTemplate currentBfs = allBFS.get(Cache.MY_LOCATION);
             if (currentBfs == null && Clock.getBytecodesLeft() > 2300) { // creating new BFSVision() takes up to ~2100 bytecodes on large maps
@@ -166,7 +176,7 @@ public class BFSVisionTemplate {
         boolean madeProgress = false;
         // this monstrosity is just to save bytecodes :(
         // idk why but while loop breaks the profiler
-        loop: for (int i = 50; --i >= 0 && !queue.isEmpty() && Clock.getBytecodesLeft() > bytecodeThreshold; ) {
+        loop: for (int i = 2050; --i >= 0 && !queue.isEmpty() && Clock.getBytecodesLeft() > bytecodeThreshold; ) {
             MapLocation location = queue.peek();
             switch (PassabilityCache.isPassable(location)) {
                 case PassabilityCache.UNPASSABLE:
@@ -185,7 +195,7 @@ public class BFSVisionTemplate {
                     macro! addNeighbor
                     ---
                     MapLocation neighbor = location.add(direction);
-                    if (rc.onTheMap(neighbor)) {
+                    if (rc.onTheMap(neighbor) && !neighbor.isWithinDistanceSquared(origin, location.distanceSquaredTo(origin))) {
                         neighbor = CurrentsCache.get(neighbor);
                         // should never be out of bounds because currents should never put a robot out of the map
                         if (origin.isWithinDistanceSquared(neighbor, Constants.ROBOT_TYPE.visionRadiusSquared)) {
@@ -232,7 +242,7 @@ public class BFSVisionTemplate {
         }
     }
 
-    public Direction getImmediateMoveDirection(MapLocation target) {
+    public Direction getImmediateMoveDirectionNearbyTarget(MapLocation target) {
         if (Cache.MY_LOCATION.equals(target)) {
             return Direction.CENTER;
         }
@@ -248,6 +258,34 @@ public class BFSVisionTemplate {
         }
         return null;
     }
+
+//    public Direction getImmediateMoveDirectionFarTarget(MapLocation target) {
+//        Debug.setIndicatorDot(Cache.MY_LOCATION, 255, 255, 0);
+//        double bestDistance = Double.MAX_VALUE;
+//        MapLocation bestTarget = null;
+//        for (int i = this.queue.index; --i >= 0; ) { // TODO: it cannot use all - it can only be ones that yield no neighbors?
+//            MapLocation potentialLocation = this.queue.queue[i];
+//            if (PassabilityCache.isPassableOrTrue(potentialLocation)) {
+//                Debug.setIndicatorDot(potentialLocation, 0, 255, 255);
+//                double distance = distances[potentialLocation.x][potentialLocation.y] + 8 * Math.sqrt(potentialLocation.distanceSquaredTo(target));
+//                if (distance < bestDistance) {
+//                    bestDistance = distance;
+//                    bestTarget = potentialLocation;
+//                }
+//            }
+//        }
+//        if (bestTarget == null) {
+//            return null;
+//        }
+//        Debug.setIndicatorDot(bestTarget, 0, 0, 255);
+//        int moveDirection = moveDirections[bestTarget.x][bestTarget.y];
+//        for (Direction direction : Constants.getAttemptOrder(Cache.MY_LOCATION.directionTo(target))) {
+//            if (rc.canMove(direction) && (moveDirection & (1 << direction.ordinal())) != 0) {
+//                return direction;
+//            }
+//        }
+//        return null;
+//    }
 
     public boolean hasMoveDirection(MapLocation target) {
         int[] array = moveDirections[target.x];
