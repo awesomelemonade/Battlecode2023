@@ -9,6 +9,7 @@ public class Cache { // Cache variables that are constant throughout a turn
     public static int TURN_COUNT;
     public static MapLocation MY_LOCATION;
     public static MapLocation NEAREST_ALLY_HQ;
+    public static WellInfo[] NEARBY_WELLS;
 
     public static RobotInfo prevClosestEnemyAttacker = null;
 
@@ -38,6 +39,10 @@ public class Cache { // Cache variables that are constant throughout a turn
         MY_LOCATION = rc.getLocation();
         if (Constants.ROBOT_TYPE == RobotType.CARRIER) {
             NEAREST_ALLY_HQ = Util.getClosestAllyHeadquartersLocation();
+        }
+        if (Constants.ROBOT_TYPE != RobotType.LAUNCHER) {
+            NEARBY_WELLS = rc.senseNearbyWells();
+            WellTracker.onNewWells();
         }
     }
 }

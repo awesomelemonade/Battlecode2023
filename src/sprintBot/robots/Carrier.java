@@ -628,26 +628,4 @@ public class Carrier implements RunnableBot {
     public static int getWeight() {
         return rc.getWeight();
     }
-
-    public static WellInfo getClosestWell(ResourceType type) {
-        return getClosestWell(rc.senseNearbyWells(type));
-    }
-
-    public static WellInfo getClosestWell() {
-        return getClosestWell(rc.senseNearbyWells());
-    }
-
-    public static WellInfo getClosestWell(WellInfo[] wells) {
-        WellInfo bestWell = null;
-        int bestDistanceSquared = Integer.MAX_VALUE;
-        for (int i = wells.length; --i >= 0; ) {
-            WellInfo well = wells[i];
-            int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(well.getMapLocation());
-            if (distanceSquared < bestDistanceSquared) {
-                bestDistanceSquared = distanceSquared;
-                bestWell = well;
-            }
-        }
-        return bestWell;
-    }
 }
