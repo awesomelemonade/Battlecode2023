@@ -99,7 +99,7 @@ pub fn run() -> OrError<()> {
     //     scores.iter().sum::<f32>() / scores.len() as f32
     // };
     // for i in 0..100000 {
-    //     parameters = simulated_annealing::train(&parameters, 0.025, 10000);
+    //     parameters = simulated_annealing::train(&parameters, 0.015, 10000);
     //     let score = {
     //         let scores = arena::get_scores(
     //             &micro::scored2::ScoredMicro2::provider(&parameters),
@@ -108,14 +108,20 @@ pub fn run() -> OrError<()> {
     //         );
     //         scores.iter().sum::<f32>() / scores.len() as f32
     //     };
-    //     println!("Score = {}, Parameters = {:?}", score, parameters);
+    //     println!(
+    //         "Score = {}, Parameters = {:?}",
+    //         score,
+    //         parameters.squashed_parameters()
+    //     );
     //     if score > best_score {
     //         best_score = score;
     //         best_parameters = parameters.clone();
     //     }
     //     println!(
     //         "i = {}, Best Score = {}, Best Parameters = {:?}",
-    //         i, best_score, best_parameters
+    //         i,
+    //         best_score,
+    //         best_parameters.squashed_parameters()
     //     );
     // }
     Ok(())
