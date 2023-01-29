@@ -91,9 +91,18 @@ public class EnemyHqGuesser {
                     return false;
                 }
             } else {
-                // must not be confirmed
                 if (isConfirmedPrediction(i)) {
-                    return false;
+                    // if it is confirmed, it has to be within "symmetry" too
+                    boolean withinSymmetry = false;
+                    for (int j = symmetry; j < predictions.length; j += NUM_POSSIBLE_SYMMETRIES) {
+                        if (predictions[i].equals(predictions[j])) {
+                            withinSymmetry = true;
+                            break;
+                        }
+                    }
+                    if (!withinSymmetry) {
+                        return false;
+                    }
                 }
             }
         }
