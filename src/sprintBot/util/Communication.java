@@ -8,13 +8,15 @@ import static sprintBot.util.Constants.rc;
 
 public class Communication {
     public static final int ALLY_HEADQUARTERS_LOCATIONS_OFFSET = 0; // 4 integers
-    public static final int HEADQUARTERS_LOCATIONS_SET_BIT = 0;
-    public static final int HEADQUARTERS_LOCATIONS_LOCATION_BIT = 1;
-    public static final int HEADQUARTERS_LOCATIONS_LOCATION_MASK = 0b111111_111111; // 12 bits, 6 bit per coordinate
-    // TODO: 3 bits for enemy attacker angle
-    // TODO: 1 bit for enemy attacker distance (<= 20, > 20)
+    public static final int HEADQUARTERS_LOCATIONS_LOCATION_BIT = 0;
+    public static final int HEADQUARTERS_LOCATIONS_LOCATION_MASK = 0b111111_111111; // 12 bits, 0 = non-existent, 1-3601 = coordinates of hq
+    public static final int HEADQUARTERS_LOCATIONS_ENEMY_DIRECTION_BIT = 12;
+    public static final int HEADQUARTERS_LOCATIONS_ENEMY_DIRECTION_MASK = 0b1111; // 1 bit is if there's an enemy, 3 bits representing the 8 ordinal directions
+    // TODO: Carriers: do not go to deposit if close to enemy (or from wrong direction?)
+
     private static int headquartersSharedIndex = -1;
     public static MapLocation[] headquartersLocations;
+    public static MapLocation[] enemyLocationsFromHeadquarters;
 
     // 3 resource types * 4 headquarters * 12 bits per well = 144 bits total = theoretically 9 integers
     public static final int WELL_LOCATIONS_OFFSET = 4; // 144 12 integers
@@ -242,16 +244,31 @@ public class Communication {
             if (headquartersSharedIndex == -1) {
                 Debug.failFast("-1 headquarters index");
             }
-            // Broadcast headquarter location
-            rc.writeSharedArray(headquartersSharedIndex,
-                    (pack(Cache.MY_LOCATION) << HEADQUARTERS_LOCATIONS_LOCATION_BIT) |
-                            (1 << HEADQUARTERS_LOCATIONS_SET_BIT));
         }
         Checkpoints.init();
     }
 
     public static void loop() throws GameActionException {
         if (Constants.ROBOT_TYPE == RobotType.HEADQUARTERS) {
+            if (headquartersSharedIndex != -1) {
+                RobotInfo enemy = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
+                if (enemy == null) {
+                    // Broadcast headquarter location
+                    rc.writeSharedArray(headquartersSharedIndex,
+                            (((Cache.MY_LOCATION.x * Constants.MAX_MAP_SIZE + Cache.MY_LOCATION.y) + 1) << HEADQUARTERS_LOCATIONS_LOCATION_BIT));
+                } else {
+                    MapLocation enemyLocation = enemy.location;
+                    Direction enemyDirection = Cache.MY_LOCATION.directionTo(enemyLocation);
+                    if (enemyDirection == Direction.CENTER) {
+                        Debug.failFast("Center enemy direction?");
+                    } else {
+                        // Broadcast headquarter location AND enemyDirection
+                        rc.writeSharedArray(headquartersSharedIndex,
+                                (((Cache.MY_LOCATION.x * Constants.MAX_MAP_SIZE + Cache.MY_LOCATION.y) + 1) << HEADQUARTERS_LOCATIONS_LOCATION_BIT)
+                                        | ((enemyDirection.ordinal() + 1) << HEADQUARTERS_LOCATIONS_ENEMY_DIRECTION_BIT));
+                    }
+                }
+            }
             clearOurTasks();
         }
         if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS || Cache.TURN_COUNT > 1) {
@@ -263,23 +280,44 @@ public class Communication {
                     if (value != 0) {
                         if (!initialized) {
                             headquartersLocations = new MapLocation[i + 1];
+                            enemyLocationsFromHeadquarters = new MapLocation[i + 1];
                             initialized = true;
                         }
                     }
                 }
                 if (!initialized) {
-                    Debug.failFast("Cannot read any archon locations");
-                }
-                // Read archon locations
-                for (int i = GameConstants.MAX_STARTING_HEADQUARTERS; --i >= 0; ) {
-                    int value = rc.readSharedArray(i);
-                    // check if set
-                    if (((value >> HEADQUARTERS_LOCATIONS_SET_BIT) & 0b1) == 1) {
-                        headquartersLocations[i] = unpack((value >> HEADQUARTERS_LOCATIONS_LOCATION_BIT) & HEADQUARTERS_LOCATIONS_LOCATION_MASK);
-                    }
+                    Debug.failFast("Cannot read any headquarters locations");
                 }
             }
-            // TODO: broadcast whether the headquarters is safe (for carriers to deposit resources)
+            if (headquartersLocations != null) {
+                // Read headquarters locations and enemy directions
+                for (int i = GameConstants.MAX_STARTING_HEADQUARTERS; --i >= 0; ) {
+                    int value = rc.readSharedArray(i);
+                    int location = ((value >> HEADQUARTERS_LOCATIONS_LOCATION_BIT) & HEADQUARTERS_LOCATIONS_LOCATION_MASK) - 1;
+                    if (location >= 0) {
+                        // valid hq
+                        headquartersLocations[i] = new MapLocation(location / Constants.MAX_MAP_SIZE, location % Constants.MAX_MAP_SIZE);
+                        try {
+                            int directionIndex = ((value >> HEADQUARTERS_LOCATIONS_ENEMY_DIRECTION_BIT) & HEADQUARTERS_LOCATIONS_ENEMY_DIRECTION_MASK) - 1;
+                            if (directionIndex == -1) {
+                                enemyLocationsFromHeadquarters[i] = null;
+                            } else {
+                                Direction direction = Constants.ORDINAL_DIRECTIONS[directionIndex];
+                                // we will project it approximately 16 distance squared
+                                if (Util.isStraightDirection(direction)) {
+                                    enemyLocationsFromHeadquarters[i] = headquartersLocations[i].add(direction).add(direction).add(direction).add(direction);
+                                } else {
+                                    enemyLocationsFromHeadquarters[i] = headquartersLocations[i].add(direction).add(direction).add(direction);
+                                }
+                            }
+                        } catch (ArrayIndexOutOfBoundsException ex) {
+                            enemyLocationsFromHeadquarters[i] = null;
+                            Debug.failFast("Out of bounds");
+                        }
+                    }
+                }
+
+            }
         }
         // Update enemy hqs from comms
         EnemyHqGuesser.update();

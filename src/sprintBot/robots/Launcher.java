@@ -123,6 +123,25 @@ public class Launcher implements RunnableBot {
                 return;
             }
         }
+        // Try to attack enemies near our headquarters
+        if (Communication.enemyLocationsFromHeadquarters != null) {
+            int bestDistanceSquared = 257; // max distance + 1 that we will respond to
+            MapLocation bestLocation = null;
+            for (int i = Communication.enemyLocationsFromHeadquarters.length; --i >= 0; ) {
+                MapLocation enemyLocation = Communication.enemyLocationsFromHeadquarters[i];
+                if (enemyLocation != null) {
+                    int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(enemyLocation);
+                    if (distanceSquared < bestDistanceSquared) {
+                        bestDistanceSquared = distanceSquared;
+                        bestLocation = enemyLocation;
+                    }
+                }
+            }
+            if (bestLocation != null) {
+                Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, bestLocation, 0, 255, 255); // cyan
+                Util.tryPathfindingMove(bestLocation);
+            }
+        }
         // camp the headquarters
         MapLocation location = getMacroAttackLocation();
         if (location == null) {
@@ -157,6 +176,7 @@ public class Launcher implements RunnableBot {
         // let's look at visible islands and check if there are robots
         int bestDistanceSquared = Integer.MAX_VALUE;
         MapLocation bestLocation = null;
+        int bestIslandIndex = -1;
         for (int i = IslandTracker.NEARBY_ISLANDS.length; --i >= 0; ) {
             int islandIndex = IslandTracker.NEARBY_ISLANDS[i];
             try {
@@ -165,11 +185,12 @@ public class Launcher implements RunnableBot {
                     MapLocation[] locations = rc.senseNearbyIslandLocations(islandIndex);
                     for (int j = locations.length; --j >= 0; ) {
                         MapLocation location = locations[j];
-                        if (!rc.canSenseRobotAtLocation(location)) {
+                        if (Cache.MY_LOCATION.equals(location) || !rc.canSenseRobotAtLocation(location)) {
                             int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
                             if (distanceSquared < bestDistanceSquared) {
                                 bestDistanceSquared = distanceSquared;
                                 bestLocation = location;
+                                bestIslandIndex = islandIndex;
                             }
                         }
                     }
@@ -195,7 +216,13 @@ public class Launcher implements RunnableBot {
                 return true;
             }
         } else {
-            if (Cache.MY_LOCATION.isAdjacentTo(bestLocation)) {
+            boolean hasFullHealth = false;
+            try {
+                hasFullHealth = rc.senseAnchorPlantedHealth(bestIslandIndex) >= Anchor.STANDARD.totalHealth; // TODO-someday: could sense anchor type
+            } catch (GameActionException ex) {
+                Debug.failFast(ex);
+            }
+            if (Cache.MY_LOCATION.equals(bestLocation) || hasFullHealth && Cache.MY_LOCATION.isAdjacentTo(bestLocation)) {
                 if (rc.getHealth() >= Constants.ROBOT_TYPE.getMaxHealth()) {
                     return false;
                 }

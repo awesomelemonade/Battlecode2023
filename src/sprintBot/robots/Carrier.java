@@ -59,25 +59,27 @@ public class Carrier implements RunnableBot {
         }
     }
 
+    private static RobotInfo cachedClosestAttacker;
     @Override
     public void move() {
+        cachedClosestAttacker = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
         Pathfinding.predicate = location -> true;
         if (tryMoveToAttack()) {
-            return;
-        }
-        if (tryKiteFromEnemies()) {
             return;
         }
 //        if (tryMoveToCommunicatePendingManaWell()) {
 //            return;
 //        }
-        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
-        if (tryMoveToPickupAnchor()) {
-            return;
-        }
 //        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
         Pathfinding.predicate = location -> true;
         if (tryMoveToPlaceAnchorOnIsland()) {
+            return;
+        }
+        if (tryMoveToKiteFromEnemies()) { // above is allowed to ignore kiting
+            return;
+        }
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
+        if (tryMoveToPickupAnchor()) {
             return;
         }
         Pathfinding.predicate = location -> (location.x + location.y) % 2 == 0 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
@@ -236,9 +238,8 @@ public class Carrier implements RunnableBot {
         if (shouldAttack()) {
             // find any location that allows us to be in range to attack
             // TODO
-            RobotInfo enemyRobot = Util.getClosestEnemyRobot(r -> r.type != RobotType.HEADQUARTERS);
-            if (enemyRobot != null) {
-                Util.tryPathfindingMove(enemyRobot.location);
+            if (cachedClosestAttacker != null) {
+                Util.tryPathfindingMove(cachedClosestAttacker.location);
                 return true;
             }
 //            MapLocation closestEnemyLocation = null;
@@ -403,13 +404,13 @@ public class Carrier implements RunnableBot {
         return false;
     }
 
-    public static boolean tryKiteFromEnemies() {
-        RobotInfo closestAttacker = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
-        if (closestAttacker == null) {
+    public static boolean tryMoveToKiteFromEnemies() {
+        if (cachedClosestAttacker == null) {
             return false;
+        } else {
+            Util.tryKiteFrom(cachedClosestAttacker.location);
+            return true;
         }
-        Util.tryKiteFrom(closestAttacker.location);
-        return true;
     }
 
     public static boolean tryPickupAnchorFromHQ() {
@@ -506,6 +507,10 @@ public class Carrier implements RunnableBot {
             }
         }
         if (bestLocation == null) {
+            if (cachedClosestAttacker != null) {
+                // we should kite instead
+                return false;
+            }
             int seenIsland = IslandTracker.getClosestIsland(islandIndex -> (blacklistedIslands & (1L << islandIndex)) == 0);
             if (seenIsland == -1) {
                 // just explore
@@ -532,12 +537,24 @@ public class Carrier implements RunnableBot {
                 // let's go to this island
                 Util.tryPathfindingMove(IslandTracker.getLocationOfIsland(seenIsland));
             }
+            return true;
         } else {
-            if (!bestLocation.equals(Cache.MY_LOCATION)) {
-                Util.tryPathfindingMove(bestLocation);
+            if (bestLocation.isAdjacentTo(Cache.MY_LOCATION)) {
+                Util.tryMove(Cache.MY_LOCATION.directionTo(bestLocation));
+                return true;
+            } else if (!bestLocation.equals(Cache.MY_LOCATION)) {
+                if (cachedClosestAttacker == null) {
+                    Util.tryPathfindingMove(bestLocation);
+                    return true;
+                } else {
+                    // we should kite instead
+                    return false;
+                }
+            } else {
+                // we are already at the island - stay and place the anchor
+                return true;
             }
         }
-        return true;
     }
 
     public static boolean tryPlaceAnchorOnIsland() {
