@@ -248,10 +248,9 @@ public class Headquarters implements RunnableBot {
         } else {
             // should we build an anchor???
             // if we see TONS of allies
-            double numMinersAverage = adamantiumMinerTracker.average() + manaMinerTracker.average();
-            Debug.setIndicatorString(numMinersAverage + " - " + anchorsBuilt);
+            double income = manaIncome.average();
             // 0.16, 0.2
-            if (numMinersAverage >= 0.165 && anchorsBuilt < 1 || numMinersAverage >= 0.205 && anchorsBuilt < 2 || numMinersAverage >= 0.275) {
+            if (income >= 5.99 && anchorsBuilt < 1 || income >= 7.5 && anchorsBuilt < 2 || income >= 8.99 && anchorsBuilt < 5) {
                 // let's build anchors
                 Flags.flag(Flags.EARLIER_ANCHORS);
                 int adamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
@@ -398,7 +397,7 @@ public class Headquarters implements RunnableBot {
         Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, macroLocation, 255, 128, 0); // orange
         RobotInfo closestEnemy = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
         return tryBuildByScore(RobotType.LAUNCHER, location -> {
-            return closestEnemy == null ? location.distanceSquaredTo(macroLocation) : -location.distanceSquaredTo(closestEnemy.location);
+            return closestEnemy == null ? location.distanceSquaredTo(macroLocation) : location.distanceSquaredTo(closestEnemy.location);
         });
     }
 
