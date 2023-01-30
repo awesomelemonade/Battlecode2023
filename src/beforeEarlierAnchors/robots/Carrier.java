@@ -1,11 +1,11 @@
-package sprintBot.robots;
+package beforeEarlierAnchors.robots;
 
 import battlecode.common.*;
-import sprintBot.fast.FastIntSet2D;
-import sprintBot.pathfinder.Pathfinding;
-import sprintBot.util.*;
+import beforeEarlierAnchors.fast.FastIntSet2D;
+import beforeEarlierAnchors.pathfinder.Pathfinding;
+import beforeEarlierAnchors.util.*;
 
-import static sprintBot.util.Constants.rc;
+import static beforeEarlierAnchors.util.Constants.rc;
 
 public class Carrier implements RunnableBot {
     private static Communication.CarrierTask currentTask;
@@ -47,15 +47,8 @@ public class Carrier implements RunnableBot {
             Debug.setIndicatorString(Profile.MINING, currentTask.type.toString());
         }
 
-        int weight = getWeight();
-        if (weight == 0) {
-            blacklistedIslands = 0;
-            reachedEnemyHqWhenFindingIslandForAnchor = false;
-        } else if (weight == GameConstants.CARRIER_CAPACITY) {
+        if (getWeight() == GameConstants.CARRIER_CAPACITY) {
             blacklist.reset();
-            if ((blacklistedIslands + 1) == (1L << rc.getIslandCount())) {
-                blacklistedIslands = 0; // we've somehow visited all the islands
-            }
         }
     }
 
@@ -75,8 +68,7 @@ public class Carrier implements RunnableBot {
         if (tryMoveToPickupAnchor()) {
             return;
         }
-//        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
-        Pathfinding.predicate = location -> true;
+        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
         if (tryMoveToPlaceAnchorOnIsland()) {
             return;
         }
@@ -453,24 +445,6 @@ public class Carrier implements RunnableBot {
         return false;
     }
 
-    private static boolean reachedEnemyHqWhenFindingIslandForAnchor = false;
-
-    public static MapLocation getMacroAttackLocation() {
-        RobotInfo closestVisibleEnemyHQ = Util.getClosestEnemyRobot(robot -> robot.type == RobotType.HEADQUARTERS);
-        MapLocation ret = closestVisibleEnemyHQ == null ? null : closestVisibleEnemyHQ.location;
-        if (ret == null) {
-            ret = EnemyHqGuesser.getClosestConfirmed(location -> true);
-        }
-        if (ret == null) {
-            ret = EnemyHqGuesser.getClosestPredictionPreferRotationalSymmetry(location -> true);
-        }
-        if (ret == null) {
-            ret = EnemyHqGuesser.getClosestPrediction(location -> true);
-        }
-        return ret;
-    }
-
-    private static long blacklistedIslands = 0; // max 35 islands, use 64 bits
     public static boolean tryMoveToPlaceAnchorOnIsland() {
         try {
             if (rc.getAnchor() == null) {
@@ -479,60 +453,16 @@ public class Carrier implements RunnableBot {
         } catch (GameActionException ex) {
             Debug.failFast(ex);
         }
-        MapLocation bestLocation = null;
-        int bestDistanceSquared = Integer.MAX_VALUE;
-        int[] islands = rc.senseNearbyIslands();
-        for (int i = islands.length; --i >= 0; ) {
-            int islandId = islands[i];
-            try {
-                if (rc.senseTeamOccupyingIsland(islandId) == Constants.ALLY_TEAM) {
-                    // add to blacklist
-                    blacklistedIslands |= 1L << islandId;
-                } else {
-                    MapLocation[] locations = rc.senseNearbyIslandLocations(islandId);
-                    for (int j = locations.length; --j >= 0; ) {
-                        MapLocation location = locations[j];
-                        if (location.equals(Cache.MY_LOCATION) || !rc.canSenseRobotAtLocation(location)) {
-                            int distanceSquared = location.distanceSquaredTo(Cache.MY_LOCATION);
-                            if (distanceSquared < bestDistanceSquared) {
-                                bestDistanceSquared = distanceSquared;
-                                bestLocation = location;
-                            }
-                        }
-                    }
-                }
-            } catch (GameActionException ex) {
-                Debug.failFast(ex);
-            }
-        }
-        if (bestLocation == null) {
-            int seenIsland = IslandTracker.getClosestIsland(islandIndex -> (blacklistedIslands & (1L << islandIndex)) == 0);
-            if (seenIsland == -1) {
-                // just explore
-                // TODO: potentially can use comms for island locations
-                if (reachedEnemyHqWhenFindingIslandForAnchor || rc.getRoundNum() >= 1600) {
-                    // if we're round >= 1600, random explore - we need to cover as much area as possible
-                    Util.tryExplore();
-                } else {
-                    // otherwise, we should go towards enemy hq (aka where launchers are going)
-                    MapLocation macroLocation = getMacroAttackLocation();
-                    if (Cache.MY_LOCATION.isWithinDistanceSquared(macroLocation, 100)) {
-                        reachedEnemyHqWhenFindingIslandForAnchor = true;
-                        Util.tryExplore();
-                    } else {
-                        Util.tryPathfindingMove(macroLocation);
-                    }
-                }
-            } else {
-                // let's go to this island
-                Util.tryPathfindingMove(IslandTracker.getLocationOfIsland(seenIsland));
-            }
+        MapLocation islandLocation = findClosestUnoccupiedNonAllyIsland();
+        if (islandLocation == null) {
+            // TODO: go to commed islands?
+            return false;
         } else {
-            if (!bestLocation.equals(Cache.MY_LOCATION)) {
-                Util.tryPathfindingMove(bestLocation);
+            if (!islandLocation.equals(Cache.MY_LOCATION)) {
+                Util.tryPathfindingMove(islandLocation);
             }
+            return true;
         }
-        return true;
     }
 
     public static boolean tryPlaceAnchorOnIsland() {
@@ -577,6 +507,34 @@ public class Carrier implements RunnableBot {
             }
         }
         return false;
+    }
+
+    public static MapLocation findClosestUnoccupiedNonAllyIsland() {
+        MapLocation bestLocation = null;
+        int bestDistanceSquared = Integer.MAX_VALUE;
+        int[] islands = rc.senseNearbyIslands();
+        for (int i = islands.length; --i >= 0; ) {
+            int islandId = islands[i];
+            try {
+                if (rc.senseTeamOccupyingIsland(islandId) != Constants.ALLY_TEAM) { // TODO: only target neutral?
+                    // TODO-someday: can likely save bytecodes by using rc.senseNearbyIslandLocations(distanceSquared, idx)
+                    MapLocation[] locations = rc.senseNearbyIslandLocations(islandId);
+                    for (int j = locations.length; --j >= 0; ) {
+                        MapLocation location = locations[j];
+                        if (location.equals(Cache.MY_LOCATION) || !rc.canSenseRobotAtLocation(location)) {
+                            int distanceSquared = location.distanceSquaredTo(Cache.MY_LOCATION);
+                            if (distanceSquared < bestDistanceSquared) {
+                                bestDistanceSquared = distanceSquared;
+                                bestLocation = location;
+                            }
+                        }
+                    }
+                }
+            } catch (GameActionException ex) {
+                Debug.failFast(ex);
+            }
+        }
+        return bestLocation;
     }
 
     public static int capacityLeft() {

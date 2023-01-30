@@ -1,4 +1,4 @@
-package beforeMoveToCommunicateWells.util;
+package beforeEarlierAnchors.util;
 
 import battlecode.common.*;
 
@@ -7,6 +7,7 @@ public class Constants {
     public static final boolean DEBUG_PROFILES = false;
     public static final boolean DEBUG_RESIGN = true;
     public static final boolean DEBUG_FAIL_FAST = true;
+    public static final boolean DEBUG_FLAGS = false;
 
     public static Team ALLY_TEAM;
     public static Team ENEMY_TEAM;

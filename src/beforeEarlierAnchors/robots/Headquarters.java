@@ -1,14 +1,14 @@
-package sprintBot.robots;
+package beforeEarlierAnchors.robots;
 
 import battlecode.common.*;
-import sprintBot.fast.FastDoubleTracker;
-import sprintBot.fast.FastIntMap;
-import sprintBot.fast.FastIntTracker;
-import sprintBot.util.*;
+import beforeEarlierAnchors.fast.FastDoubleTracker;
+import beforeEarlierAnchors.fast.FastIntMap;
+import beforeEarlierAnchors.fast.FastIntTracker;
+import beforeEarlierAnchors.util.*;
 
 import java.util.function.ToIntFunction;
 
-import static sprintBot.util.Constants.rc;
+import static beforeEarlierAnchors.util.Constants.rc;
 
 public class Headquarters implements RunnableBot {
     private static FastIntMap carrierTasks;
@@ -32,8 +32,6 @@ public class Headquarters implements RunnableBot {
     private static MapLocation[] shuffledLocations;
 
     private static boolean hasSpaceForMiners = true;
-
-    private static int anchorsBuilt = 0;
 
     @Override
     public void init() throws GameActionException {
@@ -242,39 +240,16 @@ public class Headquarters implements RunnableBot {
             }
             // save to build anchor
         } else {
-            // should we build an anchor???
-            // if we see TONS of allies
-            double numMinersAverage = adamantiumMinerTracker.average() + manaMinerTracker.average();
-            Debug.setIndicatorString(numMinersAverage + " - " + anchorsBuilt);
-            // 0.16, 0.2
-            if (numMinersAverage >= 0.145 && anchorsBuilt < 1 || numMinersAverage >= 0.185 && anchorsBuilt < 2 || numMinersAverage >= 0.275) {
-                // let's build anchors
-                Flags.flag(Flags.EARLIER_ANCHORS);
-                int adamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
-                int mana = rc.getResourceAmount(ResourceType.MANA);
-                if (adamantium >= Anchor.STANDARD.adamantiumCost
-                        && mana >= Anchor.STANDARD.manaCost) { // simple random heuristic to build anchors
-                    if (tryBuildAnchor(Anchor.STANDARD)) {
-                        return;
-                    }
-                    if (tryBuildLauncher()) {
-                        return;
-                    }
-                    tryBuildCarrier();
+            if (Cache.ENEMY_ROBOTS.length > 0 || EnemyHqGuesser.getMaximumPossibleEnemyHqDistanceSquaredAsHeadquarters() <= 225) { // 15 * 15 = 225
+                if (tryBuildLauncher()) {
+                    return;
                 }
-                // save for anchors
+                tryBuildCarrier();
             } else {
-                if (Cache.ENEMY_ROBOTS.length > 0 || EnemyHqGuesser.getMaximumPossibleEnemyHqDistanceSquaredAsHeadquarters() <= 225) { // 15 * 15 = 225
-                    if (tryBuildLauncher()) {
-                        return;
-                    }
-                    tryBuildCarrier();
-                } else {
-                    if (tryBuildCarrier()) {
-                        return;
-                    }
-                    tryBuildLauncher();
+                if (tryBuildCarrier()) {
+                    return;
                 }
+                tryBuildLauncher();
             }
         }
     }
@@ -296,7 +271,6 @@ public class Headquarters implements RunnableBot {
         if (LambdaUtil.arraysAnyMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.CARRIER)) {
             if (rc.canBuildAnchor(anchorType)) {
                 try {
-                    anchorsBuilt++;
                     rc.buildAnchor(anchorType);
                     return true;
                 } catch (GameActionException ex) {
