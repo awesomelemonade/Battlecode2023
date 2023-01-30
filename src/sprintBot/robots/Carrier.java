@@ -471,7 +471,7 @@ public class Carrier implements RunnableBot {
         return ret;
     }
 
-    private static long blacklistedIslands = 0; // max 35 islands, use 64 bits
+    private static long blacklistedIslands = 0; // max 35 islands, use 64 bits - islands are 1-indexed, so it's actually max 36
     public static boolean tryMoveToPlaceAnchorOnIsland() {
         try {
             if (rc.getAnchor() == null) {

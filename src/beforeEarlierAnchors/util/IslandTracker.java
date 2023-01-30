@@ -10,15 +10,16 @@ import java.util.function.IntPredicate;
 import static beforeEarlierAnchors.util.Constants.rc;
 
 public class IslandTracker {
-    private static MapLocation[] islandLocations = new MapLocation[GameConstants.MAX_NUMBER_ISLANDS];
-    private static MapLocation[][] lastSensedIslandLocations = new MapLocation[GameConstants.MAX_NUMBER_ISLANDS][];
+    private static final int ARRAY_SIZE = GameConstants.MAX_NUMBER_ISLANDS + 1; // islands are 1-indexed, so 0 slot isn't used
+    private static MapLocation[] islandLocations = new MapLocation[ARRAY_SIZE];
+    private static MapLocation[][] lastSensedIslandLocations = new MapLocation[ARRAY_SIZE][];
 
-    private static boolean[] isInKnownIslands = new boolean[GameConstants.MAX_NUMBER_ISLANDS];
-    private static int[] knownIslands = new int[GameConstants.MAX_NUMBER_ISLANDS];
+    private static boolean[] isInKnownIslands = new boolean[ARRAY_SIZE];
+    private static int[] knownIslands = new int[ARRAY_SIZE];
     private static int knownIslandsSize = 0;
 
-    private static boolean[] isInOurIslands = new boolean[GameConstants.MAX_NUMBER_ISLANDS];
-    private static int[] ourIslands = new int[GameConstants.MAX_NUMBER_ISLANDS];
+    private static boolean[] isInOurIslands = new boolean[ARRAY_SIZE];
+    private static int[] ourIslands = new int[ARRAY_SIZE];
     private static int ourIslandsSize = 0;
 
     public static int[] NEARBY_ISLANDS = new int[0];
