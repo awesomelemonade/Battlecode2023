@@ -516,11 +516,16 @@ public class Carrier implements RunnableBot {
                 } else {
                     // otherwise, we should go towards enemy hq (aka where launchers are going)
                     MapLocation macroLocation = getMacroAttackLocation();
-                    if (Cache.MY_LOCATION.isWithinDistanceSquared(macroLocation, 100)) {
-                        reachedEnemyHqWhenFindingIslandForAnchor = true;
+                    if (macroLocation == null) {
+                        // this will happen if we just spawned
                         Util.tryExplore();
                     } else {
-                        Util.tryPathfindingMove(macroLocation);
+                        if (Cache.MY_LOCATION.isWithinDistanceSquared(macroLocation, 100)) {
+                            reachedEnemyHqWhenFindingIslandForAnchor = true;
+                            Util.tryExplore();
+                        } else {
+                            Util.tryPathfindingMove(macroLocation);
+                        }
                     }
                 }
             } else {

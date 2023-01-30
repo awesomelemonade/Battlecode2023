@@ -239,6 +239,10 @@ public class Headquarters implements RunnableBot {
                         return;
                     }
                 }
+            } else {
+                if (buildLaunchersAndCarriersWhileSavingForAnchor()) {
+                    return;
+                }
             }
             // save to build anchor
         } else {
@@ -247,7 +251,7 @@ public class Headquarters implements RunnableBot {
             double numMinersAverage = adamantiumMinerTracker.average() + manaMinerTracker.average();
             Debug.setIndicatorString(numMinersAverage + " - " + anchorsBuilt);
             // 0.16, 0.2
-            if (numMinersAverage >= 0.145 && anchorsBuilt < 1 || numMinersAverage >= 0.185 && anchorsBuilt < 2 || numMinersAverage >= 0.275) {
+            if (numMinersAverage >= 0.165 && anchorsBuilt < 1 || numMinersAverage >= 0.205 && anchorsBuilt < 2 || numMinersAverage >= 0.275) {
                 // let's build anchors
                 Flags.flag(Flags.EARLIER_ANCHORS);
                 int adamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
@@ -261,6 +265,10 @@ public class Headquarters implements RunnableBot {
                         return;
                     }
                     tryBuildCarrier();
+                } else {
+                    if (buildLaunchersAndCarriersWhileSavingForAnchor()) {
+                        return;
+                    }
                 }
                 // save for anchors
             } else {
@@ -439,5 +447,21 @@ public class Headquarters implements RunnableBot {
             }
         }
         return passable;
+    }
+
+    public static boolean buildLaunchersAndCarriersWhileSavingForAnchor() {
+        // maybe we are able to build a launcher and still have enough mana for anchors
+        if (rc.getResourceAmount(ResourceType.MANA) - RobotType.LAUNCHER.buildCostMana >= Anchor.STANDARD.manaCost) {
+            if (tryBuildLauncher()) {
+                return true;
+            }
+        }
+        // maybe we are able to build a carrier and still have enough adamantium for anchors
+        if (rc.getResourceAmount(ResourceType.ADAMANTIUM) - RobotType.CARRIER.buildCostAdamantium >= Anchor.STANDARD.adamantiumCost) {
+            if (tryBuildCarrier()) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -9,7 +9,7 @@ public class Flags {
     public static final String CARRIER_GAVE_UP_TARGET_RESOURCE = "^";
     public static final String HEADQUARTERS_BUILDING_CARRIER_FOR_ANCHOR = "%";
     public static final String CARRIER_MOVE_TO_COMMUNICATE_PENDING_MANA_WELL = "&";
-    public static final String EARLIER_ANCHORS = "$";
+    public static final String EARLIER_ANCHORS = "A";
 
 
     public static void flag(String flag) {
