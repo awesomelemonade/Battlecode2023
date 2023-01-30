@@ -123,25 +123,6 @@ public class Launcher implements RunnableBot {
                 return;
             }
         }
-        // Try to attack enemies near our headquarters
-        if (Communication.enemyLocationsFromHeadquarters != null) {
-            int bestDistanceSquared = 257; // max distance + 1 that we will respond to
-            MapLocation bestLocation = null;
-            for (int i = Communication.enemyLocationsFromHeadquarters.length; --i >= 0; ) {
-                MapLocation enemyLocation = Communication.enemyLocationsFromHeadquarters[i];
-                if (enemyLocation != null) {
-                    int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(enemyLocation);
-                    if (distanceSquared < bestDistanceSquared) {
-                        bestDistanceSquared = distanceSquared;
-                        bestLocation = enemyLocation;
-                    }
-                }
-            }
-            if (bestLocation != null) {
-                Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, bestLocation, 0, 255, 255); // cyan
-                Util.tryPathfindingMove(bestLocation);
-            }
-        }
         // camp the headquarters
         MapLocation location = getMacroAttackLocation();
         if (location == null) {
@@ -461,7 +442,33 @@ public class Launcher implements RunnableBot {
         if (ret == null) {
             blacklist.reset();
         }
+        MapLocation defendLocation = getLocationToDefend();
+        if (defendLocation != null) {
+            if (ret == null || !Cache.MY_LOCATION.isWithinDistanceSquared(ret, Cache.MY_LOCATION.distanceSquaredTo(defendLocation))) {
+                ret = defendLocation;
+            }
+        }
         return ret;
+    }
+
+    public static MapLocation getLocationToDefend() {
+        // Try to attack enemies near our headquarters
+        if (Communication.enemyLocationsFromHeadquarters != null) {
+            int bestDistanceSquared = 257; // max distance + 1 that we will respond to
+            MapLocation bestLocation = null;
+            for (int i = Communication.enemyLocationsFromHeadquarters.length; --i >= 0; ) {
+                MapLocation enemyLocation = Communication.enemyLocationsFromHeadquarters[i];
+                if (enemyLocation != null) {
+                    int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(enemyLocation);
+                    if (distanceSquared < bestDistanceSquared) {
+                        bestDistanceSquared = distanceSquared;
+                        bestLocation = enemyLocation;
+                    }
+                }
+            }
+            return bestLocation;
+        }
+        return null;
     }
 
     public static boolean tryAttack(MapLocation location) {

@@ -13,7 +13,7 @@ emojiMap = {
 errors = []
 currentBot = 'sprintBot'
 
-bots = ['beforeEarlierAnchors', 'beforeMoveToCommunicateWells', 'beforeAdjustments2']
+bots = ['beforeEarlierAnchors']
 #bots = ['manaOnly', 'sprintTesting1', 'sprintTesting2', 'sprintTesting3', 'sprintTesting5', 'sprintTesting8']
 botsSet = set(bots)
 #maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall']
@@ -71,7 +71,7 @@ def run_match(bot, map):
 
         flagRegex = "FLAG{[^{}]*}"
         gameAFlags = list(set(re.findall(flagRegex, outputA)))
-        gameBFlags = list(set(re.findall(flagRegex, outputA)))
+        gameBFlags = list(set(re.findall(flagRegex, outputB)))
         gameAFlags = ", ".join([s[5:-1] for s in gameAFlags])
         gameBFlags = ", ".join([s[5:-1] for s in gameBFlags])
         if len(gameAFlags) > 0:

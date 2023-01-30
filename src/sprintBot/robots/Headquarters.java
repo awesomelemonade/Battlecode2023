@@ -394,8 +394,10 @@ public class Headquarters implements RunnableBot {
             return false;
         }
         MapLocation macroLocation = getMacroAttackLocation();
-        Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, macroLocation, 255, 128, 0); // orange
         RobotInfo closestEnemy = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
+        if (closestEnemy == null && macroLocation != null) {
+            Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, macroLocation, 255, 128, 0); // orange
+        }
         return tryBuildByScore(RobotType.LAUNCHER, location -> {
             return closestEnemy == null ? location.distanceSquaredTo(macroLocation) : -location.distanceSquaredTo(closestEnemy.location);
         });
