@@ -232,7 +232,8 @@ public class Launcher implements RunnableBot {
         double cos = Math.cos(direction);
         double sin = Math.sin(direction);
         MapLocation tangentTarget = Cache.MY_LOCATION.translate((int) (cos * distance), (int) (sin * distance));
-        return Pathfinding.executeResetIfNotAdjacent(tangentTarget);
+        Util.tryPathfindingMove(tangentTarget);
+        return true;
     }
 
     public static boolean executeMicro() {
@@ -457,6 +458,7 @@ public class Launcher implements RunnableBot {
         return ret;
     }
 
+    private static MapLocation lastDefendLocation;
     public static MapLocation getLocationToDefend() {
         // Try to attack enemies near our headquarters
         if (Communication.enemyLocationsFromHeadquarters != null) {
@@ -472,7 +474,22 @@ public class Launcher implements RunnableBot {
                     }
                 }
             }
-            return bestLocation;
+            if (bestLocation == null) {
+                // invalidate lastDefendLocation if necessary
+                if (lastDefendLocation == null) {
+                    return null;
+                } else {
+                    if (Cache.ENEMY_ROBOTS.length == 0 && Cache.MY_LOCATION.isAdjacentTo(lastDefendLocation)) {
+                        lastDefendLocation = null;
+                        return null;
+                    } else {
+                        return lastDefendLocation;
+                    }
+                }
+            } else {
+                lastDefendLocation = bestLocation;
+                return bestLocation;
+            }
         }
         return null;
     }

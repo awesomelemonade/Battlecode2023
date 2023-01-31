@@ -2,7 +2,7 @@ package sprintBot.util;
 
 public enum Profile {
     ERROR_STATE(true),
-    PATHFINDING(false),
+    PATHFINDING(true),
     EXPLORER(false),
     MINING(false),
     ATTACKING(false),

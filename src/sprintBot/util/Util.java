@@ -3,6 +3,7 @@ package sprintBot.util;
 import battlecode.common.*;
 import sprintBot.pathfinder.BFSCheckpoints;
 import sprintBot.pathfinder.BFSVision;
+import sprintBot.pathfinder.Nav;
 import sprintBot.pathfinder.Pathfinding;
 
 import java.util.function.BiPredicate;
@@ -19,7 +20,7 @@ public class Util {
         CurrentsCache.init();
         Communication.init();
         Explorer.init();
-        Pathfinding.init();
+//        Pathfinding.init();
         BFSVision.init();
     }
 
@@ -198,7 +199,12 @@ public class Util {
         if (rc.getRoundNum() % 2 == 0) {
             return;
         }
-        Pathfinding.execute(loc);
+        try {
+            Nav.bugNavigate(loc);
+        } catch (GameActionException ex) {
+            Debug.failFast(ex);
+        }
+//        Pathfinding.execute(loc);
     }
 
     // tries to move on the location OR any location adjacent to it
@@ -223,9 +229,11 @@ public class Util {
                 }
             }
             if (bestLocation == null) {
-                Pathfinding.executeResetIfNotAdjacent(location);
+//                Pathfinding.executeResetIfNotAdjacent(location);
+                tryPathfindingMove(location);
             } else {
-                Pathfinding.executeResetIfNotAdjacent(bestLocation);
+                tryPathfindingMove(bestLocation);
+//                Pathfinding.executeResetIfNotAdjacent(bestLocation);
             }
         }
     }
@@ -252,9 +260,11 @@ public class Util {
                 }
             }
             if (bestLocation == null) {
-                Pathfinding.executeResetIfNotAdjacent(location);
+//                Pathfinding.executeResetIfNotAdjacent(location);
+                tryPathfindingMove(location);
             } else {
-                Pathfinding.executeResetIfNotAdjacent(bestLocation);
+//                Pathfinding.executeResetIfNotAdjacent(bestLocation);
+                tryPathfindingMove(location);
             }
         }
     }
@@ -273,7 +283,7 @@ public class Util {
     }
 
     public static void tryKiteFrom(MapLocation location) {
-        Pathfinding.reset(); // Reset pathfinding - squares we move now are irrelevant
+//        Pathfinding.reset(); // Reset pathfinding - squares we move now are irrelevant
         int bestDistanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
         Direction bestDirection = null;
         for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
@@ -404,17 +414,23 @@ public class Util {
     }
 
     public static boolean canMoveAndCheckCurrents(Direction direction) {
+        MapLocation after = Cache.MY_LOCATION.add(direction);
+        MapLocation afterCurrent;
         // less bytecodes
         return rc.canMove(direction) &&
                 ((Constants.ROBOT_TYPE == RobotType.CARRIER && (rc.getMovementCooldownTurns() + rc.getWeight() / 8 < 5)) ||
-                        !CurrentsCache.get(Cache.MY_LOCATION.add(direction)).equals(Cache.MY_LOCATION));
-//        // full version
-//        if (Constants.ROBOT_TYPE == RobotType.CARRIER) {
-//            if (rc.getMovementCooldownTurns() + 5 + rc.getWeight() / 8 < GameConstants.COOLDOWN_LIMIT) {
-//                // can double move - let's ignore currents
-//                return rc.canMove(direction);
-//            }
-//        }
-//        return rc.canMove(direction) && !CurrentsCache.get(Cache.MY_LOCATION.add(direction)).equals(Cache.MY_LOCATION);
+                        after.equals(afterCurrent = CurrentsCache.get(after)) || !afterCurrent.isAdjacentTo(Cache.MY_LOCATION));
+    }
+
+    public static boolean canMoveAndCheckCurrentsAndNotNearEnemyHQ(Direction direction) {
+        if (!rc.canMove(direction)) {
+            return false;
+        }
+        MapLocation after = Cache.MY_LOCATION.add(direction);
+        MapLocation afterCurrent = CurrentsCache.get(after);
+        // less bytecodes
+        return ((Constants.ROBOT_TYPE == RobotType.CARRIER && (rc.getMovementCooldownTurns() + rc.getWeight() / 8 < 5))
+                || after.equals(afterCurrent) || !afterCurrent.isAdjacentTo(Cache.MY_LOCATION))
+                && !EnemyHqGuesser.anyConfirmed(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(afterCurrent, 9));
     }
 }

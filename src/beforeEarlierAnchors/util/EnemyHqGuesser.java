@@ -238,10 +238,10 @@ public class EnemyHqGuesser {
                 MapLocation location = predictions[i];
                 if (predicate.test(location)) {
                     double score = Math.sqrt(Cache.MY_LOCATION.distanceSquaredTo(location)); // regular distance
-                    if (i % 3 == 2) {
-                        // rotational symmetry
-                        score /= 2.0; // lower is better
-                    }
+//                    if (i % 3 == 2) {
+//                        // rotational symmetry
+//                        score /= 2.0; // lower is better
+//                    }
                     if (score < bestScore) {
                         bestScore = score;
                         bestLocation = location;

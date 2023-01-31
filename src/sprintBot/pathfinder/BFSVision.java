@@ -23,7 +23,7 @@ public class BFSVision {
 
     private FastMapLocationQueue queue;
     private int[][] moveDirections;
-    private int[][] distances;
+    private int[][] distances; // TODO: is this necessary?
     private boolean completed = false;
     public MapLocation origin;
 
@@ -89,7 +89,7 @@ public class BFSVision {
         return currentBfsVision != null && currentBfsVision.completed ? currentBfsVision : null;
     }
 
-    public BFSVision(MapLocation origin) {
+    public BFSVision(MapLocation origin) { // we should optimize this
         this.origin = origin;
         moveDirections = new int[Constants.MAP_WIDTH][];
         distances = new int[Constants.MAP_WIDTH][];
@@ -126,6 +126,7 @@ public class BFSVision {
                 moveDirections[neighbor.x][neighbor.y] = 1 << i;
             }
         }
+        // TODO: move to bfs?
     }
 
     public static void debug_render() {

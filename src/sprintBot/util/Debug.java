@@ -6,7 +6,7 @@ import battlecode.common.MapLocation;
 import static sprintBot.util.Constants.rc;
 
 public class Debug {
-    public static final int id = -1;
+    public static final int id = 13054;
 
     public static void failFast(GameActionException ex) {
         if (Constants.DEBUG_FAIL_FAST) {
