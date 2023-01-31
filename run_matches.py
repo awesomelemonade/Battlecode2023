@@ -13,10 +13,10 @@ emojiMap = {
 errors = []
 currentBot = 'sprintBot'
 
-bots = ['beforeMoveToCommunicateWells', 'beforeAdjustments2', 'beforeBetterMicro']
+bots = ['beforeEarlierAnchors']
 #bots = ['manaOnly', 'sprintTesting1', 'sprintTesting2', 'sprintTesting3', 'sprintTesting5', 'sprintTesting8']
 botsSet = set(bots)
-#maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall']
+maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall']
 #maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall', 'generated_captain_america', 'generated_chalice', 'generated_charge', 'generated_chessboard', 'generated_cobra', 'generated_collaboration', 'generated_colosseum', 'generated_deer', 'generated_defenseless']
 
 
@@ -25,7 +25,7 @@ botsSet = set(bots)
 #maps = ['Eyelands']
 
 # sprint 2 maps
-maps = ['BattleSuns', 'Checkmate2', 'Cornucopia', 'Crossword', 'Cube', 'Divergence', 'FourNations', 'HideAndSeek', 'Lantern', 'Lines', 'Maze', 'Pakbot', 'Piglets', 'Risk', 'Sine', 'Snowflake', 'SomethingFishy', 'Spin', 'Spiral', 'Squares', 'Star', 'Sus', 'SweetDreams', 'TicTacToe', 'USA']
+#maps = ['BattleSuns', 'Checkmate2', 'Cornucopia', 'Crossword', 'Cube', 'Divergence', 'FourNations', 'HideAndSeek', 'Lantern', 'Lines', 'Maze', 'Pakbot', 'Piglets', 'Risk', 'Sine', 'Snowflake', 'SomethingFishy', 'Spin', 'Spiral', 'Squares', 'Star', 'Sus', 'SweetDreams', 'TicTacToe', 'USA']
 
 mapsSet = set(maps)
 
@@ -71,7 +71,7 @@ def run_match(bot, map):
 
         flagRegex = "FLAG{[^{}]*}"
         gameAFlags = list(set(re.findall(flagRegex, outputA)))
-        gameBFlags = list(set(re.findall(flagRegex, outputA)))
+        gameBFlags = list(set(re.findall(flagRegex, outputB)))
         gameAFlags = ", ".join([s[5:-1] for s in gameAFlags])
         gameBFlags = ", ".join([s[5:-1] for s in gameBFlags])
         if len(gameAFlags) > 0:

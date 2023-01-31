@@ -1,14 +1,14 @@
-package sprintBot.util;
+package beforeEarlierAnchors.util;
 
 import battlecode.common.*;
-import sprintBot.pathfinder.BFSCheckpoints;
-import sprintBot.pathfinder.BFSVision;
-import sprintBot.pathfinder.Pathfinding;
+import beforeEarlierAnchors.pathfinder.BFSCheckpoints;
+import beforeEarlierAnchors.pathfinder.BFSVision;
+import beforeEarlierAnchors.pathfinder.Pathfinding;
 
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import static sprintBot.util.Constants.rc;
+import static beforeEarlierAnchors.util.Constants.rc;
 
 public class Util {
 
@@ -25,9 +25,7 @@ public class Util {
 
     public static void loop() throws GameActionException {
         Cache.loop();
-        CurrentsCache.preallocateCurrentVision();
         Communication.loop();
-        IslandTracker.loop();
     }
 
     public static void postLoop() throws GameActionException {

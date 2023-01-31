@@ -1,12 +1,12 @@
-package sprintBot.pathfinder;
+package beforeEarlierAnchors.pathfinder;
 
 import battlecode.common.*;
-import sprintBot.fast.FastBooleanArray2D;
-import sprintBot.fast.FastGrid;
-import sprintBot.fast.FastMapLocationQueue;
-import sprintBot.util.*;
+import beforeEarlierAnchors.fast.FastBooleanArray2D;
+import beforeEarlierAnchors.fast.FastGrid;
+import beforeEarlierAnchors.fast.FastMapLocationQueue;
+import beforeEarlierAnchors.util.*;
 
-import static sprintBot.util.Constants.rc;
+import static beforeEarlierAnchors.util.Constants.rc;
 
 public class BFSVisionTemplate {
 
@@ -42,8 +42,7 @@ public class BFSVisionTemplate {
                     MapLocation location = info.getMapLocation();
                     int index = location.x * Constants.MAX_MAP_SIZE + location.y;
                     if (PassabilityCache.data.charAt(index) == PassabilityCache.UNKNOWN) {
-//                        CurrentsCache.set(location.x, location.y, location.add(info.getCurrentDirection())); // INLINED BELOW TO SAVE BYTECODES
-                        CurrentsCache.data[location.x][location.y] = location.add(info.getCurrentDirection());
+                        CurrentsCache.set(location.x, location.y, location.add(info.getCurrentDirection()));
 //                        PassabilityCache.setPassable(location, info.isPassable()); // INLINED BELOW TO SAVE BYTECODES
                         PassabilityCache.data.setCharAt(index, info.isPassable() ? PassabilityCache.PASSABLE : PassabilityCache.UNPASSABLE);
                     }

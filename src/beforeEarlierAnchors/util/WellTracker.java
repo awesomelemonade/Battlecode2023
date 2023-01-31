@@ -1,11 +1,11 @@
-package sprintBot.util;
+package beforeEarlierAnchors.util;
 
 import battlecode.common.*;
 
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static sprintBot.util.Constants.rc;
+import static beforeEarlierAnchors.util.Constants.rc;
 
 public class WellTracker {
     private static final int NUM_WELLS_TRACKED = 12;
@@ -261,7 +261,6 @@ public class WellTracker {
             manaWells = new WellInfo[0];
             elixirWells = new WellInfo[0];
         } else {
-            // TODO: maybe if we are too far from what's known, we don't bother sensing it
             if (Constants.ROBOT_TYPE == RobotType.CARRIER) {
                 adamantiumWells = rc.senseNearbyWells(2, ResourceType.ADAMANTIUM);
                 manaWells = rc.senseNearbyWells(2, ResourceType.MANA);

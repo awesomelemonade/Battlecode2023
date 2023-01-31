@@ -3,7 +3,7 @@ package sprintBot.util;
 import battlecode.common.MapLocation;
 
 public class CurrentsCache {
-    private static MapLocation[][] data;
+    public static MapLocation[][] data;
 
     public static void init() {
         data = new MapLocation[Constants.MAP_WIDTH][];
@@ -13,29 +13,37 @@ public class CurrentsCache {
         set(location.x, location.y, data);
     }
 
+    // Does not check for null - make sure it is preallocated!
     public static void set(int x, int y, MapLocation location) {
-        MapLocation[] array = data[x];
-        if (array == null) {
-            array = new MapLocation[Constants.MAP_HEIGHT];
-            data[x] = array;
+        data[x][y] = location;
+    }
+
+    public static void preallocateCurrentVision() {
+        int x = Cache.MY_LOCATION.x;
+        int start = Math.max(0, x - 6);
+        int end = Math.min(Constants.MAP_WIDTH - 1, x + 6);
+        for (int i = start; i <= end; i++) {
+            if (data[i] == null) {
+                data[i] = new MapLocation[Constants.MAP_HEIGHT];
+            }
         }
-        array[y] = location;
     }
 
     public static boolean hasNoKnownCurrent(MapLocation location) {
-        return location.equals(get(location));
-    }
-
-    public static MapLocation get(MapLocation location) {
         MapLocation[] array = data[location.x];
         if (array == null) {
-            array = new MapLocation[Constants.MAP_HEIGHT];
-            data[location.x] = array;
+            return true;
+        } else {
+            return location.equals(array[location.y]);
         }
-        MapLocation ret = array[location.y];
+    }
+
+    // Does not check for null - make sure it is preallocated!
+    public static MapLocation get(MapLocation location) {
+        MapLocation ret = data[location.x][location.y];
         if (ret == null) {
             ret = location;
-            array[location.y] = location;
+            data[location.x][location.y] = location;
         }
         return ret;
     }

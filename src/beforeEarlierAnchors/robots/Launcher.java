@@ -1,19 +1,17 @@
-package sprintBot.robots;
+package beforeEarlierAnchors.robots;
 
 import battlecode.common.*;
-import sprintBot.fast.FastIntSet2D;
-import sprintBot.pathfinder.BFSCheckpoints;
-import sprintBot.pathfinder.Pathfinding;
-import sprintBot.util.*;
+import beforeEarlierAnchors.fast.FastIntSet2D;
+import beforeEarlierAnchors.pathfinder.BFSCheckpoints;
+import beforeEarlierAnchors.pathfinder.Pathfinding;
+import beforeEarlierAnchors.util.*;
 
 import java.util.function.ToDoubleBiFunction;
 
-import static sprintBot.util.Constants.rc;
+import static beforeEarlierAnchors.util.Constants.rc;
 
 public class Launcher implements RunnableBot {
-    private static final int RETREAT_HEALTH_THRESHOLD = RobotType.LAUNCHER.getMaxHealth() / 2;
     private static MapLocation cachedClosestAllyAttackerLocation = null;
-
     @Override
     public void init() throws GameActionException {
         blacklist = new FastIntSet2D(Constants.MAP_WIDTH, Constants.MAP_HEIGHT);
@@ -94,20 +92,9 @@ public class Launcher implements RunnableBot {
 
     @Override
     public void move() {
-        Pathfinding.predicate = loc -> {
-            MapLocation afterCurrent = CurrentsCache.get(loc);
-            if (loc.equals(afterCurrent)) {
-                return !EnemyHqGuesser.anyConfirmed(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(loc, 9));
-            } else {
-                return !EnemyHqGuesser.anyConfirmed(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(loc, 9)
-                        || enemyHqLocation.isWithinDistanceSquared(afterCurrent, 9));
-            }
-        };
-        if (tryMoveToHealAtIsland()) {
-            return;
-        }
         RobotInfo closestAllyAttacker = Util.getClosestRobot(Cache.ALLY_ROBOTS, r -> Util.isAttacker(r.type));
         cachedClosestAllyAttackerLocation = closestAllyAttacker == null ? null : closestAllyAttacker.location;
+        Pathfinding.predicate = loc -> true;
         if (executeMicro()) {
             return;
         }
@@ -129,6 +116,9 @@ public class Launcher implements RunnableBot {
                 return;
             }
         }
+        Pathfinding.predicate = loc -> {
+            return !EnemyHqGuesser.anyConfirmed(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(loc, 9));
+        };
         // camp the headquarters
         MapLocation location = getMacroAttackLocation();
         if (location == null) {
@@ -157,73 +147,6 @@ public class Launcher implements RunnableBot {
                 }
             }
         }
-    }
-
-    public static boolean tryMoveToHealAtIsland() {
-        // let's look at visible islands and check if there are robots
-        int bestDistanceSquared = Integer.MAX_VALUE;
-        MapLocation bestLocation = null;
-        int bestIslandIndex = -1;
-        for (int i = IslandTracker.NEARBY_ISLANDS.length; --i >= 0; ) {
-            int islandIndex = IslandTracker.NEARBY_ISLANDS[i];
-            try {
-                Team team = rc.senseTeamOccupyingIsland(islandIndex);
-                if (team == Constants.ALLY_TEAM) {
-                    MapLocation[] locations = rc.senseNearbyIslandLocations(islandIndex);
-                    for (int j = locations.length; --j >= 0; ) {
-                        MapLocation location = locations[j];
-                        if (Cache.MY_LOCATION.equals(location) || !rc.canSenseRobotAtLocation(location)) {
-                            int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
-                            if (distanceSquared < bestDistanceSquared) {
-                                bestDistanceSquared = distanceSquared;
-                                bestLocation = location;
-                                bestIslandIndex = islandIndex;
-                            }
-                        }
-                    }
-                }
-            } catch (GameActionException ex) {
-                Debug.failFast(ex);
-            }
-        }
-        if (bestLocation == null) {
-            if (rc.getHealth() >= RETREAT_HEALTH_THRESHOLD) {
-                return false;
-            }
-            // Let's go to an island location that we have seen before
-            int islandIndex = IslandTracker.getClosestOurIsland(i -> true);
-            if (islandIndex == -1) {
-                return false;
-            }
-            MapLocation islandLocation = IslandTracker.getLocationOfIsland(islandIndex);
-            if (islandLocation == null) {
-                Debug.failFast("Null island location");
-            } else {
-                Util.tryPathfindingMove(islandLocation);
-                return true;
-            }
-        } else {
-            boolean hasFullHealth = false;
-            try {
-                hasFullHealth = rc.senseAnchorPlantedHealth(bestIslandIndex) >= Anchor.STANDARD.totalHealth; // TODO-someday: could sense anchor type
-            } catch (GameActionException ex) {
-                Debug.failFast(ex);
-            }
-            if (Cache.MY_LOCATION.equals(bestLocation) || hasFullHealth && Cache.MY_LOCATION.isAdjacentTo(bestLocation)) {
-                if (rc.getHealth() >= Constants.ROBOT_TYPE.getMaxHealth()) {
-                    return false;
-                }
-                // stand still
-                return true;
-            } else {
-                if (rc.getHealth() >= RETREAT_HEALTH_THRESHOLD) {
-                    return false;
-                }
-                Util.tryPathfindingMove(bestLocation);
-            }
-            return true;
-        }
-        return false;
     }
 
     public static boolean tryPathfindingTangent(MapLocation target) {
@@ -432,7 +355,6 @@ public class Launcher implements RunnableBot {
     private static FastIntSet2D blacklist;
 
     public static MapLocation getMacroAttackLocation() {
-        // NOTE: if we change this, don't forget to change Carrier.getMacroAttackLocation()
         RobotInfo closestVisibleEnemyHQ = Util.getClosestEnemyRobot(robot -> robot.type == RobotType.HEADQUARTERS &&
                 !blacklist.contains(robot.location.x, robot.location.y));
         MapLocation ret = closestVisibleEnemyHQ == null ? null : closestVisibleEnemyHQ.location;
@@ -440,7 +362,10 @@ public class Launcher implements RunnableBot {
             ret = EnemyHqGuesser.getClosestConfirmed(location -> !blacklist.contains(location.x, location.y));
         }
         if (ret == null) {
-            ret = EnemyHqGuesser.getClosestPredictionPreferRotationalSymmetry(location -> !blacklist.contains(location.x, location.y));
+            MapLocation lastHqLocation = WellTracker.lastHqLocation();
+            if (lastHqLocation != null) {
+                ret = EnemyHqGuesser.getClosestPredictionPreferRotationalSymmetry(location -> !blacklist.contains(location.x, location.y));
+            }
         }
         if (ret == null) {
             ret = EnemyHqGuesser.getClosestPrediction(location -> !blacklist.contains(location.x, location.y));
@@ -448,33 +373,7 @@ public class Launcher implements RunnableBot {
         if (ret == null) {
             blacklist.reset();
         }
-        MapLocation defendLocation = getLocationToDefend();
-        if (defendLocation != null) {
-            if (ret == null || !Cache.MY_LOCATION.isWithinDistanceSquared(ret, Cache.MY_LOCATION.distanceSquaredTo(defendLocation))) {
-                ret = defendLocation;
-            }
-        }
         return ret;
-    }
-
-    public static MapLocation getLocationToDefend() {
-        // Try to attack enemies near our headquarters
-        if (Communication.enemyLocationsFromHeadquarters != null) {
-            int bestDistanceSquared = 257; // max distance + 1 that we will respond to
-            MapLocation bestLocation = null;
-            for (int i = Communication.enemyLocationsFromHeadquarters.length; --i >= 0; ) {
-                MapLocation enemyLocation = Communication.enemyLocationsFromHeadquarters[i];
-                if (enemyLocation != null) {
-                    int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(enemyLocation);
-                    if (distanceSquared < bestDistanceSquared) {
-                        bestDistanceSquared = distanceSquared;
-                        bestLocation = enemyLocation;
-                    }
-                }
-            }
-            return bestLocation;
-        }
-        return null;
     }
 
     public static boolean tryAttack(MapLocation location) {
