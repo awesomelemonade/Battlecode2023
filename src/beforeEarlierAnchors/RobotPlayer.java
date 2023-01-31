@@ -44,15 +44,16 @@ public class RobotPlayer {
                     Util.loop();
                     if (Constants.DEBUG_RESIGN &&
                             controller.getType() == RobotType.HEADQUARTERS) {
-                        if (currentTurn > 50 &&
-                                Communication.headquartersLocations != null &&
-                                controller.getRobotCount() <= Communication.headquartersLocations.length &&
-                                Cache.ALLY_ROBOTS.length == 0 &&
-                                Cache.ENEMY_ROBOTS.length > 2) {
-                            controller.resign();
-                        }
-                        if (currentTurn > 150 && Cache.ALLY_ROBOTS.length == 0 && Cache.ENEMY_ROBOTS.length > controller.getRobotCount() + 5) {
-                            controller.resign();
+                        if (LambdaUtil.arraysAllMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.HEADQUARTERS)) {
+                            if (currentTurn > 50 &&
+                                    Communication.headquartersLocations != null &&
+                                    controller.getRobotCount() <= Communication.headquartersLocations.length &&
+                                    Cache.ENEMY_ROBOTS.length > 2) {
+                                controller.resign();
+                            }
+                            if (currentTurn > 150 && Cache.ENEMY_ROBOTS.length > controller.getRobotCount() + 5) {
+                                controller.resign();
+                            }
                         }
                     }
                     bot.loop();

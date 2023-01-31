@@ -25,7 +25,10 @@ botsSet = set(bots)
 #maps = ['Eyelands']
 
 # sprint 2 maps
-maps = ['BattleSuns', 'Checkmate2', 'Cornucopia', 'Crossword', 'Cube', 'Divergence', 'FourNations', 'HideAndSeek', 'Lantern', 'Lines', 'Maze', 'Pakbot', 'Piglets', 'Risk', 'Sine', 'Snowflake', 'SomethingFishy', 'Spin', 'Spiral', 'Squares', 'Star', 'Sus', 'SweetDreams', 'TicTacToe', 'USA']
+#maps = ['BattleSuns', 'Checkmate2', 'Cornucopia', 'Crossword', 'Cube', 'Divergence', 'FourNations', 'HideAndSeek', 'Lantern', 'Lines', 'Maze', 'Pakbot', 'Piglets', 'Risk', 'Sine', 'Snowflake', 'SomethingFishy', 'Spin', 'Spiral', 'Squares', 'Star', 'Sus', 'SweetDreams', 'TicTacToe', 'USA']
+
+# us qual maps
+maps = ['AbsoluteW', 'Buggy', 'Cave', 'Cee', 'Heart', 'HotAirBalloon', 'IslandHoppingTwo', 'LightWork', 'MassiveL', 'Potions', 'Rainbow', 'Resign', 'Sneaky', 'Target', 'Tightrope']
 
 mapsSet = set(maps)
 

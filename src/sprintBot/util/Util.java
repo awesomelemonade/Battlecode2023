@@ -199,7 +199,7 @@ public class Util {
         if (Constants.ROBOT_TYPE == RobotType.CARRIER) {
             Pathfinding.execute(loc);
         } else {
-            if (rc.getRoundNum() % 2 == 0) {
+            if (Constants.ROBOT_TYPE == RobotType.LAUNCHER && rc.getRoundNum() % 2 == 0) {
                 return;
             }
             try {

@@ -11,6 +11,7 @@ public class Nav {
         if (canMove(direction)) {
             Util.move(direction);
             whereWeLeftOff = Cache.MY_LOCATION;
+            //Debug.println("Left OFF: " + whereWeLeftOff);
             return true;
         }
         return false;
@@ -87,6 +88,7 @@ public class Nav {
 
     public static Direction bugNavigate(MapLocation target) throws GameActionException {
         invalidate();
+        //Debug.println("Startin: " + Cache.MY_LOCATION + " - " + whereWeLeftOff);
         debug_render();
         Debug.setIndicatorLine(Profile.PATHFINDING, Cache.MY_LOCATION, target, 0, 0, 255);
         if (!target.equals(bugTarget) || !Cache.MY_LOCATION.equals(whereWeLeftOff)) {
@@ -94,6 +96,7 @@ public class Nav {
             bugTracing = false;
             //Debug.println("New Target");
         }
+        whereWeLeftOff = Cache.MY_LOCATION; // account for cases where we don't move
 
         if (Cache.MY_LOCATION.equals(bugTarget)) {
             return null;
@@ -112,6 +115,7 @@ public class Nav {
                 bugStartTracing();
             }
         } else { // we are on obstacle, trying to get off of it
+            //Debug.println("bug tracing");
             if (Cache.MY_LOCATION.distanceSquaredTo(bugTarget) < bugClosestDistanceToTarget) {
                 //Debug.println("attempt to get off");
                 Direction tryMoveResult = tryMoveInDirection(destDir);
@@ -123,8 +127,8 @@ public class Nav {
             }
         }
 
-        Direction moveDir = bugTraceMove(false);
         //Debug.println("bug trace move");
+        Direction moveDir = bugTraceMove(false);
 
         if (bugTurnsWithoutWall >= 2) {
             //Debug.println("no wall");

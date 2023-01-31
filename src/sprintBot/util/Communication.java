@@ -305,9 +305,13 @@ public class Communication {
                                 Direction direction = Constants.ORDINAL_DIRECTIONS[directionIndex];
                                 // we will project it approximately 16 distance squared
                                 if (Util.isStraightDirection(direction)) {
-                                    enemyLocationsFromHeadquarters[i] = headquartersLocations[i].add(direction).add(direction).add(direction).add(direction);
+                                    int x = Math.max(0, Math.min(Constants.MAP_WIDTH - 1, headquartersLocations[i].x + direction.dx * 4));
+                                    int y = Math.max(0, Math.min(Constants.MAP_HEIGHT - 1, headquartersLocations[i].y + direction.dy * 4));
+                                    enemyLocationsFromHeadquarters[i] = new MapLocation(x, y);
                                 } else {
-                                    enemyLocationsFromHeadquarters[i] = headquartersLocations[i].add(direction).add(direction).add(direction);
+                                    int x = Math.max(0, Math.min(Constants.MAP_WIDTH - 1, headquartersLocations[i].x + direction.dx * 3));
+                                    int y = Math.max(0, Math.min(Constants.MAP_HEIGHT - 1, headquartersLocations[i].y + direction.dy * 3));
+                                    enemyLocationsFromHeadquarters[i] = new MapLocation(x, y);
                                 }
                             }
                         } catch (ArrayIndexOutOfBoundsException ex) {
