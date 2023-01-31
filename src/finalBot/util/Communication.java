@@ -1,10 +1,10 @@
-package sprintBot.util;
+package finalBot.util;
 
 import battlecode.common.*;
-import sprintBot.pathfinder.BFSCheckpoints;
-import sprintBot.pathfinder.Checkpoints;
+import finalBot.pathfinder.BFSCheckpoints;
+import finalBot.pathfinder.Checkpoints;
 
-import static sprintBot.util.Constants.rc;
+import static finalBot.util.Constants.rc;
 
 public class Communication {
     public static final int ALLY_HEADQUARTERS_LOCATIONS_OFFSET = 0; // 4 integers

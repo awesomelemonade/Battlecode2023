@@ -1,14 +1,14 @@
-package sprintBot.robots;
+package finalBot.robots;
 
 import battlecode.common.*;
-import sprintBot.fast.FastIntSet2D;
-import sprintBot.pathfinder.BFSCheckpoints;
-import sprintBot.pathfinder.Pathfinding;
-import sprintBot.util.*;
+import finalBot.fast.FastIntSet2D;
+import finalBot.pathfinder.BFSCheckpoints;
+import finalBot.pathfinder.Pathfinding;
+import finalBot.util.*;
 
 import java.util.function.ToDoubleBiFunction;
 
-import static sprintBot.util.Constants.rc;
+import static finalBot.util.Constants.rc;
 
 public class Launcher implements RunnableBot {
     private static final int RETREAT_HEALTH_THRESHOLD = RobotType.LAUNCHER.getMaxHealth() / 2;

@@ -1,10 +1,10 @@
-package sprintBot;
+package finalBot;
 
 import battlecode.common.*;
-import sprintBot.robots.Carrier;
-import sprintBot.robots.Headquarters;
-import sprintBot.robots.Launcher;
-import sprintBot.util.*;
+import finalBot.robots.Carrier;
+import finalBot.robots.Headquarters;
+import finalBot.robots.Launcher;
+import finalBot.util.*;
 
 public class RobotPlayer {
     public static int currentTurn;

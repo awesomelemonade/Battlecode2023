@@ -1,15 +1,15 @@
-package sprintBot.util;
+package finalBot.util;
 
 import battlecode.common.*;
-import sprintBot.pathfinder.BFSCheckpoints;
-import sprintBot.pathfinder.BFSVision;
-import sprintBot.pathfinder.Nav;
-import sprintBot.pathfinder.Pathfinding;
+import finalBot.pathfinder.BFSCheckpoints;
+import finalBot.pathfinder.BFSVision;
+import finalBot.pathfinder.Nav;
+import finalBot.pathfinder.Pathfinding;
 
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import static sprintBot.util.Constants.rc;
+import static finalBot.util.Constants.rc;
 
 public class Util {
 

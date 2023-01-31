@@ -1,9 +1,9 @@
-package sprintBot.util;
+package finalBot.util;
 
 import battlecode.common.*;
-import sprintBot.pathfinder.Nav;
+import finalBot.pathfinder.Nav;
 
-import static sprintBot.util.Constants.rc;
+import static finalBot.util.Constants.rc;
 
 public class Cache { // Cache variables that are constant throughout a turn
     public static RobotInfo[] ALLY_ROBOTS, ENEMY_ROBOTS;

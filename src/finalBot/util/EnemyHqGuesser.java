@@ -1,4 +1,4 @@
-package sprintBot.util;
+package finalBot.util;
 
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
@@ -8,7 +8,7 @@ import battlecode.common.RobotType;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static sprintBot.util.Constants.rc;
+import static finalBot.util.Constants.rc;
 
 public class EnemyHqGuesser {
     private static final int NUM_POSSIBLE_SYMMETRIES = 3;

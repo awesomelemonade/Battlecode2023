@@ -1,4 +1,4 @@
-package sprintBot.util;
+package finalBot.util;
 
 import battlecode.common.MapLocation;
 
