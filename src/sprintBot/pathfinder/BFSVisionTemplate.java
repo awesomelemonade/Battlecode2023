@@ -42,7 +42,8 @@ public class BFSVisionTemplate {
                     MapLocation location = info.getMapLocation();
                     int index = location.x * Constants.MAX_MAP_SIZE + location.y;
                     if (PassabilityCache.data.charAt(index) == PassabilityCache.UNKNOWN) {
-                        CurrentsCache.set(location.x, location.y, location.add(info.getCurrentDirection()));
+//                        CurrentsCache.set(location.x, location.y, location.add(info.getCurrentDirection())); // INLINED BELOW TO SAVE BYTECODES
+                        CurrentsCache.data[location.x][location.y] = location.add(info.getCurrentDirection());
 //                        PassabilityCache.setPassable(location, info.isPassable()); // INLINED BELOW TO SAVE BYTECODES
                         PassabilityCache.data.setCharAt(index, info.isPassable() ? PassabilityCache.PASSABLE : PassabilityCache.UNPASSABLE);
                     }

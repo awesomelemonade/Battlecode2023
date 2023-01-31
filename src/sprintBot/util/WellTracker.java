@@ -261,6 +261,7 @@ public class WellTracker {
             manaWells = new WellInfo[0];
             elixirWells = new WellInfo[0];
         } else {
+            // TODO: maybe if we are too far from what's known, we don't bother sensing it
             if (Constants.ROBOT_TYPE == RobotType.CARRIER) {
                 adamantiumWells = rc.senseNearbyWells(2, ResourceType.ADAMANTIUM);
                 manaWells = rc.senseNearbyWells(2, ResourceType.MANA);

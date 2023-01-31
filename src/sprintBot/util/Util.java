@@ -25,6 +25,7 @@ public class Util {
 
     public static void loop() throws GameActionException {
         Cache.loop();
+        CurrentsCache.preallocateCurrentVision();
         Communication.loop();
         IslandTracker.loop();
     }

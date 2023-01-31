@@ -95,7 +95,13 @@ public class Launcher implements RunnableBot {
     @Override
     public void move() {
         Pathfinding.predicate = loc -> {
-            return !EnemyHqGuesser.anyConfirmed(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(loc, 9));
+            MapLocation afterCurrent = CurrentsCache.get(loc);
+            if (loc.equals(afterCurrent)) {
+                return !EnemyHqGuesser.anyConfirmed(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(loc, 9));
+            } else {
+                return !EnemyHqGuesser.anyConfirmed(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(loc, 9)
+                        || enemyHqLocation.isWithinDistanceSquared(afterCurrent, 9));
+            }
         };
         if (tryMoveToHealAtIsland()) {
             return;
