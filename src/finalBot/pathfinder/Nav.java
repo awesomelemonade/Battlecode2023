@@ -1,9 +1,9 @@
-package sprintBot.pathfinder;
+package finalBot.pathfinder;
 
 import battlecode.common.*;
-import sprintBot.util.*;
+import finalBot.util.*;
 
-import static sprintBot.util.Constants.rc;
+import static finalBot.util.Constants.rc;
 
 
 public class Nav {

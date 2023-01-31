@@ -1,4 +1,4 @@
-package sprintBot.util;
+package finalBot.util;
 
 public enum Profile {
     ERROR_STATE(true),
