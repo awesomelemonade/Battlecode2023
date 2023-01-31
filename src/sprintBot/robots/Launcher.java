@@ -152,9 +152,7 @@ public class Launcher implements RunnableBot {
                 // try to circle around it
                 tryPathfindingTangent(location);
             } else {
-                if (!BFSCheckpoints.execute()) {
-                    Util.tryPathfindingMove(location);
-                }
+                Util.tryPathfindingMove(location);
             }
         }
     }

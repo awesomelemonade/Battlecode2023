@@ -20,7 +20,7 @@ public class Util {
         CurrentsCache.init();
         Communication.init();
         Explorer.init();
-//        Pathfinding.init();
+        Pathfinding.init();
         BFSVision.init();
     }
 
@@ -196,19 +196,26 @@ public class Util {
     }
 
     public static void tryPathfindingMove(MapLocation loc) {
-        if (rc.getRoundNum() % 2 == 0) {
-            return;
+        if (Constants.ROBOT_TYPE == RobotType.CARRIER) {
+            Pathfinding.execute(loc);
+        } else {
+            if (rc.getRoundNum() % 2 == 0) {
+                return;
+            }
+            try {
+                Nav.bugNavigate(loc);
+            } catch (GameActionException ex) {
+                Debug.failFast(ex);
+            }
         }
-        try {
-            Nav.bugNavigate(loc);
-        } catch (GameActionException ex) {
-            Debug.failFast(ex);
-        }
-//        Pathfinding.execute(loc);
     }
 
     // tries to move on the location OR any location adjacent to it
+    // ONLY USED BY CARRIERS
     public static void tryPathfindingMoveAdjacent(MapLocation location) {
+        if (Constants.ROBOT_TYPE != RobotType.CARRIER) {
+            Debug.failFast("we're not a carrier");
+        }
         if (Cache.MY_LOCATION.isAdjacentTo(location)) {
             // try to move on the location
             if (!Cache.MY_LOCATION.equals(location)) {
@@ -229,17 +236,19 @@ public class Util {
                 }
             }
             if (bestLocation == null) {
-//                Pathfinding.executeResetIfNotAdjacent(location);
-                tryPathfindingMove(location);
+                Pathfinding.executeResetIfNotAdjacent(location);
             } else {
-                tryPathfindingMove(bestLocation);
-//                Pathfinding.executeResetIfNotAdjacent(bestLocation);
+                Pathfinding.executeResetIfNotAdjacent(bestLocation);
             }
         }
     }
 
     // tries to move on the location OR any location adjacent to it
+    // ONLY USED BY CARRIERS
     public static void tryPathfindingMoveAdjacentCheckCurrents(MapLocation location) {
+        if (Constants.ROBOT_TYPE != RobotType.CARRIER) {
+            Debug.failFast("we're not a carrier");
+        }
         if (Cache.MY_LOCATION.isAdjacentTo(location)) {
             // try to move on the location
             if (!Cache.MY_LOCATION.equals(location)) {
@@ -260,11 +269,9 @@ public class Util {
                 }
             }
             if (bestLocation == null) {
-//                Pathfinding.executeResetIfNotAdjacent(location);
-                tryPathfindingMove(location);
+                Pathfinding.executeResetIfNotAdjacent(location);
             } else {
-//                Pathfinding.executeResetIfNotAdjacent(bestLocation);
-                tryPathfindingMove(location);
+                Pathfinding.executeResetIfNotAdjacent(bestLocation);
             }
         }
     }
@@ -283,7 +290,7 @@ public class Util {
     }
 
     public static void tryKiteFrom(MapLocation location) {
-//        Pathfinding.reset(); // Reset pathfinding - squares we move now are irrelevant
+        Pathfinding.reset(); // Reset pathfinding - squares we move now are irrelevant
         int bestDistanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
         Direction bestDirection = null;
         for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {

@@ -1,6 +1,7 @@
 package sprintBot.util;
 
 import battlecode.common.*;
+import sprintBot.pathfinder.Nav;
 
 import static sprintBot.util.Constants.rc;
 
