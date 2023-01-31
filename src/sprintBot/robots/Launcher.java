@@ -148,7 +148,7 @@ public class Launcher implements RunnableBot {
                 Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, location, 0, 0, 0); // black
                 Debug.setIndicatorString(Profile.ATTACKING, "Num: " + numAllyAttackers);
             }
-            if (Cache.MY_LOCATION.isWithinDistanceSquared(location, 16)) {
+            if (shouldEncircleMacroAttackLocation && Cache.MY_LOCATION.isWithinDistanceSquared(location, 16)) {
                 // try to circle around it
                 tryPathfindingTangent(location);
             } else {
@@ -430,6 +430,7 @@ public class Launcher implements RunnableBot {
 
     private static FastIntSet2D blacklist;
 
+    private static boolean shouldEncircleMacroAttackLocation = false; // lol code is totally clean here
     public static MapLocation getMacroAttackLocation() {
         // NOTE: if we change this, don't forget to change Carrier.getMacroAttackLocation()
         RobotInfo closestVisibleEnemyHQ = Util.getClosestEnemyRobot(robot -> robot.type == RobotType.HEADQUARTERS &&
@@ -437,12 +438,15 @@ public class Launcher implements RunnableBot {
         MapLocation ret = closestVisibleEnemyHQ == null ? null : closestVisibleEnemyHQ.location;
         if (ret == null) {
             ret = EnemyHqGuesser.getClosestConfirmed(location -> !blacklist.contains(location.x, location.y));
+            shouldEncircleMacroAttackLocation = true;
         }
         if (ret == null) {
             ret = EnemyHqGuesser.getClosestPredictionPreferRotationalSymmetry(location -> !blacklist.contains(location.x, location.y));
+            shouldEncircleMacroAttackLocation = false;
         }
         if (ret == null) {
             ret = EnemyHqGuesser.getClosestPrediction(location -> !blacklist.contains(location.x, location.y));
+            shouldEncircleMacroAttackLocation = false;
         }
         if (ret == null) {
             blacklist.reset();
@@ -451,6 +455,7 @@ public class Launcher implements RunnableBot {
         if (defendLocation != null) {
             if (ret == null || !Cache.MY_LOCATION.isWithinDistanceSquared(ret, Cache.MY_LOCATION.distanceSquaredTo(defendLocation))) {
                 ret = defendLocation;
+                shouldEncircleMacroAttackLocation = false;
             }
         }
         return ret;
