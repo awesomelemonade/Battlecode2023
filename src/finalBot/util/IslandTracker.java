@@ -29,15 +29,18 @@ public class IslandTracker {
     public static int islandIndexAtBeginningOfTurn = -1; // DOES NOT UPDATE WITH MOVES
     public static MapLocation nearestUnoccupiedNeutralOrEnemy = null; // To capture island with anchor as carrier - TODO-someday: not used because of difficulty adapting to carrier blacklist and carrier double move
     public static MapLocation nearestUnoccupiedAllyForHealing = null; // To heal at island as launcher
+    public static MapLocation nearestAllyForHealing = null; // To heal at island as launcher
     public static MapLocation nearestUnoccupiedDamagedAllyOrEnemy = null; // To hold an anchor or eliminate an anchor as launcher
 
     public static void loop() {
         // recalculate visible locations of interest
         nearestUnoccupiedNeutralOrEnemy = null;
         nearestUnoccupiedAllyForHealing = null;
+        nearestAllyForHealing = null;
         nearestUnoccupiedDamagedAllyOrEnemy = null;
         int nearestUnoccupiedNeutralOrEnemyDistanceSquared = Integer.MAX_VALUE;
         int nearestUnoccupiedAllyForHealingDistanceSquared = Integer.MAX_VALUE;
+        int nearestAllyForHealingDistanceSquared = Integer.MAX_VALUE;
         int nearestUnoccupiedDamagedAllyOrEnemyDistanceSquared = Integer.MAX_VALUE;
 
         // We handle Cache.MY_LOCATION separately to save bytecodes
@@ -47,17 +50,23 @@ public class IslandTracker {
             islandIndexAtBeginningOfTurn = rc.senseIsland(Cache.MY_LOCATION);
             if (islandIndexAtBeginningOfTurn != -1) {
                 Team team = rc.senseTeamOccupyingIsland(islandIndexAtBeginningOfTurn);
-                // TODO
                 if (team == Team.NEUTRAL) {
                     nearestUnoccupiedNeutralOrEnemy = Cache.MY_LOCATION;
+                    nearestUnoccupiedNeutralOrEnemyDistanceSquared = 0;
                 } else if (team == Constants.ALLY_TEAM) {
                     if (rc.senseAnchorPlantedHealth(islandIndexAtBeginningOfTurn) < rc.senseAnchor(islandIndexAtBeginningOfTurn).totalHealth) {
                         nearestUnoccupiedDamagedAllyOrEnemy = Cache.MY_LOCATION;
+                        nearestUnoccupiedDamagedAllyOrEnemyDistanceSquared = 0;
                     }
                     nearestUnoccupiedAllyForHealing = Cache.MY_LOCATION;
+                    nearestUnoccupiedAllyForHealingDistanceSquared = 0;
+                    nearestAllyForHealing = Cache.MY_LOCATION;
+                    nearestAllyForHealingDistanceSquared = 0;
                 } else {
                     nearestUnoccupiedNeutralOrEnemy = Cache.MY_LOCATION;
+                    nearestUnoccupiedNeutralOrEnemyDistanceSquared = 0;
                     nearestUnoccupiedDamagedAllyOrEnemy = Cache.MY_LOCATION;
+                    nearestUnoccupiedDamagedAllyOrEnemyDistanceSquared = 0;
                 }
             }
         } catch (GameActionException ex) {
@@ -140,6 +149,10 @@ public class IslandTracker {
                                     nearestUnoccupiedAllyForHealing = location;
                                 }
                             }
+                            if (distanceSquared < nearestAllyForHealingDistanceSquared) {
+                                nearestAllyForHealingDistanceSquared = distanceSquared;
+                                nearestAllyForHealing = location;
+                            }
                         }
                     } else {
                         for (int j = islandLocations.length; --j >= 0; ) {
@@ -154,6 +167,10 @@ public class IslandTracker {
                                     nearestUnoccupiedAllyForHealingDistanceSquared = distanceSquared;
                                     nearestUnoccupiedAllyForHealing = location;
                                 }
+                            }
+                            if (distanceSquared < nearestAllyForHealingDistanceSquared) {
+                                nearestAllyForHealingDistanceSquared = distanceSquared;
+                                nearestAllyForHealing = location;
                             }
                         }
                     }

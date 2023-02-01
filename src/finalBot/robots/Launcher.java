@@ -56,13 +56,13 @@ public class Launcher implements RunnableBot {
     
     @Override
     public void postLoop() throws GameActionException {
-        TryAttackCloud.tryAttackCloud();
         RobotInfo enemy = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type) && r.getID() != LauncherMicro.lastEnemyDeathId);
         if (enemy != null) {
             lastEnemyLocation = enemy.location;
             lastEnemyLocationTurn = rc.getRoundNum();
         }
         LauncherMicro.postLoop();
+        TryAttackCloud.tryAttackCloud();
     }
 
     public static RobotInfo getBestImmediateAttackTarget() {
@@ -194,8 +194,9 @@ public class Launcher implements RunnableBot {
     }
 
     public static boolean tryMoveToHealAtIsland() {
-        MapLocation visibleHealingLocation = IslandTracker.nearestUnoccupiedAllyForHealing;
-        if (visibleHealingLocation == null) {
+        MapLocation visibleUnoccupiedHealingLocation = IslandTracker.nearestUnoccupiedAllyForHealing;
+        MapLocation visibleAnyHealingLocation = IslandTracker.nearestAllyForHealing;
+        if (visibleUnoccupiedHealingLocation == null) {
             if (rc.getHealth() >= RETREAT_HEALTH_THRESHOLD) {
                 return false;
             }
@@ -212,7 +213,9 @@ public class Launcher implements RunnableBot {
                 return true;
             }
         } else {
-            if (Cache.MY_LOCATION.equals(visibleHealingLocation)) {
+            Debug.setIndicatorLine(Profile.MICRO, Cache.MY_LOCATION, visibleUnoccupiedHealingLocation, 128, 0, 255); // purple
+            Debug.setIndicatorLine(Profile.MICRO, Cache.MY_LOCATION, visibleAnyHealingLocation, 0, 255, 255); // cyan
+            if (Cache.MY_LOCATION.equals(visibleUnoccupiedHealingLocation)) {
                 if (rc.getHealth() >= Constants.ROBOT_TYPE.getMaxHealth()) {
                     return false;
                 }
@@ -221,15 +224,18 @@ public class Launcher implements RunnableBot {
                 executeMicro();
                 return true;
             } else {
-                if (rc.getHealth() >= RETREAT_HEALTH_THRESHOLD) {
+                if (rc.getHealth() >= Constants.ROBOT_TYPE.getMaxHealth()) {
+                    return false;
+                }
+                if (rc.getHealth() >= RETREAT_HEALTH_THRESHOLD && !Cache.MY_LOCATION.isAdjacentTo(visibleAnyHealingLocation)) {
                     return false;
                 }
                 // only micro if the direction yields to a location <= 4 from visibleHealingLocation
                 Direction microDirection = getMicroDirection();
-                if (microDirection != null && Cache.MY_LOCATION.add(microDirection).isWithinDistanceSquared(visibleHealingLocation, Constants.DISTANCE_SQUARED_FOR_HEALING_FROM_ISLAND)) {
+                if (microDirection != null && Cache.MY_LOCATION.add(microDirection).isWithinDistanceSquared(visibleAnyHealingLocation, Constants.DISTANCE_SQUARED_FOR_HEALING_FROM_ISLAND)) {
                     Util.tryMove(microDirection);
                 } else {
-                    Util.tryPathfindingMove(visibleHealingLocation);
+                    Util.tryPathfindingMove(visibleUnoccupiedHealingLocation);
                 }
                 return true;
             }
@@ -315,7 +321,7 @@ public class Launcher implements RunnableBot {
                             return -afterCurrent.distanceSquaredTo(allyLocation) * 1_000_000;
                         }
                     });
-                    Debug.setIndicatorLine(Cache.MY_LOCATION, allyLocation, 255, 255, 0);
+                    Debug.setIndicatorLine(Profile.MICRO, Cache.MY_LOCATION, allyLocation, 255, 255, 0); // yellow
                     Debug.setIndicatorString(Profile.MICRO, "No Enemy: " + bestDir);
                     // execute bestDir only if it gets us closer to the enemy
                     if (Cache.MY_LOCATION.add(bestDir).distanceSquaredTo(enemyLocation) < Cache.MY_LOCATION.distanceSquaredTo(enemyLocation)) {
