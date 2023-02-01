@@ -5,7 +5,8 @@ public enum Profile {
     PATHFINDING(false),
     EXPLORER(false),
     MINING(false),
-    ATTACKING(false),
+    ATTACKING(false), // MACRO
+    MICRO(false),
     BFS(false), // BFS_VISION
     CHECKPOINTS(false),
     BFS_CHECKPOINTS(false);
