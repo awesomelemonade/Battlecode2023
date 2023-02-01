@@ -2,7 +2,6 @@ package finalBot.robots;
 
 import battlecode.common.*;
 import finalBot.fast.FastIntSet2D;
-import finalBot.pathfinder.BFSCheckpoints;
 import finalBot.pathfinder.Pathfinding;
 import finalBot.util.*;
 
@@ -13,6 +12,8 @@ import static finalBot.util.Constants.rc;
 public class Launcher implements RunnableBot {
     private static final int RETREAT_HEALTH_THRESHOLD = RobotType.LAUNCHER.getMaxHealth() / 2;
     private static MapLocation cachedClosestAllyAttackerLocation = null;
+    private static MapLocation lastEnemyLocation = null;
+    private static int lastEnemyLocationTurn = -1;
 
     @Override
     public void init() throws GameActionException {
@@ -29,6 +30,12 @@ public class Launcher implements RunnableBot {
     @Override
     public void loop() throws GameActionException {
         debug_render();
+        LauncherMicro.loop();
+        RobotInfo enemy = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
+        if (enemy != null) {
+            lastEnemyLocation = enemy.location;
+            lastEnemyLocationTurn = rc.getRoundNum();
+        }
     }
 
     @Override
@@ -39,6 +46,10 @@ public class Launcher implements RunnableBot {
         RobotInfo enemy = getBestImmediateAttackTarget();
         if (enemy != null) {
             MapLocation enemyLocation = enemy.location;
+            if (enemy.health <= Constants.ROBOT_TYPE.damage) {
+                // it's going to die
+                LauncherMicro.onEnemyDeath(enemy);
+            }
             tryAttack(enemyLocation);
         }
     }
@@ -46,6 +57,12 @@ public class Launcher implements RunnableBot {
     @Override
     public void postLoop() throws GameActionException {
         TryAttackCloud.tryAttackCloud();
+        RobotInfo enemy = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
+        if (enemy != null) {
+            lastEnemyLocation = enemy.location;
+            lastEnemyLocationTurn = rc.getRoundNum();
+        }
+        LauncherMicro.postLoop();
     }
 
     public static RobotInfo getBestImmediateAttackTarget() {
@@ -92,6 +109,29 @@ public class Launcher implements RunnableBot {
         return score;
     }
 
+    public static boolean tryMoveToHoldIsland() {
+        if (LauncherMicro.numberOfUniqueEnemyAttackersInHistory() > 0) {
+            return false;
+        }
+        for (int i = IslandTracker.NEARBY_ISLANDS.length; --i >= 0; ) {
+            int islandIndex = IslandTracker.NEARBY_ISLANDS[i];
+            Team islandOwner = IslandTracker.NEARBY_ISLAND_TEAMS[i];
+            if (islandOwner == Team.NEUTRAL) {
+                continue;
+            } else if (islandOwner == Constants.ALLY_TEAM) {
+                // check if low health
+                boolean hasFullHealth = false;
+                try {
+                    hasFullHealth = rc.senseAnchorPlantedHealth(islandIndex) >= rc.senseAnchor(islandIndex).totalHealth; // TODO-someday: could sense anchor type
+                } catch (GameActionException ex) {
+                    Debug.failFast(ex);
+                }
+            }
+        }
+        // TODO
+        return false;
+    }
+
     @Override
     public void move() {
         Pathfinding.predicate = loc -> {
@@ -103,7 +143,7 @@ public class Launcher implements RunnableBot {
                         || enemyHqLocation.isWithinDistanceSquared(afterCurrent, 9));
             }
         };
-        if (tryMoveToHealAtIsland()) {
+        if (tryMoveToHealAtIsland()) { // TODO: allow microing on island? but also allow us to retreat
             return;
         }
         RobotInfo closestAllyAttacker = Util.getClosestRobot(Cache.ALLY_ROBOTS, r -> Util.isAttacker(r.type));
@@ -111,10 +151,13 @@ public class Launcher implements RunnableBot {
         if (executeMicro()) {
             return;
         }
+//        if (tryMoveToEliminateEnemyAnchor()) {
+//            return;
+//        }
         // go to attack random other enemies (non-attackers)
         RobotInfo enemy = Util.getClosestEnemyRobot(robot -> robot.type != RobotType.HEADQUARTERS);
         if (enemy != null) {
-            Direction direction = getBestMoveDirection((beforeCurrent, afterCurrent) -> getScoreWithActionSingleEnemyAttacker(beforeCurrent, afterCurrent, enemy));
+            Direction direction = getBestMoveDirection((beforeCurrent, afterCurrent) -> getScoreWithActionSingleEnemyAttacker(beforeCurrent, afterCurrent, enemy.location));
             if (direction != Direction.CENTER) {
                 Util.tryMove(direction);
             }
@@ -235,64 +278,154 @@ public class Launcher implements RunnableBot {
     }
 
     public static boolean executeMicro() {
-        RobotInfo enemy = Util.getClosestEnemyRobot(robot -> Util.isAttacker(robot.type));
-        if (enemy == null) {
-            if (Cache.prevClosestEnemyAttacker != null) {
-                // stay still and let them run into our vision
-                // TODO: unless a friendly is in front? if we have action maybe go towards it?
+        if (Cache.ALLY_ROBOTS.length > 15) {
+            RobotInfo enemy = Util.getClosestEnemyRobot(robot -> Util.isAttacker(robot.type));
+            if (enemy == null) {
+                return false;
+            } else {
+                Util.tryPathfindingMove(enemy.location);
                 return true;
             }
-            return false;
-        }
-        if (Cache.ALLY_ROBOTS.length > 15) {
-            Util.tryPathfindingMove(enemy.location);
         } else {
-            Direction direction = getMicroDirection(enemy);
-            Debug.setIndicatorString(Profile.ATTACKING, "Micro direction: " + direction);
+            Direction direction = getMicroDirection();
+            if (direction == null) {
+                return false;
+            }
             if (direction != Direction.CENTER) {
                 Util.tryMove(direction);
             }
+            return true;
         }
-        return true;
+    }
+
+    public static void debug_renderMicro() {
+        if (Profile.MICRO.enabled()) {
+            Debug.setIndicatorDot(Profile.MICRO, Cache.MY_LOCATION, 255, 255, 0); // yellow
+            for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
+                RobotInfo robot = Cache.ENEMY_ROBOTS[i];
+                if (robot.getID() == LauncherMicro.lastEnemyDeathId) {
+                    Debug.setIndicatorDot(Profile.MICRO, robot.location, 255, 0, 255); // pink
+                } else if (Util.isAttacker(robot.type)) {
+                    Debug.setIndicatorDot(Profile.MICRO, robot.location, 255, 0, 0); // red
+                } else {
+                    Debug.setIndicatorDot(Profile.MICRO, robot.location, 255, 128, 0); // orange
+                }
+            }
+            for (int i = Cache.ALLY_ROBOTS.length; --i >= 0; ) {
+                RobotInfo robot = Cache.ALLY_ROBOTS[i];
+                if (Util.isAttacker(robot.type)) {
+                    Debug.setIndicatorDot(Profile.MICRO, robot.location, 0, 255, 0); // green
+                }
+            }
+        }
     }
 
     // TODO: remember the enemies of the previous turn?
-    public static Direction getMicroDirection(RobotInfo closestEnemyAttacker) {
-        // assumption: there is an enemy attacker in vision
-        if (rc.isActionReady()) {
-            // must be seeing an enemy but not in attack radius
-            RobotInfo enemy = getSingleAttackerOrNull();
-            if (enemy == null) {
-                // we must be seeing multiple enemies
-                // see if there are allies w/ distance < or <= our distance
-                if (Util.hasAllyAttackersWithin(closestEnemyAttacker.location, Cache.MY_LOCATION.distanceSquaredTo(closestEnemyAttacker.location))) {
-                    // if so, just micro towards it
-                    return getBestMoveDirection((beforeCurrent, afterCurrent) -> getScoreWithActionSingleEnemyAttacker(beforeCurrent, afterCurrent, closestEnemyAttacker));
+    public static Direction getMicroDirection() {
+        RobotInfo closestEnemyAttacker = Util.getClosestEnemyRobot(robot -> Util.isAttacker(robot.type) && robot.getID() != LauncherMicro.lastEnemyDeathId);
+        debug_renderMicro();
+        if (closestEnemyAttacker == null) {
+            if (LauncherMicro.numberOfUniqueEnemyAttackersInHistory() > 0) {
+                MapLocation enemyLocation = lastEnemyLocation;
+                if (lastEnemyLocation == null || lastEnemyLocationTurn < rc.getRoundNum() - 10) {
+                    enemyLocation = Cache.MY_LOCATION;
+                    Debug.failFast("???"); // g
+                }
+                RobotInfo allyAttacker = Util.getClosestRobot(Cache.ALLY_ROBOTS, enemyLocation, r -> Util.isAttacker(r.type));
+                if (allyAttacker == null) {
+                    Debug.setIndicatorString("No Ally");
+                    return Direction.CENTER;
                 } else {
+                    // go towards ally attacker
+                    MapLocation allyLocation = allyAttacker.location;
+                    Direction bestDir = getBestMoveDirection((beforeCurrent, afterCurrent) -> {
+                        if (Cache.MY_LOCATION.equals(beforeCurrent)) {
+                            // tiebreaker goes in favor of standing still
+                            return -afterCurrent.distanceSquaredTo(allyLocation) * 1_000_000 + 10_000;
+                        } else {
+                            return -afterCurrent.distanceSquaredTo(allyLocation) * 1_000_000;
+                        }
+                    });
+                    Debug.setIndicatorLine(Cache.MY_LOCATION, allyLocation, 255, 255, 0);
+                    Debug.setIndicatorString("No Enemy: " + bestDir);
+                    // execute bestDir only if it gets us closer to the enemy
+                    if (Cache.MY_LOCATION.add(bestDir).distanceSquaredTo(enemyLocation) < Cache.MY_LOCATION.distanceSquaredTo(enemyLocation)) {
+                        return bestDir;
+                    } else {
+                        return Direction.CENTER;
+                    }
+                }
+            } else {
+                Debug.setIndicatorString("No Enemy History");
+                return null; // don't micro
+            }
+        } else {
+            int enemyId = closestEnemyAttacker.getID();
+            MapLocation enemyLocation = closestEnemyAttacker.location;
+            Debug.setIndicatorLine(Profile.MICRO, Cache.MY_LOCATION, enemyLocation, 0, 255, 255); // cyan
+            // assumption: there is an enemy attacker in vision
+            if (rc.isActionReady()) {
+                int numAlliesWithinVisionRange = 1; // include ourselves
+                int visionRange = RobotType.LAUNCHER.visionRadiusSquared;
+                for (int i = Cache.ALLY_ROBOTS.length; --i >= 0; ) {
+                    RobotInfo robot = Cache.ALLY_ROBOTS[i];
+                    if (Util.isAttacker(robot.type) && robot.location.isWithinDistanceSquared(enemyLocation, visionRange)) {
+                        numAlliesWithinVisionRange++;
+                    }
+                }
+
+                // check if any enemy attackers are 1 shot
+                int discount = 0;
+                if (LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> Util.isAttacker(r.type) && r.health <= Constants.ROBOT_TYPE.damage && r.getID() != LauncherMicro.lastEnemyDeathId)) {
+                    discount = 1;
+                }
+                Debug.setIndicatorString(Profile.MICRO, "Action Ready: " + numAlliesWithinVisionRange + " - " + LauncherMicro.numberOfUniqueEnemyAttackersInHistory() + " - " + discount);
+                if (numAlliesWithinVisionRange >= LauncherMicro.numberOfUniqueEnemyAttackersInHistory() - discount) {
+                    // if so, just micro towards it
+
+
+                    // allowed to go to squares that are [20 -> 17] or [17 -> 16] or [18 -> 13] distance squared?
+
+                    // if we've been sitting here for a certain number of turns, then we can attack
+                    return getBestMoveDirection((beforeCurrent, afterCurrent) -> getScoreWithActionSingleEnemyAttacker(beforeCurrent, afterCurrent, enemyLocation));
+                } else {
+                    if (LauncherMicro.allowedToStandStill(enemyLocation)) {
+                        return Direction.CENTER;
+                    }
                     // otherwise, kite
                     return getBestMoveDirection(Launcher::getScoreForKiting);
                 }
             } else {
-                if (shouldAttackSingleEnemyWithAction(enemy)) {
-                    return getBestMoveDirection((beforeCurrent, afterCurrent) -> getScoreWithActionSingleEnemyAttacker(beforeCurrent, afterCurrent, enemy));
+//                don't kite the enemy that JUST showed up? (cuz he will be there next turn)
+//                BUT only if we have allies that are in vision range of the enemy
+
+                // if enemyLocation was not the same launcher the turn before AND allies exist in vision range of enemyLocation
+                //       return Direction.CENTER
+                if (rc.getHealth() > 40 &&
+                        // whether the enemy just got here (he will be here the next turn)
+                        enemyId != LauncherMicro.enemyLocationLastTurnId(enemyLocation) &&
+                        // whether our allies can see them
+                        LambdaUtil.arraysAnyMatch(Cache.ALLY_ROBOTS,
+                                r -> Util.isAttacker(r.type) &&
+                                        r.location.isWithinDistanceSquared(enemyLocation, RobotType.LAUNCHER.visionRadiusSquared))) {
+                    Debug.setIndicatorString(Profile.MICRO, "Action Not Ready - CENTER A");
+                    // we can attack him next turn too and still be able to kite
+                    return Direction.CENTER;
+                } else if (LauncherMicro.allowedToStandStill(enemyLocation)) {
+                    Debug.setIndicatorString(Profile.MICRO, "Action Not Ready - CENTER B");
+                    // if so, stay still
+                    return Direction.CENTER;
                 } else {
-                    // we think we will lose the 1 on 1
+                    // otherwise, kite
+                    Debug.setIndicatorString(Profile.MICRO, "Action Not Ready - KITE");
+                    // if so, stay still
                     return getBestMoveDirection(Launcher::getScoreForKiting);
                 }
-            }
-        } else {
-            // we see an enemy that must be in our attack radius? (or maybe the enemy died)
-            // see if there are allies w/ distance <= our distance
-            if (Util.hasAllyAttackersWithin(closestEnemyAttacker.location, Cache.MY_LOCATION.distanceSquaredTo(closestEnemyAttacker.location))) {
-                // if so, stay still
-                return Direction.CENTER;
-            } else {
-                // otherwise, kite
-                return getBestMoveDirection(Launcher::getScoreForKiting);
             }
         }
     }
 
+    // want to maximize score
     public static Direction getBestMoveDirection(ToDoubleBiFunction<MapLocation, MapLocation> scorer) {
         Direction bestDirection = Direction.CENTER;
         double bestScore = -Double.MAX_VALUE;
@@ -324,9 +457,7 @@ public class Launcher implements RunnableBot {
         }
     }
 
-    public static double getScoreWithActionSingleEnemyAttacker(MapLocation beforeCurrent, MapLocation afterCurrent, RobotInfo enemy) {
-        MapLocation enemyLocation = enemy.location;
-
+    public static double getScoreWithActionSingleEnemyAttacker(MapLocation beforeCurrent, MapLocation afterCurrent, MapLocation enemyLocation) {
         double score = 0;
         // prefer non clouds if we're not in a cloud
         try {
@@ -351,21 +482,22 @@ public class Launcher implements RunnableBot {
 
         // Prefer not moving - save our movement for next turn
         if (Cache.MY_LOCATION.equals(beforeCurrent)) {
-            score += 1_000_000;
+            score += 2_000_000;
         }
 
-        // Prefer closer to closest attacker ally
-        if (cachedClosestAllyAttackerLocation != null) {
-            score -= afterCurrent.distanceSquaredTo(cachedClosestAllyAttackerLocation) * 20_000.0; // 35 * 20k < 1 mil
-        }
+        // prefer squares where you're further away from the enemy
+        score += afterCurrent.distanceSquaredTo(enemyLocation) * 30_000;
 
         // prefer straight moves
         if (Util.isStraightDirection(Cache.MY_LOCATION.directionTo(afterCurrent))) {
             score += 10_000;
         }
 
-        // prefer squares where you're further away from the enemy
-        score += afterCurrent.distanceSquaredTo(enemyLocation);
+        // Prefer closer to closest attacker ally
+        if (cachedClosestAllyAttackerLocation != null) {
+            score -= afterCurrent.distanceSquaredTo(cachedClosestAllyAttackerLocation);
+        }
+
 
         return score;
     }
@@ -378,7 +510,7 @@ public class Launcher implements RunnableBot {
         int numEnemyAttackerRobotsWithin = 0;
         for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
             RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
-            if (Util.isAttacker(enemy.type)) {
+            if (Util.isAttacker(enemy.type) && enemy.getID() != LauncherMicro.lastEnemyDeathId) {
                 int distanceSquared = afterCurrent.distanceSquaredTo(enemy.location);
                 closestEnemyAttackerDistanceSquared = Math.min(closestEnemyAttackerDistanceSquared, distanceSquared);
                 if (distanceSquared <= Constants.ROBOT_TYPE.visionRadiusSquared) {
@@ -412,20 +544,6 @@ public class Launcher implements RunnableBot {
         }
 
         return score;
-    }
-
-    public static RobotInfo getSingleAttackerOrNull() {
-        RobotInfo robot = null;
-        for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
-            RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
-            if (Util.isAttacker(enemy.type)) {
-                if (robot != null) {
-                    return null;
-                }
-                robot = enemy;
-            }
-        }
-        return robot;
     }
 
     private static FastIntSet2D blacklist;

@@ -113,9 +113,26 @@ public class Util {
     public static RobotInfo getClosestRobot(RobotInfo[] robots, Predicate<RobotInfo> filter) {
         int bestDistanceSquared = Integer.MAX_VALUE;
         RobotInfo bestRobot = null;
-        for (RobotInfo robot : robots) {
+        for (int i = robots.length; --i >= 0; ) {
+            RobotInfo robot = robots[i];
             if (filter.test(robot)) {
                 int distanceSquared = robot.getLocation().distanceSquaredTo(Cache.MY_LOCATION);
+                if (distanceSquared < bestDistanceSquared) {
+                    bestDistanceSquared = distanceSquared;
+                    bestRobot = robot;
+                }
+            }
+        }
+        return bestRobot;
+    }
+
+    public static RobotInfo getClosestRobot(RobotInfo[] robots, MapLocation location, Predicate<RobotInfo> filter) {
+        int bestDistanceSquared = Integer.MAX_VALUE;
+        RobotInfo bestRobot = null;
+        for (int i = robots.length; --i >= 0; ) {
+            RobotInfo robot = robots[i];
+            if (filter.test(robot)) {
+                int distanceSquared = robot.getLocation().distanceSquaredTo(location);
                 if (distanceSquared < bestDistanceSquared) {
                     bestDistanceSquared = distanceSquared;
                     bestRobot = robot;
@@ -128,7 +145,8 @@ public class Util {
     public static RobotInfo getClosestEnemyRobot(MapLocation location, int limit, Predicate<RobotInfo> filter) {
         int bestDistanceSquared = limit + 1;
         RobotInfo bestRobot = null;
-        for (RobotInfo enemy : Cache.ENEMY_ROBOTS) {
+        for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0; ) {
+            RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
             if (filter.test(enemy)) {
                 int distanceSquared = enemy.getLocation().distanceSquaredTo(location);
                 if (distanceSquared < bestDistanceSquared) {

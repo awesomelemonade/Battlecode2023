@@ -23,6 +23,7 @@ public class IslandTracker {
     private static int ourIslandsSize = 0;
 
     public static int[] NEARBY_ISLANDS = new int[0];
+    public static Team[] NEARBY_ISLAND_TEAMS = new Team[ARRAY_SIZE];
 
     public static void loop() {
         NEARBY_ISLANDS = rc.senseNearbyIslands();
@@ -35,6 +36,7 @@ public class IslandTracker {
                 Debug.failFast(ex);
                 team = Team.NEUTRAL;
             }
+            NEARBY_ISLAND_TEAMS[i] = team;
             if (!isInKnownIslands[islandIndex]) {
                 knownIslands[knownIslandsSize++] = islandIndex;
                 isInKnownIslands[islandIndex] = true;
