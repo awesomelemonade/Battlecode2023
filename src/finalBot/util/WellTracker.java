@@ -231,26 +231,27 @@ public class WellTracker {
         return Communication.headquartersLocations[hqIndex];
     }
 
+    private static void updateLastHqIndex() {
+        int bestIndex = -1;
+        int bestDistanceSquared = RobotType.HEADQUARTERS.actionRadiusSquared + 1; // add 1 for inclusive
+        for (int i = Communication.headquartersLocations.length; --i >= 0; ) {
+            MapLocation location = Communication.headquartersLocations[i];
+            int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
+            if (distanceSquared < bestDistanceSquared) {
+                bestDistanceSquared = distanceSquared;
+                bestIndex = i;
+            }
+        }
+        if (bestIndex != -1) {
+            lastHqIndex = bestIndex;
+        }
+    }
+
     public static void update() throws GameActionException {
         if (Communication.headquartersLocations == null) {
             return;
         }
-        {
-            // update lastHqIndex
-            int bestIndex = -1;
-            int bestDistanceSquared = RobotType.HEADQUARTERS.actionRadiusSquared + 1; // add 1 for inclusive
-            for (int i = Communication.headquartersLocations.length; --i >= 0; ) {
-                MapLocation location = Communication.headquartersLocations[i];
-                int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
-                if (distanceSquared < bestDistanceSquared) {
-                    bestDistanceSquared = distanceSquared;
-                    bestIndex = i;
-                }
-            }
-            if (bestIndex != -1) {
-                lastHqIndex = bestIndex;
-            }
-        }
+        updateLastHqIndex();
 
         WellInfo[] adamantiumWells;
         WellInfo[] manaWells;
@@ -359,5 +360,4 @@ public class WellTracker {
             pendingWells[i] = pendingLocation;
         }
     }
-
 }

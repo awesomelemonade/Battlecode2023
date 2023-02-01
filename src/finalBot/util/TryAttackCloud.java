@@ -1,5 +1,7 @@
 package finalBot.util;
 
+import battlecode.common.Clock;
+import battlecode.common.Direction;
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
 
@@ -22,24 +24,41 @@ public class TryAttackCloud {
             // let's just tiebreak by our location
             enemyLocation = Cache.MY_LOCATION;
         }
-        MapLocation[] cloudLocations = rc.senseNearbyCloudLocations();
-        int bestDistanceSquared = Integer.MAX_VALUE;
-        MapLocation bestLocation = null;
-        for (int i = cloudLocations.length; --i >= 0; ) {
-            MapLocation location = cloudLocations[i];
-            if (!rc.canSenseLocation(location) && rc.canAttack(location)) {
-                int distanceSquared = location.distanceSquaredTo(enemyLocation);
-                if (distanceSquared > 0 && distanceSquared < bestDistanceSquared) {
-                    bestDistanceSquared = distanceSquared;
-                    bestLocation = location;
+
+        if (rc.senseCloud(Cache.MY_LOCATION)) {
+            MapLocation location = Cache.MY_LOCATION;
+            while (true) {
+                Direction direction = location.directionTo(enemyLocation);
+                MapLocation next = location.add(direction);
+                if (direction != Direction.CENTER &&
+                        next.isWithinDistanceSquared(Cache.MY_LOCATION, Constants.ROBOT_TYPE.actionRadiusSquared)) {
+                    location = next;
+                } else {
+                    break;
                 }
             }
-        }
-        if (bestLocation == null) {
-            return false;
-        } else {
-            rc.attack(bestLocation);
+            rc.attack(location);
             return true;
+        } else {
+            int bestDistanceSquared = Integer.MAX_VALUE;
+            MapLocation bestLocation = null;
+            MapLocation[] cloudLocations = rc.senseNearbyCloudLocations(Constants.ROBOT_TYPE.actionRadiusSquared);
+            for (int i = cloudLocations.length; --i >= 0 && Clock.getBytecodesLeft() > 200; ) {
+                MapLocation location = cloudLocations[i];
+                if (!rc.canSenseLocation(location)) {
+                    int distanceSquared = location.distanceSquaredTo(enemyLocation);
+                    if (distanceSquared < bestDistanceSquared) {
+                        bestDistanceSquared = distanceSquared;
+                        bestLocation = location;
+                    }
+                }
+            }
+            if (bestLocation == null) {
+                return false;
+            } else {
+                rc.attack(bestLocation);
+                return true;
+            }
         }
     }
 }

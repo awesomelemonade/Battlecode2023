@@ -88,7 +88,7 @@ public class RobotPlayer {
                 Flags.flag("ERROR");
                 ex.printStackTrace();
                 errored = true;
-                if (Constants.DEBUG_RESIGN) {
+                if (Constants.DEBUG_FAIL_FAST) {
                     controller.resign();
                 }
                 Clock.yield();
