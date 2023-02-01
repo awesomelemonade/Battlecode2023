@@ -36,26 +36,28 @@ public class BFSVision {
     public static void postLoop() throws GameActionException {
         if (Cache.TURN_COUNT > 1) { // save bytecodes on turn 1
             if (!hasSensedNearbyMapInfos.get(Cache.MY_LOCATION)) {
-                // update passability and currents
-                MapInfo[] infos = rc.senseNearbyMapInfos();
-                for (int i = infos.length; --i >= 0; ) {
-                    MapInfo info = infos[i];
-                    MapLocation location = info.getMapLocation();
-                    int index = location.x * Constants.MAX_MAP_SIZE + location.y;
-                    if (PassabilityCache.data.charAt(index) == PassabilityCache.UNKNOWN) {
+                if (Cache.TURN_COUNT < 20 || Clock.getBytecodesLeft() >= 2300) {
+                    // update passability and currents
+                    MapInfo[] infos = rc.senseNearbyMapInfos();
+                    for (int i = infos.length; --i >= 0; ) {
+                        MapInfo info = infos[i];
+                        MapLocation location = info.getMapLocation();
+                        int index = location.x * Constants.MAX_MAP_SIZE + location.y;
+                        if (PassabilityCache.data.charAt(index) == PassabilityCache.UNKNOWN) {
 //                        CurrentsCache.set(location.x, location.y, location.add(info.getCurrentDirection())); // INLINED BELOW TO SAVE BYTECODES
-                        CurrentsCache.data[location.x][location.y] = location.add(info.getCurrentDirection());
+                            CurrentsCache.data[location.x][location.y] = location.add(info.getCurrentDirection());
 //                        PassabilityCache.setPassable(location, info.isPassable()); // INLINED BELOW TO SAVE BYTECODES
-                        PassabilityCache.data.setCharAt(index, info.isPassable() ? PassabilityCache.PASSABLE : PassabilityCache.UNPASSABLE);
+                            PassabilityCache.data.setCharAt(index, info.isPassable() ? PassabilityCache.PASSABLE : PassabilityCache.UNPASSABLE);
+                        }
                     }
+                    MapLocation[] cloudLocations = rc.senseNearbyCloudLocations();
+                    for (int i = cloudLocations.length; --i >= 0; ) {
+                        MapLocation location = cloudLocations[i];
+                        // cloud locations always do not have a current and are passable
+                        PassabilityCache.data.setCharAt(location.x * Constants.MAX_MAP_SIZE + location.y, PassabilityCache.PASSABLE);
+                    }
+                    hasSensedNearbyMapInfos.setTrue(Cache.MY_LOCATION);
                 }
-                MapLocation[] cloudLocations = rc.senseNearbyCloudLocations();
-                for (int i = cloudLocations.length; --i >= 0; ) {
-                    MapLocation location = cloudLocations[i];
-                    // cloud locations always do not have a current and are passable
-                    PassabilityCache.data.setCharAt(location.x * Constants.MAX_MAP_SIZE + location.y, PassabilityCache.PASSABLE);
-                }
-                hasSensedNearbyMapInfos.setTrue(Cache.MY_LOCATION);
             }
             BFSVision currentBfs = allBFS.get(Cache.MY_LOCATION);
             if (currentBfs == null && Clock.getBytecodesLeft() > 2300) { // creating new BFSVision() takes up to ~2100 bytecodes on large maps

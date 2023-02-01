@@ -394,6 +394,19 @@ public class Util {
         return count;
     }
 
+    // Assumed x > 0
+    public static boolean hasAtLeastXAllyAttackersWithin(MapLocation location, int distanceSquared, int x) {
+        for (int i = Cache.ALLY_ROBOTS.length; --i >= 0; ) {
+            RobotInfo robot = Cache.ALLY_ROBOTS[i];
+            if (Util.isAttacker(robot.type) && robot.location.isWithinDistanceSquared(location, distanceSquared)) {
+                if (--x <= 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public static <T> void shuffle(T[] array) {
         for (int i = array.length; --i >= 0; ) {
             int index = (int) (Math.random() * i);

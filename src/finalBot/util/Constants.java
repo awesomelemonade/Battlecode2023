@@ -20,6 +20,7 @@ public class Constants {
     public static MapLocation SPAWN;
 
     public static final int ROBOT_STARTING_ID = 10000;
+    public static final int DISTANCE_SQUARED_FOR_HEALING_FROM_ISLAND = 4;
 
     public static RobotController rc;
 

@@ -57,7 +57,7 @@ public class Launcher implements RunnableBot {
     @Override
     public void postLoop() throws GameActionException {
         TryAttackCloud.tryAttackCloud();
-        RobotInfo enemy = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
+        RobotInfo enemy = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type) && r.getID() != LauncherMicro.lastEnemyDeathId);
         if (enemy != null) {
             lastEnemyLocation = enemy.location;
             lastEnemyLocationTurn = rc.getRoundNum();
@@ -113,23 +113,12 @@ public class Launcher implements RunnableBot {
         if (LauncherMicro.numberOfUniqueEnemyAttackersInHistory() > 0) {
             return false;
         }
-        for (int i = IslandTracker.NEARBY_ISLANDS.length; --i >= 0; ) {
-            int islandIndex = IslandTracker.NEARBY_ISLANDS[i];
-            Team islandOwner = IslandTracker.NEARBY_ISLAND_TEAMS[i];
-            if (islandOwner == Team.NEUTRAL) {
-                continue;
-            } else if (islandOwner == Constants.ALLY_TEAM) {
-                // check if low health
-                boolean hasFullHealth = false;
-                try {
-                    hasFullHealth = rc.senseAnchorPlantedHealth(islandIndex) >= rc.senseAnchor(islandIndex).totalHealth; // TODO-someday: could sense anchor type
-                } catch (GameActionException ex) {
-                    Debug.failFast(ex);
-                }
-            }
+        MapLocation bestIslandLocation = IslandTracker.nearestUnoccupiedDamagedAllyOrEnemy;
+        if (bestIslandLocation == null) {
+            return false;
         }
-        // TODO
-        return false;
+        Util.tryPathfindingMove(bestIslandLocation);
+        return true;
     }
 
     @Override
@@ -143,17 +132,17 @@ public class Launcher implements RunnableBot {
                         || enemyHqLocation.isWithinDistanceSquared(afterCurrent, 9));
             }
         };
-        if (tryMoveToHealAtIsland()) { // TODO: allow microing on island? but also allow us to retreat
-            return;
-        }
         RobotInfo closestAllyAttacker = Util.getClosestRobot(Cache.ALLY_ROBOTS, r -> Util.isAttacker(r.type));
         cachedClosestAllyAttackerLocation = closestAllyAttacker == null ? null : closestAllyAttacker.location;
+        if (tryMoveToHealAtIsland()) {
+            return;
+        }
         if (executeMicro()) {
             return;
         }
-//        if (tryMoveToEliminateEnemyAnchor()) {
-//            return;
-//        }
+        if (tryMoveToHoldIsland()) {
+            return;
+        }
         // go to attack random other enemies (non-attackers)
         RobotInfo enemy = Util.getClosestEnemyRobot(robot -> robot.type != RobotType.HEADQUARTERS);
         if (enemy != null) {
@@ -177,18 +166,22 @@ public class Launcher implements RunnableBot {
         if (location == null) {
             Util.tryExplore();
         } else {
+            // TODO: consider blacklisting if we're not getting any closer
 //            if (notGettingCloser && Cache.ALLY_ROBOTS.length >= 5) {
 //                blacklist.add(location.x, location.y);
 //            }
-            // check if hq already has tons of ally units nearby
-            int numAllyAttackers = Util.numAllyAttackersWithin(location, 20);
-            if (numAllyAttackers >= 5) {
-                if (!Cache.MY_LOCATION.isAdjacentTo(location)) {
-                    blacklist.add(location.x, location.y);
+            // don't consider blacklisting via vision if we're not even close to the location (saves bytecodes)
+            if (Cache.MY_LOCATION.isWithinDistanceSquared(location, 50)) {
+                // check if hq already has tons of ally units nearby
+                if (Util.hasAtLeastXAllyAttackersWithin(location, 20, 5)) {
+                    if (!Cache.MY_LOCATION.isAdjacentTo(location)) {
+                        blacklist.add(location.x, location.y);
+                    }
                 }
             }
             if (Profile.ATTACKING.enabled()) {
                 Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, location, 0, 0, 0); // black
+                int numAllyAttackers = Util.numAllyAttackersWithin(location, 20);
                 Debug.setIndicatorString(Profile.ATTACKING, "Num: " + numAllyAttackers);
             }
             if (shouldEncircleMacroAttackLocation && Cache.MY_LOCATION.isWithinDistanceSquared(location, 16)) {
@@ -201,33 +194,8 @@ public class Launcher implements RunnableBot {
     }
 
     public static boolean tryMoveToHealAtIsland() {
-        // let's look at visible islands and check if there are robots
-        int bestDistanceSquared = Integer.MAX_VALUE;
-        MapLocation bestLocation = null;
-        int bestIslandIndex = -1;
-        for (int i = IslandTracker.NEARBY_ISLANDS.length; --i >= 0; ) {
-            int islandIndex = IslandTracker.NEARBY_ISLANDS[i];
-            try {
-                Team team = rc.senseTeamOccupyingIsland(islandIndex);
-                if (team == Constants.ALLY_TEAM) {
-                    MapLocation[] locations = rc.senseNearbyIslandLocations(islandIndex);
-                    for (int j = locations.length; --j >= 0; ) {
-                        MapLocation location = locations[j];
-                        if (Cache.MY_LOCATION.equals(location) || !rc.canSenseRobotAtLocation(location)) {
-                            int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
-                            if (distanceSquared < bestDistanceSquared) {
-                                bestDistanceSquared = distanceSquared;
-                                bestLocation = location;
-                                bestIslandIndex = islandIndex;
-                            }
-                        }
-                    }
-                }
-            } catch (GameActionException ex) {
-                Debug.failFast(ex);
-            }
-        }
-        if (bestLocation == null) {
+        MapLocation visibleHealingLocation = IslandTracker.nearestUnoccupiedAllyForHealing;
+        if (visibleHealingLocation == null) {
             if (rc.getHealth() >= RETREAT_HEALTH_THRESHOLD) {
                 return false;
             }
@@ -244,37 +212,38 @@ public class Launcher implements RunnableBot {
                 return true;
             }
         } else {
-            boolean hasFullHealth = false;
-            try {
-                hasFullHealth = rc.senseAnchorPlantedHealth(bestIslandIndex) >= Anchor.STANDARD.totalHealth; // TODO-someday: could sense anchor type
-            } catch (GameActionException ex) {
-                Debug.failFast(ex);
-            }
-            if (Cache.MY_LOCATION.equals(bestLocation) || hasFullHealth && Cache.MY_LOCATION.isAdjacentTo(bestLocation)) {
+            if (Cache.MY_LOCATION.equals(visibleHealingLocation)) {
                 if (rc.getHealth() >= Constants.ROBOT_TYPE.getMaxHealth()) {
                     return false;
                 }
-                // stand still
+                // we're on an island - feel free to micro anywhere
+                // we ignore the micro result - we stay still if there's no micro to be done
+                executeMicro();
                 return true;
             } else {
                 if (rc.getHealth() >= RETREAT_HEALTH_THRESHOLD) {
                     return false;
                 }
-                Util.tryPathfindingMove(bestLocation);
+                // only micro if the direction yields to a location <= 4 from visibleHealingLocation
+                Direction microDirection = getMicroDirection();
+                if (microDirection != null && Cache.MY_LOCATION.add(microDirection).isWithinDistanceSquared(visibleHealingLocation, Constants.DISTANCE_SQUARED_FOR_HEALING_FROM_ISLAND)) {
+                    Util.tryMove(microDirection);
+                } else {
+                    Util.tryPathfindingMove(visibleHealingLocation);
+                }
+                return true;
             }
-            return true;
         }
         return false;
     }
 
-    public static boolean tryPathfindingTangent(MapLocation target) {
+    public static void tryPathfindingTangent(MapLocation target) {
         double distance = 10;
         double direction = Math.atan2(target.y - Cache.MY_LOCATION.y, target.x - Cache.MY_LOCATION.x) + Math.PI / 2;
         double cos = Math.cos(direction);
         double sin = Math.sin(direction);
         MapLocation tangentTarget = Cache.MY_LOCATION.translate((int) (cos * distance), (int) (sin * distance));
         Util.tryPathfindingMove(tangentTarget);
-        return true;
     }
 
     public static boolean executeMicro() {
@@ -320,7 +289,6 @@ public class Launcher implements RunnableBot {
         }
     }
 
-    // TODO: remember the enemies of the previous turn?
     public static Direction getMicroDirection() {
         RobotInfo closestEnemyAttacker = Util.getClosestEnemyRobot(robot -> Util.isAttacker(robot.type) && robot.getID() != LauncherMicro.lastEnemyDeathId);
         debug_renderMicro();
@@ -329,11 +297,12 @@ public class Launcher implements RunnableBot {
                 MapLocation enemyLocation = lastEnemyLocation;
                 if (lastEnemyLocation == null || lastEnemyLocationTurn < rc.getRoundNum() - 10) {
                     enemyLocation = Cache.MY_LOCATION;
-                    Debug.failFast("???"); // g
+                    // likely just ran out of bytecodes
+//                    Debug.failFast("???"); // should never happen
                 }
                 RobotInfo allyAttacker = Util.getClosestRobot(Cache.ALLY_ROBOTS, enemyLocation, r -> Util.isAttacker(r.type));
                 if (allyAttacker == null) {
-                    Debug.setIndicatorString("No Ally");
+                    Debug.setIndicatorString(Profile.MICRO, "No Ally");
                     return Direction.CENTER;
                 } else {
                     // go towards ally attacker
@@ -347,7 +316,7 @@ public class Launcher implements RunnableBot {
                         }
                     });
                     Debug.setIndicatorLine(Cache.MY_LOCATION, allyLocation, 255, 255, 0);
-                    Debug.setIndicatorString("No Enemy: " + bestDir);
+                    Debug.setIndicatorString(Profile.MICRO, "No Enemy: " + bestDir);
                     // execute bestDir only if it gets us closer to the enemy
                     if (Cache.MY_LOCATION.add(bestDir).distanceSquaredTo(enemyLocation) < Cache.MY_LOCATION.distanceSquaredTo(enemyLocation)) {
                         return bestDir;
@@ -356,7 +325,7 @@ public class Launcher implements RunnableBot {
                     }
                 }
             } else {
-                Debug.setIndicatorString("No Enemy History");
+                Debug.setIndicatorString(Profile.MICRO, "No Enemy History");
                 return null; // don't micro
             }
         } else {
@@ -445,18 +414,6 @@ public class Launcher implements RunnableBot {
         return bestDirection;
     }
 
-    public static boolean shouldAttackSingleEnemyWithAction(RobotInfo enemy) {
-        if (enemy.type == RobotType.LAUNCHER) {
-            int damage = RobotType.LAUNCHER.damage;
-            int numAttacksToEnemy = (enemy.health + damage - 1) / damage; // round up
-            int numAttacksToUs = (rc.getHealth() + damage - 1) / damage; // round up
-            // see if we can win the fight
-            return numAttacksToUs >= numAttacksToEnemy;
-        } else {
-            return true;
-        }
-    }
-
     public static double getScoreWithActionSingleEnemyAttacker(MapLocation beforeCurrent, MapLocation afterCurrent, MapLocation enemyLocation) {
         double score = 0;
         // prefer non clouds if we're not in a cloud
@@ -497,7 +454,6 @@ public class Launcher implements RunnableBot {
         if (cachedClosestAllyAttackerLocation != null) {
             score -= afterCurrent.distanceSquaredTo(cachedClosestAllyAttackerLocation);
         }
-
 
         return score;
     }

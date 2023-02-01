@@ -22,14 +22,14 @@ public class TryAttackCloud {
             // let's just tiebreak by our location
             enemyLocation = Cache.MY_LOCATION;
         }
-        MapLocation[] cloudLocations = rc.senseNearbyCloudLocations();
+        MapLocation[] cloudLocations = rc.senseNearbyCloudLocations(Constants.ROBOT_TYPE.actionRadiusSquared);
         int bestDistanceSquared = Integer.MAX_VALUE;
         MapLocation bestLocation = null;
         for (int i = cloudLocations.length; --i >= 0; ) {
             MapLocation location = cloudLocations[i];
-            if (!rc.canSenseLocation(location) && rc.canAttack(location)) {
+            if (!rc.canSenseLocation(location)) {
                 int distanceSquared = location.distanceSquaredTo(enemyLocation);
-                if (distanceSquared > 0 && distanceSquared < bestDistanceSquared) {
+                if (distanceSquared < bestDistanceSquared) {
                     bestDistanceSquared = distanceSquared;
                     bestLocation = location;
                 }
