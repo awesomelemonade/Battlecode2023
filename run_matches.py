@@ -13,11 +13,11 @@ emojiMap = {
 errors = []
 currentBot = 'finalBot'
 
-bots = ['sprintBot', 'beforeEarlierAnchors']
+bots = ['beforeAvoidCloud', 'sprintBot']
 #bots = ['manaOnly', 'sprintTesting1', 'sprintTesting2', 'sprintTesting3', 'sprintTesting5', 'sprintTesting8']
 botsSet = set(bots)
 #maps = ['PairedProgramming', 'Rewind', 'Turtle']
-maps = ['Rewind', 'Heart', 'Lightwork', 'TreasureMap', 'HotAirBalloon', 'Movepls', 'Grievance', 'IslandHopping']
+#maps = ['Rewind', 'Heart', 'LightWork', 'TreasureMap', 'HotAirBalloon', 'Movepls', 'Grievance', 'IslandHopping']
 #maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall']
 #maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall', 'generated_captain_america', 'generated_chalice', 'generated_charge', 'generated_chessboard', 'generated_cobra', 'generated_collaboration', 'generated_colosseum', 'generated_deer', 'generated_defenseless']
 
@@ -30,7 +30,7 @@ maps = ['Rewind', 'Heart', 'Lightwork', 'TreasureMap', 'HotAirBalloon', 'Movepls
 #maps = ['BattleSuns', 'Checkmate2', 'Cornucopia', 'Crossword', 'Cube', 'Divergence', 'FourNations', 'HideAndSeek', 'Lantern', 'Lines', 'Maze', 'Pakbot', 'Piglets', 'Risk', 'Sine', 'Snowflake', 'SomethingFishy', 'Spin', 'Spiral', 'Squares', 'Star', 'Sus', 'SweetDreams', 'TicTacToe', 'USA']
 
 # us qual maps
-#maps = ['AbsoluteW', 'Buggy', 'Cave', 'Cee', 'Heart', 'HotAirBalloon', 'IslandHoppingTwo', 'LightWork', 'MassiveL', 'Potions', 'Rainbow', 'Resign', 'Sneaky', 'Target', 'Tightrope']
+maps = ['AbsoluteW', 'Buggy', 'Cave', 'Cee', 'Heart', 'HotAirBalloon', 'IslandHoppingTwo', 'LightWork', 'MassiveL', 'Potions', 'Rainbow', 'Resign', 'Sneaky', 'Target', 'Tightrope']
 
 mapsSet = set(maps)
 

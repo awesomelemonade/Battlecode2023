@@ -1,9 +1,9 @@
-package finalBot.pathfinder;
+package beforeAvoidCloud.pathfinder;
 
 import battlecode.common.*;
-import finalBot.util.*;
+import beforeAvoidCloud.util.*;
 
-import static finalBot.util.Constants.rc;
+import static beforeAvoidCloud.util.Constants.rc;
 
 
 public class Nav {
@@ -17,17 +17,13 @@ public class Nav {
         return false;
     }
 
+    // TODO: to be cached
+
     private static boolean[] canMove = new boolean[8];
-    private static boolean[] hasNoCloud = new boolean[8];
 
     public static void invalidate() {
         for (Direction direction : Constants.ORDINAL_DIRECTIONS) {
             canMove[direction.ordinal()] = Constants.ROBOT_TYPE == RobotType.LAUNCHER ? Util.canMoveAndCheckCurrentsAndNotNearEnemyHQ(direction) : Util.canMoveAndCheckCurrents(direction);
-            try {
-                hasNoCloud[direction.ordinal()] = !rc.senseCloud(Cache.MY_LOCATION.add(direction));
-            } catch (GameActionException ex) {
-                Debug.failFast(ex);
-            }
         }
     }
 
@@ -35,26 +31,8 @@ public class Nav {
         return canMove[direction.ordinal()];
     }
 
-    public static Direction tryMoveInDirectionNoCloud(Direction dir) {
-        if (hasNoCloud[dir.ordinal()] && tryMove(dir)) {
-            return dir;
-        }
-        Direction left = dir.rotateLeft();
-        if (hasNoCloud[left.ordinal()] && tryMove(left)) {
-            return left;
-        }
-        Direction right = dir.rotateRight();
-        if (hasNoCloud[right.ordinal()] && tryMove(right)) {
-            return right;
-        }
-        return null;
-    }
 
     public static Direction tryMoveInDirection(Direction dir) {
-        Direction ret = tryMoveInDirectionNoCloud(dir);
-        if (ret != null) {
-            return ret;
-        }
         if (tryMove(dir)) {
             return dir;
         }
@@ -110,15 +88,6 @@ public class Nav {
         }
     }
 
-    public static boolean isTrapped() {
-        for (int i = Constants.ORDINAL_DIRECTIONS.length; --i >= 0; ) {
-            if (canMove(Constants.ORDINAL_DIRECTIONS[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     public static Direction bugNavigate(MapLocation target) throws GameActionException {
         invalidate();
         //Debug.println("Startin: " + Cache.MY_LOCATION + " - " + whereWeLeftOff);
@@ -131,7 +100,7 @@ public class Nav {
         }
         whereWeLeftOff = Cache.MY_LOCATION; // account for cases where we don't move
 
-        if (Cache.MY_LOCATION.equals(bugTarget) || isTrapped()) {
+        if (Cache.MY_LOCATION.equals(bugTarget)) {
             return null;
         }
 
