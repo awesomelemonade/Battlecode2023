@@ -58,25 +58,25 @@ public class BFSVisionTemplate {
                     hasSensedNearbyMapInfos.setTrue(Cache.MY_LOCATION);
                 }
             }
-            BFSVisionTemplate currentBfs = allBFS.get(Cache.MY_LOCATION);
-            if (currentBfs == null && Clock.getBytecodesLeft() > 2300) { // creating new BFSVision() takes up to ~2100 bytecodes on large maps
-                currentBfs = new BFSVisionTemplate(Cache.MY_LOCATION);
-                allBFS.set(Cache.MY_LOCATION, currentBfs);
-            }
-            if (currentBfs != null) {
-                currentBfs.bfs(1100);
-                if (currentBfs.completed) {
-                    // find bfs's to execute in queue - most recent first
-                    bfsQueue.retain(x -> {
-                        BFSVisionTemplate bfs = allBFS.get(x / Constants.MAX_MAP_SIZE, x % Constants.MAX_MAP_SIZE);
-                        bfs.bfs(1100);
-                        return !bfs.completed;
-                    }, 1100);
-                } else {
-                    // add to queue
-                    bfsQueue.addOrBringToFront(Cache.MY_LOCATION.x * Constants.MAX_MAP_SIZE + Cache.MY_LOCATION.y);
-                }
-            }
+//            BFSVisionTemplate currentBfs = allBFS.get(Cache.MY_LOCATION);
+//            if (currentBfs == null && Clock.getBytecodesLeft() > 2300) { // creating new BFSVision() takes up to ~2100 bytecodes on large maps
+//                currentBfs = new BFSVisionTemplate(Cache.MY_LOCATION);
+//                allBFS.set(Cache.MY_LOCATION, currentBfs);
+//            }
+//            if (currentBfs != null) {
+//                currentBfs.bfs(1100);
+//                if (currentBfs.completed) {
+//                    // find bfs's to execute in queue - most recent first
+//                    bfsQueue.retain(x -> {
+//                        BFSVisionTemplate bfs = allBFS.get(x / Constants.MAX_MAP_SIZE, x % Constants.MAX_MAP_SIZE);
+//                        bfs.bfs(1100);
+//                        return !bfs.completed;
+//                    }, 1100);
+//                } else {
+//                    // add to queue
+//                    bfsQueue.addOrBringToFront(Cache.MY_LOCATION.x * Constants.MAX_MAP_SIZE + Cache.MY_LOCATION.y);
+//                }
+//            }
             debug_render();
         }
     }

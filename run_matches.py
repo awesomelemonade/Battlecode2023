@@ -16,7 +16,8 @@ currentBot = 'finalBot'
 bots = ['sprintBot', 'beforeEarlierAnchors']
 #bots = ['manaOnly', 'sprintTesting1', 'sprintTesting2', 'sprintTesting3', 'sprintTesting5', 'sprintTesting8']
 botsSet = set(bots)
-maps = ['PairedProgramming', 'Rewind', 'Turtle']
+#maps = ['PairedProgramming', 'Rewind', 'Turtle']
+maps = ['Rewind', 'Heart', 'Lightwork', 'TreasureMap', 'HotAirBalloon', 'Movepls', 'Grievance', 'IslandHopping']
 #maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall']
 #maps = ['DefaultMap', 'AllElements', 'SmallElements', 'maptestsmall', 'generated_captain_america', 'generated_chalice', 'generated_charge', 'generated_chessboard', 'generated_cobra', 'generated_collaboration', 'generated_colosseum', 'generated_deer', 'generated_defenseless']
 

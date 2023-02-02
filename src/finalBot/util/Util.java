@@ -42,9 +42,12 @@ public class Util {
                 && Cache.ALLY_ROBOTS.length >= 20
                 && Cache.ENEMY_ROBOTS.length == 0
                 && Cache.TURN_COUNT > 50) {
-            boolean isCarrierWithAnchor = Constants.ROBOT_TYPE == RobotType.CARRIER && rc.getAnchor() != null;
-            if (!isCarrierWithAnchor && Math.random() < 0.1) {
-                rc.disintegrate();
+            // if we see a headquarters or a carrier with an anchor
+            if (Cache.ALLY_ROBOTS.length >= 50 || LambdaUtil.arraysAnyMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.HEADQUARTERS || (r.type == RobotType.CARRIER && r.getTotalAnchors() > 0))) {
+                boolean isCarrierWithAnchor = Constants.ROBOT_TYPE == RobotType.CARRIER && rc.getAnchor() != null;
+                if (!isCarrierWithAnchor && Math.random() < 0.1) {
+                    rc.disintegrate();
+                }
             }
         }
     }
@@ -418,6 +421,12 @@ public class Util {
 
     public static boolean onTheMap(MapLocation location) {
         return rc.onTheMap(location);
+    }
+
+    public static int getResourceWeight(RobotInfo robot) {
+        return robot.getResourceAmount(ResourceType.ADAMANTIUM)
+                + robot.getResourceAmount(ResourceType.MANA)
+                + robot.getResourceAmount(ResourceType.ELIXIR);
     }
 
     public static int getWeight(RobotInfo robot) {

@@ -424,7 +424,7 @@ public class Launcher implements RunnableBot {
         double score = 0;
         // prefer non clouds if we're not in a cloud
         try {
-            if (!rc.senseCloud(Cache.MY_LOCATION) && !rc.senseCloud(afterCurrent)) {
+            if (!rc.senseCloud(Cache.MY_LOCATION) && (rc.canSenseLocation(afterCurrent) && !rc.senseCloud(afterCurrent))) {
                 score += 20_000_000;
             }
         } catch (GameActionException ex) {

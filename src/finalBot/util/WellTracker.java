@@ -29,6 +29,10 @@ public class WellTracker {
         }
     }
 
+    public static MapLocation getLastSeenClosestWell(ResourceType type) {
+        return lastSeenClosestWells[getResourceIndex(type)];
+    }
+
     public static MapLocation lastHqLocation() {
         if (lastHqIndex == -1) {
             return null;

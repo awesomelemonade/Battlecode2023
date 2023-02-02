@@ -35,6 +35,8 @@ public class Headquarters implements RunnableBot {
 
     private static int anchorsBuilt = 0;
 
+    private static int numPassableSquaresNearby = 0;
+
     @Override
     public void init() throws GameActionException {
         // max robots = num hqs * num turns = 8 * 2000 = 16000
@@ -42,6 +44,21 @@ public class Headquarters implements RunnableBot {
         carrierTasks = new FastIntMap(4096 * 16);
         shuffledLocations = rc.getAllLocationsWithinRadiusSquared(Cache.MY_LOCATION, RobotType.HEADQUARTERS.actionRadiusSquared);
         hasSpaceForMiners = hasSpaceForMinersToDeposit();
+        MapLocation[] nearbyLocations = rc.getAllLocationsWithinRadiusSquared(Cache.MY_LOCATION, 5);
+        for (int i = nearbyLocations.length; --i >= 0; ) {
+            MapLocation location = nearbyLocations[i];
+            if (rc.canSenseLocation(location)) {
+                if (rc.sensePassability(location)) {
+                    RobotInfo robot = rc.senseRobotAtLocation(location);
+                    if (robot == null || robot.type != RobotType.HEADQUARTERS) {
+                        numPassableSquaresNearby++;
+                    }
+                }
+            } else {
+                // it's prob a cloud, we assume it's passable
+                numPassableSquaresNearby++;
+            }
+        }
     }
 
     public static Communication.CarrierTaskType getNewTask() {
@@ -196,6 +213,7 @@ public class Headquarters implements RunnableBot {
 
     @Override
     public void action() {
+        // TODO: REWRITE REWRITE REWRITE
         int robotCount = rc.getRobotCount();
         int roundNum = rc.getRoundNum();
         int MAP_AREA = Constants.MAP_WIDTH * Constants.MAP_HEIGHT;
@@ -348,6 +366,22 @@ public class Headquarters implements RunnableBot {
             if (LambdaUtil.arraysAnyMatch(Cache.ENEMY_ROBOTS, r -> Util.isAttacker(r.type))) {
                 return false;
             }
+        }
+        // if we have too many carriers close to our headquarters, don't build
+        try {
+            RobotInfo[] allies = rc.senseNearbyRobots(5, Constants.ALLY_TEAM);
+            // see if carriers make up 50% of this space
+            int numCarriers = 0;
+            for (int i = allies.length; --i >= 0; ) {
+                if (allies[i].type == RobotType.CARRIER) {
+                    numCarriers++;
+                }
+            }
+            if (numCarriers > numPassableSquaresNearby / 2) {
+                return false;
+            }
+        } catch (GameActionException ex) {
+            Debug.failFast(ex);
         }
         MapLocation knownWellLocation = WellTracker.getClosestWell(location -> true);
         MapLocation spawnTowardsLocation = knownWellLocation == null ? mapMidLocation() : knownWellLocation;
