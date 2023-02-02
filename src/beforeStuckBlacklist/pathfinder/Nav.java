@@ -1,9 +1,9 @@
-package finalBot.pathfinder;
+package beforeStuckBlacklist.pathfinder;
 
 import battlecode.common.*;
-import finalBot.util.*;
+import beforeStuckBlacklist.util.*;
 
-import static finalBot.util.Constants.rc;
+import static beforeStuckBlacklist.util.Constants.rc;
 
 
 public class Nav {
@@ -21,11 +21,10 @@ public class Nav {
     private static boolean[] hasNoCloud = new boolean[8];
 
     public static void invalidate() {
-        for (int i = 8; --i >= 0; ) {
-            Direction direction = Constants.ORDINAL_DIRECTIONS[i];
-            canMove[i] = Util.canMoveAndCheckCurrentsAndNotNearEnemyHQForLauncher(direction);
+        for (Direction direction : Constants.ORDINAL_DIRECTIONS) {
+            canMove[direction.ordinal()] = Constants.ROBOT_TYPE == RobotType.LAUNCHER ? Util.canMoveAndCheckCurrentsAndNotNearEnemyHQ(direction) : Util.canMoveAndCheckCurrents(direction);
             try {
-                hasNoCloud[i] = !rc.senseCloud(Cache.MY_LOCATION.add(direction));
+                hasNoCloud[direction.ordinal()] = !rc.senseCloud(Cache.MY_LOCATION.add(direction));
             } catch (GameActionException ex) {
                 Debug.failFast(ex);
             }

@@ -13,7 +13,7 @@ emojiMap = {
 errors = []
 currentBot = 'finalBot'
 
-bots = ['beforeAvoidCloud', 'sprintBot']
+bots = ['beforeStuckBlacklist']
 #bots = ['manaOnly', 'sprintTesting1', 'sprintTesting2', 'sprintTesting3', 'sprintTesting5', 'sprintTesting8']
 botsSet = set(bots)
 #maps = ['PairedProgramming', 'Rewind', 'Turtle']

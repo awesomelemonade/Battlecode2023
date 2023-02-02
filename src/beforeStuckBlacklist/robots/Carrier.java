@@ -1,11 +1,11 @@
-package finalBot.robots;
+package beforeStuckBlacklist.robots;
 
 import battlecode.common.*;
-import finalBot.fast.FastIntSet2D;
-import finalBot.pathfinder.Pathfinding;
-import finalBot.util.*;
+import beforeStuckBlacklist.fast.FastIntSet2D;
+import beforeStuckBlacklist.pathfinder.Pathfinding;
+import beforeStuckBlacklist.util.*;
 
-import static finalBot.util.Constants.rc;
+import static beforeStuckBlacklist.util.Constants.rc;
 
 public class Carrier implements RunnableBot {
     private static Communication.CarrierTask currentTask;
@@ -136,7 +136,7 @@ public class Carrier implements RunnableBot {
         // angle between 2 vectors = acos((a dot b) / (|a| |b|))
         double theta = Math.acos((vecA.x * vecB.x + vecA.y * vecB.y) / (distA * distB));
         if (distB + 1.5 >= distA || theta > Math.PI / 2) {
-            Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, hqLocation, 128, 0, 255); // purple
+            Debug.setIndicatorLine(Cache.MY_LOCATION, hqLocation, 128, 0, 255); // purple
             Util.tryPathfindingMoveAdjacent(hqLocation);
             return true;
         } else {

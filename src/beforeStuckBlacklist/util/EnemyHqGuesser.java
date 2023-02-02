@@ -1,4 +1,4 @@
-package finalBot.util;
+package beforeStuckBlacklist.util;
 
 import battlecode.common.GameActionException;
 import battlecode.common.MapLocation;
@@ -8,7 +8,7 @@ import battlecode.common.RobotType;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static finalBot.util.Constants.rc;
+import static beforeStuckBlacklist.util.Constants.rc;
 
 public class EnemyHqGuesser {
     private static final int NUM_POSSIBLE_SYMMETRIES = 3;
@@ -111,7 +111,7 @@ public class EnemyHqGuesser {
 
     public static void update() {
         if (knownSymmetry != -1) {
-            Debug.setIndicatorDot(Profile.ATTACKING, Cache.MY_LOCATION, 0, 255, 0); // green
+            Debug.setIndicatorDot(Profile.ATTACKING, Cache.MY_LOCATION, 0, 255, 0);
         }
         if (Constants.ROBOT_TYPE == RobotType.CARRIER && Cache.TURN_COUNT == 1) {
             // save bytecodes
