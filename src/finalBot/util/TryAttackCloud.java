@@ -47,7 +47,8 @@ public class TryAttackCloud {
                 MapLocation location = cloudLocations[i];
                 if (!rc.canSenseLocation(location)) {
                     int distanceSquared = location.distanceSquaredTo(enemyLocation);
-                    if (distanceSquared < bestDistanceSquared) {
+                    // we check distance > 0 because we don't want to attack enemy HQ locations
+                    if (distanceSquared > 0 && distanceSquared < bestDistanceSquared) {
                         bestDistanceSquared = distanceSquared;
                         bestLocation = location;
                     }

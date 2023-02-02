@@ -28,6 +28,14 @@ public class Communication {
     public static final int ENEMY_HQ_CONFIRMED_OFFSET = 17;
     // UNUSED: 18, 19, 20
 
+    // we should always try to not be in a cloud
+
+    // Enemy locations - we should be kiting enemies, but should check every so often?
+    // Enemy Island Locations - heartbeats?
+    // Neutral Island Locations
+
+    // Ally Island Locations - last round seen? ehhh might not be worth
+
     public static final int CARRIER_TASK_OFFSET = 21; // 16 integers
     public static final int CARRIER_TASK_POSITION_BIT_OFFSET = 0;
     public static final int CARRIER_TASK_POSITION_BIT_MASK = 0b1111111; // 7 bits
@@ -43,9 +51,13 @@ public class Communication {
 
     public static final int MAX_CARRIER_COMMED_TASKS = 16;
 
-    public static final int CHECKPOINTS_OFFSET = 37; // 19 ints
-    public static final int CHECKPOINTS_PENDING_OFFSET = 56;
-    public static final int CHECKPOINTS_PENDING_LENGTH = 8;
+
+    // island locations: 0 = no island, 1-36 = island id + 1 -> 6 bits, location represented with 10 bits
+    // enemy locations: 0 = no enemy, 1-3601 = location -> 12 bits, 4 bits = turn number? heartbeat?
+
+//    public static final int CHECKPOINTS_OFFSET = 37; // 19 ints
+//    public static final int CHECKPOINTS_PENDING_OFFSET = 56;
+//    public static final int CHECKPOINTS_PENDING_LENGTH = 8;
 
     public enum CarrierTaskType {
         NONE, PICKUP_ANCHOR, MINE_ADAMANTIUM, MINE_MANA, MINE_ELIXIR;
@@ -245,7 +257,7 @@ public class Communication {
                 Debug.failFast("-1 headquarters index");
             }
         }
-        Checkpoints.init();
+//        Checkpoints.init();
     }
 
     public static void loop() throws GameActionException {

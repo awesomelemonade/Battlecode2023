@@ -60,9 +60,16 @@ public class Carrier implements RunnableBot {
     }
 
     private static RobotInfo cachedClosestAttacker;
+
+    private static MapLocation lastEnemyAttackerLocation = null;
+    private static int lastEnemyAttackerRound = -1;
     @Override
     public void move() {
         cachedClosestAttacker = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
+        if (cachedClosestAttacker != null) {
+            lastEnemyAttackerLocation = cachedClosestAttacker.location;
+            lastEnemyAttackerRound = rc.getRoundNum();
+        }
         Pathfinding.predicate = location -> true;
         if (tryMoveToAttack()) {
             return;
@@ -73,6 +80,11 @@ public class Carrier implements RunnableBot {
 //        Pathfinding.predicate = location -> (location.x + location.y) % 2 == 1 || HasAdjacentUnpassableCache.hasAdjacentUnpassable(location);
         Pathfinding.predicate = location -> true;
         if (tryMoveToPlaceAnchorOnIsland()) {
+            return;
+        }
+        // When there's an enemy, we should just go back and transfer what we have while our teammates get rid of the enemies
+        // Helps on map pizza where there are often launchers harassing the bottom carriers
+        if (tryMoveToTransferWhenNotFull()) {
             return;
         }
         if (tryMoveToKiteFromEnemies()) { // above is allowed to ignore kiting
@@ -94,6 +106,44 @@ public class Carrier implements RunnableBot {
         Util.tryExplore();
     }
 
+    public static boolean tryMoveToTransferWhenNotFull() {
+        try {
+            if (rc.getAnchor() != null) {
+                return false;
+            }
+        } catch (GameActionException ex) {
+            Debug.failFast(ex);
+        }
+        if (rc.getResourceAmount(ResourceType.MANA) < 15) {
+            // not worth to return
+            return false;
+        }
+        // check the direction - make sure it's not in direction of the enemy
+        MapLocation hqLocation = Cache.NEAREST_ALLY_HQ;
+        if (hqLocation == null) {
+            return false;
+        }
+        if (lastEnemyAttackerRound == -1 || rc.getRoundNum() > lastEnemyAttackerRound + 30) {
+            // this is only for fleeing from enemy
+            return false;
+        }
+        // check enemy distance and direction
+        // if the hq is closer (factoring in some margin), OR if enemy direction is not in the same direction as HQ
+        MapLocation vecA = hqLocation.translate(-Cache.MY_LOCATION.x, -Cache.MY_LOCATION.y);
+        MapLocation vecB = lastEnemyAttackerLocation.translate(-Cache.MY_LOCATION.x, -Cache.MY_LOCATION.y);
+        double distA = Math.hypot(vecA.x, vecA.y);
+        double distB = Math.hypot(vecB.x, vecB.y);
+        // angle between 2 vectors = acos((a dot b) / (|a| |b|))
+        double theta = Math.acos((vecA.x * vecB.x + vecA.y * vecB.y) / (distA * distB));
+        if (distB + 1.5 >= distA || theta > Math.PI / 2) {
+            Debug.setIndicatorLine(Cache.MY_LOCATION, hqLocation, 128, 0, 255); // purple
+            Util.tryPathfindingMoveAdjacent(hqLocation);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     @Override
     public void action() {
         if (tryPickupAnchorFromHQ()) {
@@ -108,10 +158,79 @@ public class Carrier implements RunnableBot {
         if (tryCollectResource()) {
             return;
         }
+//        if (tryUpgradeWell()) {
+//            return;
+//        }
         if (tryTransferResourceToHQ()) {
             return;
         }
     }
+
+//    private static int EMPTY_WEIGHT_THRESHOLD = 30;
+//    private static boolean shouldUpgradeWell() {
+//        if (capacityLeft() > 0) {
+//            return false;
+//        }
+//        if (Cache.ENEMY_ROBOTS.length > 0) {
+//            return false;
+//        }
+//        int numEmptyCarriersNeeded = 12;
+//        for (int i = Cache.ALLY_ROBOTS.length; --i >= 0; ) {
+//            RobotInfo ally = Cache.ALLY_ROBOTS[i];
+//            if (Util.getResourceWeight(ally) < EMPTY_WEIGHT_THRESHOLD) {
+//                if (--numEmptyCarriersNeeded <= 0) {
+//                    return true;
+//                }
+//            }
+//        }
+//        return false;
+//    }
+//
+//    // Technically the bot can move before getting to upgrade the well, but if this happens oh well
+//    public static boolean tryUpgradeWell() {
+//        // do we see a bunch of empty carriers?
+//        if (shouldUpgradeWell()) {
+//            // see if there's a well to upgrade
+//            ResourceType targetResource = getMostResource();
+//            MapLocation wellLocation = WellTracker.getLastSeenClosestWell(targetResource);
+//            if (wellLocation == null) {
+//                return false;
+//            }
+//            if (Cache.MY_LOCATION.isAdjacentTo(wellLocation)) {
+//                try {
+//                    WellInfo well = rc.senseWell(wellLocation);
+//                    if (!well.isUpgraded()) {
+//                        int amount = rc.getResourceAmount(targetResource);
+//                        if (amount > 0) {
+//                            tryTransfer(wellLocation, targetResource, amount);
+//                            Debug.setIndicatorLine(Cache.MY_LOCATION, wellLocation, 0, 255, 0); // green
+//                            return true;
+//                        }
+//                    }
+//                } catch (GameActionException ex) {
+//                    Debug.failFast(ex);
+//                }
+//                return false;
+//            } else {
+//                return false;
+//            }
+//        } else {
+//            return false;
+//        }
+//    }
+//
+//    private static ResourceType getMostResource() {
+//        int adamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
+//        int mana = rc.getResourceAmount(ResourceType.MANA);
+//        int elixir = rc.getResourceAmount(ResourceType.ELIXIR);
+//        if (adamantium > mana && adamantium > elixir) {
+//            return ResourceType.ADAMANTIUM;
+//        } else if (elixir > mana) {
+//            return ResourceType.ELIXIR;
+//        } else {
+//            return ResourceType.MANA;
+//        }
+//    }
 
     @Override
     public void postLoop() throws GameActionException {

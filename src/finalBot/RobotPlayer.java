@@ -1,6 +1,7 @@
 package finalBot;
 
 import battlecode.common.*;
+import finalBot.robots.Amplifier;
 import finalBot.robots.Carrier;
 import finalBot.robots.Headquarters;
 import finalBot.robots.Launcher;
@@ -22,6 +23,9 @@ public class RobotPlayer {
                 break;
             case LAUNCHER:
                 bot = new Launcher();
+                break;
+            case AMPLIFIER:
+                bot = new Amplifier();
                 break;
             default:
                 throw new IllegalStateException("Unknown Robot Type: " + robotType);
