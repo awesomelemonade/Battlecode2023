@@ -170,6 +170,9 @@ public class Communication {
     }
 
     // island locations: 0 = no island, 1-36 = island id -> 6 bits, location represented with 10 bits
+    // randomly replaces if full?
+
+    // island teams: 0 = no island, 1-36 = island id -> 6 bits, team -> 2 bits, round num -> 8 bits
     private static final int ALLY_ISLANDS_OFFSET = 44; // 5
 
     private static final int ENEMY_ISLANDS_OFFSET = 49; // 5
@@ -234,6 +237,7 @@ public class Communication {
                 int islandIndex = (read >> ISLAND_INDEX_BIT) & ISLAND_INDEX_MASK;
                 int readIslandLocation = (read >> ISLAND_LOCATION_BIT) & ISLAND_LOCATION_MASK;
                 MapLocation islandLocation = new MapLocation((readIslandLocation >> 5) * ISLAND_LOCATION_SCALE, (readIslandLocation & 0b11111) * ISLAND_LOCATION_SCALE);
+                // TODO: we need to validate whether it's actually ALLY_TEAM
                 IslandTracker.addIsland(islandIndex, islandLocation, Constants.ALLY_TEAM);
             } catch (GameActionException ex) {
                 Debug.failFast(ex);

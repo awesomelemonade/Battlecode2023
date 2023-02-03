@@ -438,7 +438,7 @@ public class Carrier implements RunnableBot {
                     Util.tryMove(Cache.MY_LOCATION.directionTo(randomLocation)); // tryMove because it could be unpassable
                 }
             } else {
-                if (Util.numAllyRobotsWithin(commedWell, 5) >= 12) {
+                if (Util.numAllyCarriersWithinDistanceSquaredIsAtLeast(commedWell, 5, 12)) {
                     // blacklist from future
                     blacklist.add(commedWell);
                 }
