@@ -1,4 +1,4 @@
-package beforeAvoidCloud.util;
+package beforeStuckBlacklist.util;
 
 import battlecode.common.*;
 

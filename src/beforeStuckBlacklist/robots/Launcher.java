@@ -1,13 +1,13 @@
-package finalBot.robots;
+package beforeStuckBlacklist.robots;
 
 import battlecode.common.*;
-import finalBot.fast.FastIntSet2D;
-import finalBot.pathfinder.Pathfinding;
-import finalBot.util.*;
+import beforeStuckBlacklist.fast.FastIntSet2D;
+import beforeStuckBlacklist.pathfinder.Pathfinding;
+import beforeStuckBlacklist.util.*;
 
 import java.util.function.ToDoubleBiFunction;
 
-import static finalBot.util.Constants.rc;
+import static beforeStuckBlacklist.util.Constants.rc;
 
 public class Launcher implements RunnableBot {
     private static final int RETREAT_HEALTH_THRESHOLD = RobotType.LAUNCHER.getMaxHealth() / 2;
@@ -166,7 +166,24 @@ public class Launcher implements RunnableBot {
         if (location == null) {
             Util.tryExplore();
         } else {
-            Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, location, 0, 0, 0); // black
+            // TODO: consider blacklisting if we're not getting any closer
+//            if (notGettingCloser && Cache.ALLY_ROBOTS.length >= 5) {
+//                blacklist.add(location.x, location.y);
+//            }
+            // don't consider blacklisting via vision if we're not even close to the location (saves bytecodes)
+            if (Cache.MY_LOCATION.isWithinDistanceSquared(location, 50)) {
+                // check if hq already has tons of ally units nearby
+                if (Util.hasAtLeastXAllyAttackersWithin(location, 20, 5)) {
+                    if (!Cache.MY_LOCATION.isAdjacentTo(location)) {
+                        blacklist.add(location.x, location.y);
+                    }
+                }
+            }
+            if (Profile.ATTACKING.enabled()) {
+                Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, location, 0, 0, 0); // black
+                int numAllyAttackers = Util.numAllyAttackersWithin(location, 20);
+                Debug.setIndicatorString(Profile.ATTACKING, "Num: " + numAllyAttackers);
+            }
             if (shouldEncircleMacroAttackLocation && Cache.MY_LOCATION.isWithinDistanceSquared(location, 16)) {
                 // try to circle around it
                 tryPathfindingTangent(location);
@@ -491,83 +508,11 @@ public class Launcher implements RunnableBot {
         return score;
     }
 
-
-    private static MapLocation lastMacroLocation = null;
-    private static StringBuilder macroLocationDistances = new StringBuilder();
-    private static int MACRO_LOCATIONS_HISTORY_LENGTH = 35;
-
-    // returns whether it has gotten closer in the past 50 turns
-    public static boolean hasGottenCloserToMacroLocation(char distance) {
-        // oh wait we can't do a binary insert in a StringBuilder.. so we're just going to check x + 2, x + 3, x + 4
-        macroLocationDistances.append(distance);
-        if (macroLocationDistances.length() > MACRO_LOCATIONS_HISTORY_LENGTH) {
-            char before = macroLocationDistances.charAt(0);
-            // remove 0th char
-            macroLocationDistances.deleteCharAt(0);
-            Debug.setIndicatorDot(Profile.ATTACKING, Cache.MY_LOCATION, 255, 255, 0); // yellow
-            return before + 2 > distance;
-        } else {
-            // we haven't tried enough
-            return true;
-        }
-    }
-
-    public static void clearMacroLocationDistances() {
-        macroLocationDistances.setLength(0);
-    }
-
     private static FastIntSet2D blacklist;
 
     private static boolean shouldEncircleMacroAttackLocation = false; // lol code is totally clean here
     public static MapLocation getMacroAttackLocation() {
         // NOTE: if we change this, don't forget to change Carrier.getMacroAttackLocation()
-        MapLocation macroLocation = getMacroEnemyHQLocation();
-        if (macroLocation == null) {
-            blacklist.reset();
-        } else {
-            // consider blacklisting if we're not getting any closer
-            if (lastMacroLocation != null && lastMacroLocation.equals(macroLocation)) {
-                if (Cache.MY_LOCATION.isWithinDistanceSquared(macroLocation, 16)) {
-                    // we're basically there, no need to blacklist via distances
-                    clearMacroLocationDistances();
-                } else {
-                    // wow this is this first time i've casted a double to a char - double truncates to an integer then converts to char
-                    char distance = (char) Math.sqrt(Cache.MY_LOCATION.distanceSquaredTo(macroLocation));
-                    if (!hasGottenCloserToMacroLocation(distance)) {
-                        if (Cache.ALLY_ROBOTS.length >= 5) {
-                            Debug.setIndicatorString(Profile.ATTACKING, "STUCK - BLACKLISTING");
-                            blacklist.add(macroLocation.x, macroLocation.y);
-                        }
-                    }
-                }
-            } else {
-                // we changed macro locations
-                clearMacroLocationDistances();
-                lastMacroLocation = macroLocation;
-            }
-            // don't consider blacklisting via vision if we're not even close to the location (saves bytecodes)
-            if (Cache.MY_LOCATION.isWithinDistanceSquared(macroLocation, 50)) {
-                // check if hq already has tons of ally units nearby the macro location
-                if (Util.hasAtLeastXAllyAttackersWithin(macroLocation, 20, 5)) {
-                    if (!Cache.MY_LOCATION.isAdjacentTo(macroLocation)) {
-                        blacklist.add(macroLocation.x, macroLocation.y);
-                    }
-                }
-            }
-        }
-
-        // Consider defending separately from enemy hq locations - we don't have blacklisting defend locations
-        MapLocation defendLocation = getLocationToDefend();
-        if (defendLocation != null) {
-            if (macroLocation == null || !Cache.MY_LOCATION.isWithinDistanceSquared(macroLocation, Cache.MY_LOCATION.distanceSquaredTo(defendLocation))) {
-                macroLocation = defendLocation;
-                shouldEncircleMacroAttackLocation = false;
-            }
-        }
-        return macroLocation;
-    }
-
-    public static MapLocation getMacroEnemyHQLocation() {
         RobotInfo closestVisibleEnemyHQ = Util.getClosestEnemyRobot(robot -> robot.type == RobotType.HEADQUARTERS &&
                 !blacklist.contains(robot.location.x, robot.location.y));
         MapLocation ret = closestVisibleEnemyHQ == null ? null : closestVisibleEnemyHQ.location;
@@ -582,6 +527,16 @@ public class Launcher implements RunnableBot {
         if (ret == null) {
             ret = EnemyHqGuesser.getClosestPrediction(location -> !blacklist.contains(location.x, location.y));
             shouldEncircleMacroAttackLocation = false;
+        }
+        if (ret == null) {
+            blacklist.reset();
+        }
+        MapLocation defendLocation = getLocationToDefend();
+        if (defendLocation != null) {
+            if (ret == null || !Cache.MY_LOCATION.isWithinDistanceSquared(ret, Cache.MY_LOCATION.distanceSquaredTo(defendLocation))) {
+                ret = defendLocation;
+                shouldEncircleMacroAttackLocation = false;
+            }
         }
         return ret;
     }

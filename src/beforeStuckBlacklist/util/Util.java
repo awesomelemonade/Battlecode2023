@@ -1,15 +1,15 @@
-package finalBot.util;
+package beforeStuckBlacklist.util;
 
 import battlecode.common.*;
-import finalBot.pathfinder.BFSCheckpoints;
-import finalBot.pathfinder.BFSVision;
-import finalBot.pathfinder.Nav;
-import finalBot.pathfinder.Pathfinding;
+import beforeStuckBlacklist.pathfinder.BFSCheckpoints;
+import beforeStuckBlacklist.pathfinder.BFSVision;
+import beforeStuckBlacklist.pathfinder.Nav;
+import beforeStuckBlacklist.pathfinder.Pathfinding;
 
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
-import static finalBot.util.Constants.rc;
+import static beforeStuckBlacklist.util.Constants.rc;
 
 public class Util {
 
@@ -469,15 +469,15 @@ public class Util {
                         after.equals(afterCurrent = CurrentsCache.get(after)) || !afterCurrent.isAdjacentTo(Cache.MY_LOCATION));
     }
 
-    private static final int HEADQUARTERS_ATTACK_RANGE = RobotType.HEADQUARTERS.actionRadiusSquared;
-    public static boolean canMoveAndCheckCurrentsAndNotNearEnemyHQForLauncher(Direction direction) {
+    public static boolean canMoveAndCheckCurrentsAndNotNearEnemyHQ(Direction direction) {
         if (!rc.canMove(direction)) {
             return false;
         }
         MapLocation after = Cache.MY_LOCATION.add(direction);
         MapLocation afterCurrent = CurrentsCache.get(after);
         // less bytecodes
-        return (after.equals(afterCurrent) || !afterCurrent.isAdjacentTo(Cache.MY_LOCATION))
-                && !EnemyHqGuesser.anyConfirmed(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(afterCurrent, HEADQUARTERS_ATTACK_RANGE));
+        return ((Constants.ROBOT_TYPE == RobotType.CARRIER && (rc.getMovementCooldownTurns() + rc.getWeight() / 8 < 5))
+                || after.equals(afterCurrent) || !afterCurrent.isAdjacentTo(Cache.MY_LOCATION))
+                && !EnemyHqGuesser.anyConfirmed(enemyHqLocation -> enemyHqLocation.isWithinDistanceSquared(afterCurrent, 9));
     }
 }
