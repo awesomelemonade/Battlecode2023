@@ -10,6 +10,7 @@ import static finalBot.util.Constants.rc;
 public class Carrier implements RunnableBot {
     private static Communication.CarrierTask currentTask;
     private static FastIntSet2D blacklist;
+    private static MapLocation startOfTurnLocation = null;
 
     @Override
     public void init() throws GameActionException {
@@ -34,6 +35,7 @@ public class Carrier implements RunnableBot {
 
     @Override
     public void loop() throws GameActionException {
+        startOfTurnLocation = Cache.MY_LOCATION;
         debug_render();
         // update task (if needed)
         Communication.CarrierTask potentialTask = Communication.getTaskAsCarrier();
@@ -429,13 +431,19 @@ public class Carrier implements RunnableBot {
         }
         if (commedWell != null) {
             Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, commedWell, 0, 128, 0); // dark green
-            if (!Cache.MY_LOCATION.isAdjacentTo(commedWell)) {
+            if (Cache.MY_LOCATION.isAdjacentTo(commedWell)) {
+                // pick a random position adjacent to the well
+                MapLocation randomLocation = commedWell.add(Constants.ALL_DIRECTIONS[(int) (Math.random() * Constants.ALL_DIRECTIONS.length)]);
+                if (Cache.MY_LOCATION.isAdjacentTo(randomLocation) && !randomLocation.equals(startOfTurnLocation)) {
+                    Util.tryMove(Cache.MY_LOCATION.directionTo(randomLocation)); // tryMove because it could be unpassable
+                }
+            } else {
                 if (Util.numAllyRobotsWithin(commedWell, 5) >= 12) {
                     // blacklist from future
                     blacklist.add(commedWell);
                 }
+                Util.tryPathfindingMoveAdjacentCheckCurrents(commedWell);
             }
-            Util.tryPathfindingMoveAdjacentCheckCurrents(commedWell);
             return true;
         }
         return false;

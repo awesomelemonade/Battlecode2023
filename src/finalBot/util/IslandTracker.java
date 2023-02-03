@@ -12,7 +12,6 @@ import static finalBot.util.Constants.rc;
 public class IslandTracker {
     private static final int ARRAY_SIZE = GameConstants.MAX_NUMBER_ISLANDS + 1; // islands are 1-indexed, so 0 slot isn't used
     private static MapLocation[] islandLocations = new MapLocation[ARRAY_SIZE];
-    private static MapLocation[][] lastSensedIslandLocations = new MapLocation[ARRAY_SIZE][];
 
     private static boolean[] isInKnownIslands = new boolean[ARRAY_SIZE];
     private static int[] knownIslands = new int[ARRAY_SIZE];
@@ -21,6 +20,36 @@ public class IslandTracker {
     private static boolean[] isInOurIslands = new boolean[ARRAY_SIZE];
     private static int[] ourIslands = new int[ARRAY_SIZE];
     private static int ourIslandsSize = 0;
+
+    private static void addToKnownIslands(int islandIndex, Team islandTeam) {
+        if (!isInKnownIslands[islandIndex]) {
+            knownIslands[knownIslandsSize++] = islandIndex;
+            isInKnownIslands[islandIndex] = true;
+        }
+        if (islandTeam == Constants.ALLY_TEAM) {
+            if (!isInOurIslands[islandIndex]) {
+                ourIslands[ourIslandsSize++] = islandIndex;
+                isInOurIslands[islandIndex] = true;
+            }
+        } else {
+            if (isInOurIslands[islandIndex]) {
+                // locate where it is
+                for (int j = 0; j < ourIslandsSize; j++) {
+                    if (ourIslands[j] == islandIndex) {
+                        // we can do a swap remove because we don't care about order
+                        ourIslands[j] = ourIslands[--ourIslandsSize];
+                        break;
+                    }
+                }
+                isInOurIslands[islandIndex] = false;
+            }
+        }
+    }
+
+    public static void addIsland(int islandIndex, MapLocation islandLocation, Team islandTeam) {
+        islandLocations[islandIndex] = islandLocation;
+        addToKnownIslands(islandIndex, islandTeam);
+    }
 
     public static int[] NEARBY_ISLANDS = new int[0];
     public static Team[] NEARBY_ISLAND_TEAMS = new Team[ARRAY_SIZE];
@@ -85,33 +114,11 @@ public class IslandTracker {
                 islandTeam = Team.NEUTRAL;
             }
             NEARBY_ISLAND_TEAMS[i] = islandTeam;
-            if (!isInKnownIslands[islandIndex]) {
-                knownIslands[knownIslandsSize++] = islandIndex;
-                isInKnownIslands[islandIndex] = true;
-            }
-            if (islandTeam == Constants.ALLY_TEAM) {
-                if (!isInOurIslands[islandIndex]) {
-                    ourIslands[ourIslandsSize++] = islandIndex;
-                    isInOurIslands[islandIndex] = true;
-                }
-            } else {
-                if (isInOurIslands[islandIndex]) {
-                    // locate where it is
-                    for (int j = 0; j < ourIslandsSize; j++) {
-                        if (ourIslands[j] == islandIndex) {
-                            // we can do a swap remove because we don't care about order
-                            ourIslands[j] = ourIslands[--ourIslandsSize];
-                            break;
-                        }
-                    }
-                    isInOurIslands[islandIndex] = false;
-                }
-            }
+            addToKnownIslands(islandIndex, islandTeam);
             int bestDistanceSquared = Integer.MAX_VALUE;
             MapLocation closestLocation = null;
             try {
                 MapLocation[] islandLocations = rc.senseNearbyIslandLocations(islandIndex);
-                lastSensedIslandLocations[islandIndex] = islandLocations;
                 // this loop is capped by GameConstants.MAX_ISLAND_AREA = 20 so we shouldn't run into bytecode issues
                 // We don't want to do the if statement inside the hot loop - bytecodes :(
                 // sorry for your eyes .-.

@@ -32,6 +32,7 @@ public class Util {
     }
 
     public static void postLoop() throws GameActionException {
+        Communication.postLoop();
         Cache.postLoop();
         BFSVision.postLoop();
         //BFSCheckpoints.postLoop();

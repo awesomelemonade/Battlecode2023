@@ -9,7 +9,7 @@ import finalBot.util.*;
 import static finalBot.util.Constants.rc;
 
 public class LauncherMicro {
-    private static final int ENEMY_HISTORY_LENGTH = 5;
+    private static final int ENEMY_HISTORY_LENGTH = 6;
 
     public static void loop() {
         insertTurn();

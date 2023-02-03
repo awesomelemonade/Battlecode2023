@@ -37,6 +37,8 @@ public class Headquarters implements RunnableBot {
 
     private static int numPassableSquaresNearby = 0;
 
+    private static MapLocation cachedClosestEnemyLocation = null;
+
     @Override
     public void init() throws GameActionException {
         // max robots = num hqs * num turns = 8 * 2000 = 16000
@@ -124,6 +126,13 @@ public class Headquarters implements RunnableBot {
         lastAdamantiumIncome = currentAdamantiumIncome;
 
         debug_printInfo();
+
+        RobotInfo closestEnemy = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
+        if (closestEnemy == null) {
+            cachedClosestEnemyLocation = Communication.getClosestCommedEnemyLocation();
+        } else {
+            cachedClosestEnemyLocation = closestEnemy.location;
+        }
     }
 
     @Override
@@ -428,12 +437,12 @@ public class Headquarters implements RunnableBot {
             return false;
         }
         MapLocation macroLocation = getMacroAttackLocation();
-        RobotInfo closestEnemy = Util.getClosestEnemyRobot(r -> Util.isAttacker(r.type));
-        if (closestEnemy == null && macroLocation != null) {
+        boolean shouldUseMacroLocation = cachedClosestEnemyLocation == null || cachedClosestEnemyLocation.distanceSquaredTo(Cache.MY_LOCATION) > 100;
+        if (shouldUseMacroLocation) {
             Debug.setIndicatorLine(Profile.ATTACKING, Cache.MY_LOCATION, macroLocation, 255, 128, 0); // orange
         }
         return tryBuildByScore(RobotType.LAUNCHER, location -> {
-            return closestEnemy == null ? location.distanceSquaredTo(macroLocation) : -location.distanceSquaredTo(closestEnemy.location);
+            return shouldUseMacroLocation ? location.distanceSquaredTo(macroLocation) : -location.distanceSquaredTo(cachedClosestEnemyLocation);
         });
     }
 

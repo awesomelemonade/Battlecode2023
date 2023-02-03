@@ -15,16 +15,19 @@ public class TryAttackCloud {
         }
         return location;
     }
-    public static boolean tryAttackCloud() throws GameActionException {
+    public static boolean tryAttackCloud(MapLocation enemyLocation) throws GameActionException {
         if (!rc.isActionReady()) {
             return false;
         }
-        MapLocation enemyLocation = getEnemyLocation();
+        boolean allowOnTarget = true;
+        if (enemyLocation == null) {
+            enemyLocation = getEnemyLocation();
+            allowOnTarget = false;
+        }
         if (enemyLocation == null) {
             // let's just tiebreak by our location
             enemyLocation = Cache.MY_LOCATION;
         }
-
         if (rc.senseCloud(Cache.MY_LOCATION)) {
             MapLocation location = Cache.MY_LOCATION;
             while (true) {
@@ -48,7 +51,7 @@ public class TryAttackCloud {
                 if (!rc.canSenseLocation(location)) {
                     int distanceSquared = location.distanceSquaredTo(enemyLocation);
                     // we check distance > 0 because we don't want to attack enemy HQ locations
-                    if (distanceSquared > 0 && distanceSquared < bestDistanceSquared) {
+                    if ((allowOnTarget || distanceSquared > 0) && distanceSquared < bestDistanceSquared) {
                         bestDistanceSquared = distanceSquared;
                         bestLocation = location;
                     }
