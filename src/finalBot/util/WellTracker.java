@@ -286,9 +286,6 @@ public class WellTracker {
                 continue;
             }
             MapLocation hqLocation = getHQLocation(i);
-            if (hqLocation == null) {
-                continue;
-            }
             ResourceType expectedType = getExpectedType(i);
             // read from comms
             int message = rc.readSharedArray(commIndex);
@@ -313,6 +310,10 @@ public class WellTracker {
                     // remove this well
                     pendingLocation = null;
                 }
+            }
+            if (hqLocation == null) {
+                pendingWells[i] = pendingLocation;
+                continue; // consider simply not putting it into pending, but still use other wells
             }
             // check if pending is better than existing
             int knownDistanceSquared = knownLocation == null ? Integer.MAX_VALUE : hqLocation.distanceSquaredTo(knownLocation);

@@ -438,7 +438,8 @@ public class Carrier implements RunnableBot {
                     Util.tryMove(Cache.MY_LOCATION.directionTo(randomLocation)); // tryMove because it could be unpassable
                 }
             } else {
-                if (Util.numAllyCarriersWithinDistanceSquaredIsAtLeast(commedWell, 5, 12)) {
+                int threshold = numPassableCollectionSquares(commedWell) * 12 / 9;
+                if (Util.numAllyCarriersWithinDistanceSquaredIsAtLeast(commedWell, 5, threshold)) {
                     // blacklist from future
                     blacklist.add(commedWell);
                 }
@@ -447,6 +448,19 @@ public class Carrier implements RunnableBot {
             return true;
         }
         return false;
+    }
+
+    public static int numPassableCollectionSquares(MapLocation location) {
+        int count = 0;
+        for (int i = Constants.ALL_DIRECTIONS.length; --i >= 0; ) {
+            MapLocation neighbor = location.add(Constants.ALL_DIRECTIONS[i]);
+            if (rc.onTheMap(neighbor)) {
+                if (PassabilityCache.isPassableOrTrue(neighbor)) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 
     // bigger score = better

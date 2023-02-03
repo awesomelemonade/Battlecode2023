@@ -219,7 +219,15 @@ public class Util {
 
     public static void tryPathfindingMove(MapLocation loc) {
         if (Constants.ROBOT_TYPE == RobotType.CARRIER) {
-            Pathfinding.execute(loc);
+            try {
+                if (rc.getAnchor() == null) {
+                    Pathfinding.execute(loc);
+                } else {
+                    Nav.bugNavigate(loc);
+                }
+            } catch (GameActionException e) {
+                e.printStackTrace();
+            }
         } else {
             if (Constants.ROBOT_TYPE == RobotType.LAUNCHER && rc.getRoundNum() % 2 == 0) {
                 return;
