@@ -11,6 +11,7 @@ public class Carrier implements RunnableBot {
     private static Communication.CarrierTask currentTask;
     private static FastIntSet2D blacklist;
     private static MapLocation startOfTurnLocation = null;
+    private static boolean considerBlacklistWell = true;
 
     @Override
     public void init() throws GameActionException {
@@ -36,6 +37,7 @@ public class Carrier implements RunnableBot {
     @Override
     public void loop() throws GameActionException {
         startOfTurnLocation = Cache.MY_LOCATION;
+        considerBlacklistWell = true;
         debug_render();
         // update task (if needed)
         Communication.CarrierTask potentialTask = Communication.getTaskAsCarrier();
@@ -438,10 +440,13 @@ public class Carrier implements RunnableBot {
                     Util.tryMove(Cache.MY_LOCATION.directionTo(randomLocation)); // tryMove because it could be unpassable
                 }
             } else {
-                int threshold = numPassableCollectionSquares(commedWell) * 12 / 9;
-                if (Util.numAllyCarriersWithinDistanceSquaredIsAtLeast(commedWell, 5, threshold)) {
-                    // blacklist from future
-                    blacklist.add(commedWell);
+                if (considerBlacklistWell) {
+                    int threshold = numPassableCollectionSquares(commedWell) * 12 / 9;
+                    if (Util.numAllyCarriersWithinDistanceSquaredIsAtLeast(commedWell, 5, threshold)) {
+                        // blacklist from future
+                        blacklist.add(commedWell);
+                    }
+                    considerBlacklistWell = false;
                 }
                 Util.tryPathfindingMoveAdjacentCheckCurrents(commedWell);
             }
@@ -491,7 +496,8 @@ public class Carrier implements RunnableBot {
     }
 
     public static boolean tryCollectResource() {
-        if (capacityLeft() <= 0) {
+        int capacityLeft = capacityLeft();
+        if (capacityLeft <= 0) {
             return false;
         }
         try {
@@ -535,8 +541,7 @@ public class Carrier implements RunnableBot {
                 }
             }
             if (bestWell != null) {
-                MapLocation wellLocation = bestWell.getMapLocation();
-                tryCollectResource(wellLocation, Math.min(bestWell.getRate(), capacityLeft()));
+                tryCollectResource(bestWell.getMapLocation(), Math.min(bestWell.getRate(), capacityLeft));
                 return true;
             }
         } catch (GameActionException ex) {
