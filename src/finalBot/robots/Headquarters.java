@@ -92,9 +92,6 @@ public class Headquarters implements RunnableBot {
     private static double lastAdamantiumIncome = 0;
 
     public static void debug_render() {
-//        if (rc.getRoundNum() >= 50) {
-//            rc.resign();
-//        }
 //        for (int i = 0; i < Constants.MAP_WIDTH; i++) {
 //            for (int j = 0; j < Constants.MAP_HEIGHT; j++) {
 //                if (i % 3 == 1 && j % 3 == 1) {
@@ -228,15 +225,15 @@ public class Headquarters implements RunnableBot {
         int MAP_AREA = Constants.MAP_WIDTH * Constants.MAP_HEIGHT;
         // TODO: can be converted to linear function
         if (robotCount > 0.25 * MAP_AREA
-                || robotCount > 0.2 * MAP_AREA && roundNum > 1600
-                || robotCount > 0.15 * MAP_AREA && roundNum > 1700
-                || robotCount > 0.1 * MAP_AREA && roundNum > 1800
-                || roundNum > 1900) {
+                || robotCount > 0.2 * MAP_AREA && roundNum > 1500
+                || robotCount > 0.15 * MAP_AREA && roundNum > 1600
+                || robotCount > 0.1 * MAP_AREA && roundNum > 1700
+                || roundNum > 1800) {
             int adamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
             int mana = rc.getResourceAmount(ResourceType.MANA);
             if (adamantium >= Anchor.STANDARD.adamantiumCost
                     && mana >= Anchor.STANDARD.manaCost) { // simple random heuristic to build anchors
-                if (Math.random() < 0.8 || roundNum > 1800) {
+                if (Math.random() < 0.8 || roundNum > 1700) {
                     if (tryBuildAnchor(Anchor.STANDARD)) {
                         return;
                     }

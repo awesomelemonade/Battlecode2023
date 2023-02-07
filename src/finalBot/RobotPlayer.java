@@ -46,20 +46,6 @@ public class RobotPlayer {
                 while (true) {
                     currentTurn = controller.getRoundNum();
                     Util.loop();
-                    if (Constants.DEBUG_RESIGN &&
-                            controller.getType() == RobotType.HEADQUARTERS) {
-                        if (LambdaUtil.arraysAllMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.HEADQUARTERS)) {
-                            if (currentTurn > 50 &&
-                                    Communication.headquartersLocations != null &&
-                                    controller.getRobotCount() <= Communication.headquartersLocations.length &&
-                                    Cache.ENEMY_ROBOTS.length > 2) {
-                                controller.resign();
-                            }
-                            if (currentTurn > 150 && Cache.ENEMY_ROBOTS.length > controller.getRobotCount() + 5) {
-                                controller.resign();
-                            }
-                        }
-                    }
                     bot.loop();
 
                     tryMultiAction(controller, bot);
@@ -80,21 +66,14 @@ public class RobotPlayer {
                     }
                     if (overBytecodes) {
                         Debug.setIndicatorDot(Profile.ERROR_STATE, controller.getLocation(), 128, 0, 255); // purple
-//                        markProfiler(20);
                     }
                     Clock.yield();
-//                    if (overBytecodes) {
-//                        controller.resign();
-//                    }
                 }
             } catch (Exception ex) {
                 Debug.println(Profile.ERROR_STATE, controller.getLocation() + " errored: " + Cache.TURN_COUNT);
                 Flags.flag("ERROR");
                 ex.printStackTrace();
                 errored = true;
-                if (Constants.DEBUG_FAIL_FAST) {
-                    controller.resign();
-                }
                 Clock.yield();
             }
         }

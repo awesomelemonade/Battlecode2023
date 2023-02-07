@@ -3,7 +3,7 @@ package finalBot.robots;
 import battlecode.common.GameActionException;
 import finalBot.util.RunnableBot;
 
-public class Amplifier  implements RunnableBot {
+public class Amplifier implements RunnableBot {
     @Override
     public void init() throws GameActionException {
 

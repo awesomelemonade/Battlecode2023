@@ -13,7 +13,7 @@ emojiMap = {
 errors = []
 currentBot = 'finalBot'
 
-bots = ['beforeStuckBlacklist']
+bots = ['beforeEarlierAnchors']
 #bots = ['manaOnly', 'sprintTesting1', 'sprintTesting2', 'sprintTesting3', 'sprintTesting5', 'sprintTesting8']
 botsSet = set(bots)
 #maps = ['PairedProgramming', 'Rewind', 'Turtle']
@@ -30,7 +30,11 @@ botsSet = set(bots)
 #maps = ['BattleSuns', 'Checkmate2', 'Cornucopia', 'Crossword', 'Cube', 'Divergence', 'FourNations', 'HideAndSeek', 'Lantern', 'Lines', 'Maze', 'Pakbot', 'Piglets', 'Risk', 'Sine', 'Snowflake', 'SomethingFishy', 'Spin', 'Spiral', 'Squares', 'Star', 'Sus', 'SweetDreams', 'TicTacToe', 'USA']
 
 # us qual maps
-maps = ['AbsoluteW', 'Buggy', 'Cave', 'Cee', 'Heart', 'HotAirBalloon', 'IslandHoppingTwo', 'LightWork', 'MassiveL', 'Potions', 'Rainbow', 'Resign', 'Sneaky', 'Target', 'Tightrope']
+#maps = ['AbsoluteW', 'Buggy', 'Cave', 'Cee', 'Heart', 'HotAirBalloon', 'IslandHoppingTwo', 'LightWork', 'MassiveL', 'Potions', 'Rainbow', 'Resign', 'Sneaky', 'Target', 'Tightrope']
+
+#maps = ['ReverseFunnel', 'Swooshy']
+#maps = ['Quiet', 'Spin', 'Diagonal']
+maps = ['maptestsmall']
 
 mapsSet = set(maps)
 
@@ -57,6 +61,9 @@ def run_match(bot, map):
     try:
         outputA = str(subprocess.check_output(['./gradlew', 'run', '-PteamA=' + currentBot, '-PteamB=' + bot, '-Pmaps=' + map]))
         outputB = str(subprocess.check_output(['./gradlew', 'run', '-PteamA=' + bot, '-PteamB=' + currentBot, '-Pmaps=' + map]))
+        # for local windows testing
+        #outputA = str(subprocess.check_output(['gradlew', 'run', '-PteamA=' + currentBot, '-PteamB=' + bot, '-Pmaps=' + map], shell=True))
+        #outputB = str(subprocess.check_output(['gradlew', 'run', '-PteamA=' + bot, '-PteamB=' + currentBot, '-Pmaps=' + map], shell=True))
     except subprocess.CalledProcessError as exc:
         print("Status: FAIL", exc.returncode, exc.output)
         return 'Error'
