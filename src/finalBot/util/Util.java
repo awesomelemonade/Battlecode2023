@@ -32,24 +32,25 @@ public class Util {
     }
 
     public static void postLoop() throws GameActionException {
+        Communication.postLoop();
         Cache.postLoop();
         BFSVision.postLoop();
         //BFSCheckpoints.postLoop();
 
         // consider disintegrating in the late game
-        if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS
-                && rc.getRoundNum() >= 1800
-                && Cache.ALLY_ROBOTS.length >= 20
-                && Cache.ENEMY_ROBOTS.length == 0
-                && Cache.TURN_COUNT > 50) {
-            // if we see a headquarters or a carrier with an anchor
-            if (Cache.ALLY_ROBOTS.length >= 50 || LambdaUtil.arraysAnyMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.HEADQUARTERS || (r.type == RobotType.CARRIER && r.getTotalAnchors() > 0))) {
-                boolean isCarrierWithAnchor = Constants.ROBOT_TYPE == RobotType.CARRIER && rc.getAnchor() != null;
-                if (!isCarrierWithAnchor && Math.random() < 0.1) {
-                    rc.disintegrate();
-                }
-            }
-        }
+//        if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS
+//                && rc.getRoundNum() >= 1800
+//                && Cache.ALLY_ROBOTS.length >= 20
+//                && Cache.ENEMY_ROBOTS.length == 0
+//                && Cache.TURN_COUNT > 50) {
+//            // if we see a headquarters or a carrier with an anchor
+//            if (Cache.ALLY_ROBOTS.length >= 50 || LambdaUtil.arraysAnyMatch(Cache.ALLY_ROBOTS, r -> r.type == RobotType.HEADQUARTERS || (r.type == RobotType.CARRIER && r.getTotalAnchors() > 0))) {
+//                boolean isCarrierWithAnchor = Constants.ROBOT_TYPE == RobotType.CARRIER && rc.getAnchor() != null;
+//                if (!isCarrierWithAnchor && Math.random() < 0.1) {
+//                    rc.disintegrate();
+//                }
+//            }
+//        }
     }
 
     public static Direction random(Direction[] directions) {
@@ -218,7 +219,15 @@ public class Util {
 
     public static void tryPathfindingMove(MapLocation loc) {
         if (Constants.ROBOT_TYPE == RobotType.CARRIER) {
-            Pathfinding.execute(loc);
+            try {
+                if (rc.getAnchor() == null) {
+                    Pathfinding.execute(loc);
+                } else {
+                    Nav.bugNavigate(loc);
+                }
+            } catch (GameActionException e) {
+                e.printStackTrace();
+            }
         } else {
             if (Constants.ROBOT_TYPE == RobotType.LAUNCHER && rc.getRoundNum() % 2 == 0) {
                 return;
@@ -347,22 +356,35 @@ public class Util {
         return false;
     }
 
-    public static int numAllyRobotsWithin(MapLocation location, int distanceSquared) {
+    // assumes x > 0
+    public static boolean numAllyCarriersWithinDistanceSquaredIsAtLeast(MapLocation location, int distanceSquared, int x) {
         if (Cache.ALLY_ROBOTS.length >= 20) {
             try {
-                return rc.senseNearbyRobots(location, distanceSquared, Constants.ALLY_TEAM).length;
+                RobotInfo[] allies = rc.senseNearbyRobots(location, distanceSquared, Constants.ALLY_TEAM);
+                for (int i = allies.length; --i >= 0; ) {
+                    if (allies[i].type == RobotType.CARRIER) {
+                        if (--x <= 0) {
+                            return true;
+                        }
+                    }
+                }
             } catch (GameActionException ex) {
                 Debug.failFast(ex);
             }
+            return false;
         }
         // loop through robot list
-        int count = 0;
         for (int i = Cache.ALLY_ROBOTS.length; --i >= 0; ) {
-            if (location.isWithinDistanceSquared(Cache.ALLY_ROBOTS[i].getLocation(), distanceSquared)) {
-                count++;
+            RobotInfo ally = Cache.ALLY_ROBOTS[i];
+            if (location.isWithinDistanceSquared(ally.location, distanceSquared)) {
+                if (ally.type == RobotType.CARRIER) {
+                    if (--x <= 0) {
+                        return true;
+                    }
+                }
             }
         }
-        return count;
+        return false;
     }
 
     public static boolean hasAllyAttackersWithin(MapLocation location, int distanceSquared) {

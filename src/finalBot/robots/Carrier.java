@@ -10,6 +10,8 @@ import static finalBot.util.Constants.rc;
 public class Carrier implements RunnableBot {
     private static Communication.CarrierTask currentTask;
     private static FastIntSet2D blacklist;
+    private static MapLocation startOfTurnLocation = null;
+    private static boolean considerBlacklistWell = true;
 
     @Override
     public void init() throws GameActionException {
@@ -34,6 +36,8 @@ public class Carrier implements RunnableBot {
 
     @Override
     public void loop() throws GameActionException {
+        startOfTurnLocation = Cache.MY_LOCATION;
+        considerBlacklistWell = true;
         debug_render();
         // update task (if needed)
         Communication.CarrierTask potentialTask = Communication.getTaskAsCarrier();
@@ -429,16 +433,39 @@ public class Carrier implements RunnableBot {
         }
         if (commedWell != null) {
             Debug.setIndicatorLine(Profile.MINING, Cache.MY_LOCATION, commedWell, 0, 128, 0); // dark green
-            if (!Cache.MY_LOCATION.isAdjacentTo(commedWell)) {
-                if (Util.numAllyRobotsWithin(commedWell, 5) >= 12) {
-                    // blacklist from future
-                    blacklist.add(commedWell);
+            if (Cache.MY_LOCATION.isAdjacentTo(commedWell)) {
+                // pick a random position adjacent to the well
+                MapLocation randomLocation = commedWell.add(Constants.ALL_DIRECTIONS[(int) (Math.random() * Constants.ALL_DIRECTIONS.length)]);
+                if (Cache.MY_LOCATION.isAdjacentTo(randomLocation) && !randomLocation.equals(startOfTurnLocation)) {
+                    Util.tryMove(Cache.MY_LOCATION.directionTo(randomLocation)); // tryMove because it could be unpassable
                 }
+            } else {
+                if (considerBlacklistWell) {
+                    int threshold = numPassableCollectionSquares(commedWell) * 12 / 9;
+                    if (Util.numAllyCarriersWithinDistanceSquaredIsAtLeast(commedWell, 5, threshold)) {
+                        // blacklist from future
+                        blacklist.add(commedWell);
+                    }
+                    considerBlacklistWell = false;
+                }
+                Util.tryPathfindingMoveAdjacentCheckCurrents(commedWell);
             }
-            Util.tryPathfindingMoveAdjacentCheckCurrents(commedWell);
             return true;
         }
         return false;
+    }
+
+    public static int numPassableCollectionSquares(MapLocation location) {
+        int count = 0;
+        for (int i = Constants.ALL_DIRECTIONS.length; --i >= 0; ) {
+            MapLocation neighbor = location.add(Constants.ALL_DIRECTIONS[i]);
+            if (rc.onTheMap(neighbor)) {
+                if (PassabilityCache.isPassableOrTrue(neighbor)) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 
     // bigger score = better
@@ -469,7 +496,8 @@ public class Carrier implements RunnableBot {
     }
 
     public static boolean tryCollectResource() {
-        if (capacityLeft() <= 0) {
+        int capacityLeft = capacityLeft();
+        if (capacityLeft <= 0) {
             return false;
         }
         try {
@@ -513,8 +541,7 @@ public class Carrier implements RunnableBot {
                 }
             }
             if (bestWell != null) {
-                MapLocation wellLocation = bestWell.getMapLocation();
-                tryCollectResource(wellLocation, Math.min(bestWell.getRate(), capacityLeft()));
+                tryCollectResource(bestWell.getMapLocation(), Math.min(bestWell.getRate(), capacityLeft));
                 return true;
             }
         } catch (GameActionException ex) {

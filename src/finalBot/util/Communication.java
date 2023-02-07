@@ -1,8 +1,6 @@
 package finalBot.util;
 
 import battlecode.common.*;
-import finalBot.pathfinder.BFSCheckpoints;
-import finalBot.pathfinder.Checkpoints;
 
 import static finalBot.util.Constants.rc;
 
@@ -26,17 +24,8 @@ public class Communication {
 
     public static final int ENEMY_HQ_INVALIDATIONS_OFFSET = 16;
     public static final int ENEMY_HQ_CONFIRMED_OFFSET = 17;
-    // UNUSED: 18, 19, 20
 
-    // we should always try to not be in a cloud
-
-    // Enemy locations - we should be kiting enemies, but should check every so often?
-    // Enemy Island Locations - heartbeats?
-    // Neutral Island Locations
-
-    // Ally Island Locations - last round seen? ehhh might not be worth
-
-    public static final int CARRIER_TASK_OFFSET = 21; // 16 integers
+    public static final int CARRIER_TASK_OFFSET = 18; // 16 integers
     public static final int CARRIER_TASK_POSITION_BIT_OFFSET = 0;
     public static final int CARRIER_TASK_POSITION_BIT_MASK = 0b1111111; // 7 bits
     public static final int CARRIER_TASK_HQ_ID_BIT_OFFSET = 7;
@@ -51,9 +40,211 @@ public class Communication {
 
     public static final int MAX_CARRIER_COMMED_TASKS = 16;
 
+    // Ally Island Locations - last round seen? ehhh might not be worth
 
-    // island locations: 0 = no island, 1-36 = island id + 1 -> 6 bits, location represented with 10 bits
-    // enemy locations: 0 = no enemy, 1-3601 = location -> 12 bits, 4 bits = turn number? heartbeat?
+    // enemy attacker locations: 0 = no enemy, 1-3601 = location -> 12 bits, 4 bits = turn number % 16 - expires in the last 4 turns? to be removed by HQs
+    // we also don't allow locations to be added within 5 distance squared from another
+
+    private static final int ENEMY_LOCATIONS_OFFSET = 34; // 10 ints?
+    private static final int ENEMY_LOCATIONS_LOCATION_BIT = 0;
+    private static final int ENEMY_LOCATIONS_LOCATION_MASK = 0b111111_111111; // 12 bits
+    private static final int ENEMY_LOCATIONS_TURN_BIT = 12;
+    private static final int ENEMY_LOCATIONS_TURN_MASK = 0b1111; // 4 bits
+    private static final int ENEMY_LOCATIONS_TURN_NUMBER_MOD = 16;
+
+    private static final int MAX_ENEMY_LOCATIONS = 10;
+    private static final MapLocation[] commedEnemyLocations = new MapLocation[MAX_ENEMY_LOCATIONS];
+
+    // pending enemy locations and their rounds
+    private static MapLocation[] pendingEnemyLocations = new MapLocation[MAX_ENEMY_LOCATIONS];
+    private static int[] pendingEnemyLocationsWrite = new int[MAX_ENEMY_LOCATIONS];
+    private static int[] pendingEnemyLocationRounds = new int[MAX_ENEMY_LOCATIONS];
+    private static int pendingEnemyLocationsIndex = 0;
+    private static int pendingEnemyLocationsSize = 0;
+
+    private static int ENEMY_LOCATIONS_EXPIRY = 12; // lasts 12 rounds
+
+    public static void addPendingEnemyLocation(MapLocation location) {
+        int turn = rc.getRoundNum() % ENEMY_LOCATIONS_TURN_NUMBER_MOD;
+        int write = ((((location.x << 6) | location.y) + 1) << ENEMY_LOCATIONS_LOCATION_BIT) | (turn << ENEMY_LOCATIONS_TURN_BIT);
+        if (pendingEnemyLocationsSize >= MAX_ENEMY_LOCATIONS) {
+            int index = (pendingEnemyLocationsIndex++) % MAX_ENEMY_LOCATIONS;
+            pendingEnemyLocations[index] = location;
+            pendingEnemyLocationsWrite[index] = write;
+            pendingEnemyLocationRounds[index] = rc.getRoundNum();
+        } else {
+            int index = (pendingEnemyLocationsIndex + pendingEnemyLocationsSize++) % MAX_ENEMY_LOCATIONS;
+            pendingEnemyLocations[index] = location;
+            pendingEnemyLocationsWrite[index] = write;
+            pendingEnemyLocationRounds[index] = rc.getRoundNum();
+        }
+    }
+
+    // assumes readCommedEnemyLocations() was called earlier this turn
+    public static void writePendingEnemyLocationsToComms() {
+        if (rc.canWriteSharedArray(0, 0)) {
+            int roundNum = rc.getRoundNum();
+            // write from most recent to least recent
+            for (int i = pendingEnemyLocationsSize; --i >= 0; ) {
+                int index = (pendingEnemyLocationsIndex + i) % MAX_ENEMY_LOCATIONS;
+                MapLocation pendingLocation = pendingEnemyLocations[index];
+                int pendingWrite = pendingEnemyLocationsWrite[index];
+                int pendingRound = pendingEnemyLocationRounds[index];
+                if (pendingRound < roundNum - ENEMY_LOCATIONS_EXPIRY) {
+                    continue;
+                }
+                // check if any are already equal
+                boolean needsWrite = true;
+                int emptyCommIndex = -1;
+                for (int j = MAX_ENEMY_LOCATIONS; --j >= 0; ) {
+                    int commIndex = ENEMY_LOCATIONS_OFFSET + j;
+                    MapLocation commedEnemyLocation = commedEnemyLocations[j];
+                    if (commedEnemyLocation == null) {
+                        emptyCommIndex = commIndex;
+                    } else if (pendingLocation.equals(commedEnemyLocation)) {
+                        // we found a duplicate - we can just renew this
+                        try {
+                            rc.writeSharedArray(commIndex, pendingWrite);
+                        } catch (GameActionException ex) {
+                            Debug.failFast(ex);
+                        }
+                        needsWrite = false;
+                    }
+                }
+                // find empty slot to write
+                if (needsWrite && emptyCommIndex > 0) {
+                    try {
+                        rc.writeSharedArray(emptyCommIndex, pendingWrite);
+                    } catch (GameActionException ex) {
+                        Debug.failFast(ex);
+                    }
+                }
+            }
+            // clear
+            pendingEnemyLocationsSize = 0;
+        }
+    }
+
+    public static void readCommedEnemyLocations() {
+        int roundNum = rc.getRoundNum();
+        for (int j = MAX_ENEMY_LOCATIONS; --j >= 0; ) {
+            int commIndex = ENEMY_LOCATIONS_OFFSET + j;
+            try {
+                int read = rc.readSharedArray(commIndex);
+                int locationRead = ((read >> ENEMY_LOCATIONS_LOCATION_BIT) & ENEMY_LOCATIONS_LOCATION_MASK) - 1;
+                if (locationRead == -1) {
+                    commedEnemyLocations[j] = null;
+                } else {
+                    commedEnemyLocations[j] = new MapLocation(locationRead >> 6, locationRead & 0b111_111);
+                    if (Constants.ROBOT_TYPE == RobotType.HEADQUARTERS) {
+                        // Consider clearing stale
+                        int enemyLocationRoundNum = (read >> ENEMY_LOCATIONS_TURN_BIT) & ENEMY_LOCATIONS_TURN_MASK;
+                        int diff = (roundNum + ENEMY_LOCATIONS_TURN_NUMBER_MOD - enemyLocationRoundNum) % ENEMY_LOCATIONS_TURN_NUMBER_MOD;
+                        if (diff > 12) {
+                            // clear stale
+                            commedEnemyLocations[j] = null;
+                            rc.writeSharedArray(commIndex, 0);
+                        }
+                    }
+                }
+            } catch (GameActionException ex) {
+                Debug.failFast(ex);
+            }
+        }
+    }
+
+    public static MapLocation getClosestCommedEnemyLocation() {
+        int bestDistanceSquared = Integer.MAX_VALUE;
+        MapLocation bestLocation = null;
+        for (int i = MAX_ENEMY_LOCATIONS; --i >= 0; ){
+            MapLocation location = commedEnemyLocations[i];
+            if (location != null) {
+                int distanceSquared = Cache.MY_LOCATION.distanceSquaredTo(location);
+                if (distanceSquared < bestDistanceSquared) {
+                    bestDistanceSquared = distanceSquared;
+                    bestLocation = location;
+                }
+            }
+        }
+        return bestLocation;
+    }
+
+    // island locations: 0 = no island, 1-36 = island id -> 6 bits, location represented with 10 bits
+    // randomly replaces if full?
+
+    // island teams: 0 = no island, 1-36 = island id -> 6 bits, team -> 2 bits, round num -> 8 bits
+    private static final int ALLY_ISLANDS_OFFSET = 44; // 5
+
+    private static final int ENEMY_ISLANDS_OFFSET = 49; // 5
+    
+    private static final int NEUTRAL_ISLANDS_OFFSET = 54; // 10
+
+    private static final int NUM_COMMED_ALLY_ISLANDS = 5;
+    private static final int NUM_COMMED_ENEMY_ISLANDS = 5;
+    private static final int NUM_COMMED_NEUTRAL_ISLANDS = 10;
+
+    private static final int ISLAND_INDEX_BIT = 0;
+    private static final int ISLAND_INDEX_MASK = 6;
+    private static final int ISLAND_LOCATION_BIT = 6;
+    private static final int ISLAND_LOCATION_MASK = 0b11111_11111; // 10 bits
+    private static final int ISLAND_LOCATION_SCALE = 2;
+
+    // TODO: assumes that one can write to shared array
+    public static void addIslandToComm(int islandIndex, MapLocation location, Team team) {
+        int write = (islandIndex << ISLAND_INDEX_BIT) | (((location.x / ISLAND_LOCATION_SCALE) << 5) | (location.y / ISLAND_LOCATION_SCALE) << ISLAND_LOCATION_BIT);
+        int offset;
+        int max;
+        if (team == Team.NEUTRAL) {
+            offset = NEUTRAL_ISLANDS_OFFSET;
+            max = NUM_COMMED_NEUTRAL_ISLANDS;
+        } else if (team == Constants.ALLY_TEAM) {
+            offset = ALLY_ISLANDS_OFFSET;
+            max = NUM_COMMED_ALLY_ISLANDS;
+        } else {
+            offset = ENEMY_ISLANDS_OFFSET;
+            max = NUM_COMMED_ENEMY_ISLANDS;
+        }
+        int indexToWrite = -1;
+        for (int i = max; --i >= 0; ) {
+            // check if islandIndex already exists in the comm array
+            try {
+                int read = rc.readSharedArray(offset + i);
+                int readIslandIndex = (read >> ISLAND_INDEX_BIT) & ISLAND_INDEX_MASK;
+                if (readIslandIndex == islandIndex) {
+                    indexToWrite = -2;
+                } else if (indexToWrite == -1 && readIslandIndex == 0) {
+                    // empty
+                    indexToWrite = offset + i;
+                }
+            } catch (GameActionException e) {
+                e.printStackTrace();
+            }
+        }
+        if (indexToWrite > 0) {
+            try {
+                rc.writeSharedArray(indexToWrite, write);
+            } catch (GameActionException ex) {
+                Debug.failFast(ex);
+            }
+        }
+    }
+
+    public static void readCommedIslands() {
+        // read and mark to IslandTracker
+        for (int i = NUM_COMMED_ALLY_ISLANDS; --i >= 0; ) {
+            try {
+                int read = rc.readSharedArray(ALLY_ISLANDS_OFFSET + i);
+                int islandIndex = (read >> ISLAND_INDEX_BIT) & ISLAND_INDEX_MASK;
+                int readIslandLocation = (read >> ISLAND_LOCATION_BIT) & ISLAND_LOCATION_MASK;
+                MapLocation islandLocation = new MapLocation((readIslandLocation >> 5) * ISLAND_LOCATION_SCALE, (readIslandLocation & 0b11111) * ISLAND_LOCATION_SCALE);
+                // TODO: we need to validate whether it's actually ALLY_TEAM
+                IslandTracker.addIsland(islandIndex, islandLocation, Constants.ALLY_TEAM);
+            } catch (GameActionException ex) {
+                Debug.failFast(ex);
+            }
+        }
+    }
+
 
 //    public static final int CHECKPOINTS_OFFSET = 37; // 19 ints
 //    public static final int CHECKPOINTS_PENDING_OFFSET = 56;
@@ -337,9 +528,40 @@ public class Communication {
         }
         // Update enemy hqs from comms
         EnemyHqGuesser.update();
-        WellTracker.update();
+        if (Constants.ROBOT_TYPE != RobotType.LAUNCHER) {
+            WellTracker.update();
+        }
         //Checkpoints.update();
         //BFSCheckpoints.debug_render();
+
+        readCommedEnemyLocations();
+        debug_render();
+    }
+
+    public static void debug_render() {
+        if (Profile.ATTACKING.enabled()) {
+            for (int i = MAX_ENEMY_LOCATIONS; --i >= 0; ){
+                MapLocation enemyLocation = commedEnemyLocations[i];
+                if (enemyLocation != null) {
+                    Debug.setIndicatorDot(Profile.ATTACKING, enemyLocation, 255, 0, 0);
+                }
+            }
+        }
+    }
+
+    public static void postLoop() {
+        if (Constants.ROBOT_TYPE != RobotType.HEADQUARTERS) {
+            // headquarters has its own write system - no need for clogging enemyLocations up
+            int numWritesLeftThisTurn = 3; // limit the number of enemies we can transmit
+            for (int i = Cache.ENEMY_ROBOTS.length; --i >= 0 && numWritesLeftThisTurn > 0; ) {
+                RobotInfo enemy = Cache.ENEMY_ROBOTS[i];
+                if (Util.isAttacker(enemy.type)) {
+                    addPendingEnemyLocation(enemy.location);
+                    numWritesLeftThisTurn--;
+                }
+            }
+        }
+        writePendingEnemyLocationsToComms();
     }
 
     public static int pack(MapLocation location) {

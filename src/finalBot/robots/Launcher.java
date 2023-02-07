@@ -62,7 +62,7 @@ public class Launcher implements RunnableBot {
             lastEnemyLocationTurn = rc.getRoundNum();
         }
         LauncherMicro.postLoop();
-        TryAttackCloud.tryAttackCloud();
+        TryAttackCloud.tryAttackCloud(lastEnemyLocation);
     }
 
     public static RobotInfo getBestImmediateAttackTarget() {
@@ -600,6 +600,14 @@ public class Launcher implements RunnableBot {
                         bestDistanceSquared = distanceSquared;
                         bestLocation = enemyLocation;
                     }
+                }
+            }
+            // consider commed enemies
+            MapLocation commedEnemyLocation = Communication.getClosestCommedEnemyLocation();
+            if (commedEnemyLocation != null) {
+                if (Cache.MY_LOCATION.isWithinDistanceSquared(commedEnemyLocation, bestDistanceSquared)) {
+                    bestLocation = commedEnemyLocation;
+                    // no need to set bestDistanceSquared because this is the last one
                 }
             }
             if (bestLocation == null) {

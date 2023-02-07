@@ -125,11 +125,11 @@ public class Nav {
         //Debug.println("Startin: " + Cache.MY_LOCATION + " - " + whereWeLeftOff);
         debug_render();
         Debug.setIndicatorLine(Profile.PATHFINDING, Cache.MY_LOCATION, target, 0, 0, 255);
-        if (!target.equals(bugTarget) || !Cache.MY_LOCATION.equals(whereWeLeftOff)) {
-            bugTarget = target;
+        if (bugTarget == null || !target.isAdjacentTo(bugTarget) || !Cache.MY_LOCATION.equals(whereWeLeftOff)) {
             bugTracing = false;
             //Debug.println("New Target");
         }
+        bugTarget = target;
         whereWeLeftOff = Cache.MY_LOCATION; // account for cases where we don't move
 
         if (Cache.MY_LOCATION.equals(bugTarget) || isTrapped()) {

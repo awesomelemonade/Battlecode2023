@@ -230,6 +230,7 @@ public class EnemyHqGuesser {
         if (!initialized) {
             return null;
         }
+        boolean shouldPreferRotation = enemyHeadquartersLocations.length == 1 && (Constants.MAP_WIDTH * Constants.MAP_HEIGHT <= 625); // small map with 1 HQ
         // rotational symmetry preferred
         MapLocation bestLocation = null;
         double bestScore = Double.MAX_VALUE;
@@ -238,10 +239,10 @@ public class EnemyHqGuesser {
                 MapLocation location = predictions[i];
                 if (predicate.test(location)) {
                     double score = Math.sqrt(Cache.MY_LOCATION.distanceSquaredTo(location)); // regular distance
-//                    if (i % 3 == 2) {
-//                        // rotational symmetry
-//                        score /= 2.0; // lower is better
-//                    }
+                    if (shouldPreferRotation && i % 3 == 2) {
+                        // rotational symmetry
+                        score /= 2.0; // lower is better
+                    }
                     if (score < bestScore) {
                         bestScore = score;
                         bestLocation = location;
