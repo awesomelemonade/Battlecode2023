@@ -1,3 +1,5 @@
+core!();
+
 use std::ops::{BitAnd, BitOrAssign, BitXor, BitXorAssign, Shl};
 
 use itertools::Itertools;
@@ -22,8 +24,6 @@ impl Ord for Score {
     }
 }
 
-pub type Scored2Parameters = Parameters<32, 7>;
-
 #[derive(Debug, Clone)]
 pub struct Parameters<const NUM_PARAMETERS: usize, const PARAM_LEN: usize> {
     parameters: [SubParameters<PARAM_LEN>; NUM_PARAMETERS],
@@ -40,6 +40,9 @@ impl<const NUM_PARAMETERS: usize, const PARAM_LEN: usize> Default
 }
 
 impl<const NUM_PARAMETERS: usize, const PARAM_LEN: usize> Parameters<NUM_PARAMETERS, PARAM_LEN> {
+    pub fn new(parameters: [SubParameters<PARAM_LEN>; NUM_PARAMETERS]) -> Self {
+        Self { parameters }
+    }
     pub fn random_neighbor(&self) -> Parameters<NUM_PARAMETERS, PARAM_LEN> {
         let mut rng = rand::thread_rng();
         let index = rng.gen_range(0..NUM_PARAMETERS);
@@ -56,11 +59,19 @@ impl<const NUM_PARAMETERS: usize, const PARAM_LEN: usize> Parameters<NUM_PARAMET
 }
 
 #[derive(Debug, Clone, Copy)]
-struct Permutation<const LEN: usize> {
+pub struct Permutation<const LEN: usize> {
     data: [usize; LEN],
 }
 
 impl<const LEN: usize> Permutation<LEN> {
+    pub fn new(data: [usize; LEN]) -> OrError<Self> {
+        // verify they are all in range and unique
+        if data.iter().all(|&x| x < LEN) && data.iter().all_unique() {
+            Ok(Self { data })
+        } else {
+            Err(Error!("Data is not a permutation: {:?}", data))
+        }
+    }
     pub fn apply<T: Copy>(&self, data: [T; LEN]) -> [T; LEN] {
         self.data.map(|i| data[i])
     }
@@ -83,6 +94,12 @@ pub struct SubParameters<const LEN: usize> {
 }
 
 impl<const LEN: usize> SubParameters<LEN> {
+    pub fn new(max_or_min: usize, permutation: Permutation<LEN>) -> Self {
+        Self {
+            max_or_min,
+            permutation,
+        }
+    }
     fn apply(&self, mut data: [f32; LEN]) -> [f32; LEN] {
         for i in 0..LEN {
             if self.max_or_min.bitand(1usize.shl(i)) != 0 {
@@ -107,16 +124,18 @@ impl<const LEN: usize> SubParameters<LEN> {
     }
 }
 
+pub type Scored2Parameters = Parameters<2, 7>;
+
 #[derive(Debug)]
 pub struct ScoredMicro2 {
-    parameters: Parameters<32, 7>,
+    parameters: Scored2Parameters,
     prev_enemy_location: Option<Position>,
     last_turn_with_enemy: Option<u32>,
 }
 
 impl ScoredMicro2 {
     pub fn provider<'a>(
-        parameters: &'a Parameters<32, 7>,
+        parameters: &'a Scored2Parameters,
     ) -> impl BotProvider<BotType = Self> + 'a {
         move |_: &Robot| ScoredMicro2 {
             prev_enemy_location: None,
@@ -156,11 +175,11 @@ impl ScoredMicro2 {
             .unwrap_or(false);
 
         let factors = [
-            controller.round_num() % 2 == 0,
+            // controller.round_num() % 2 == 0,
             robot.is_action_ready(),
-            robot.health() <= damage,
-            enemy_robots.is_empty(),
-            has_closer_ally,
+            // robot.health() <= damage,
+            // enemy_robots.is_empty(),
+            // has_closer_ally,
         ];
         let coeffs_index = factors
             .iter()
@@ -188,13 +207,13 @@ impl ScoredMicro2 {
                 closest_enemy_location.map(|loc| (loc.distance_squared(pos) as f32).sqrt());
 
             let data = [
-                action_enemies.len() as f32 / 3.0,
+                action_enemies.len() as f32,
                 action_enemies_not_empty as f32,
-                vision_enemies.len() as f32 / 3.0,
+                vision_enemies.len() as f32,
                 vision_enemies_not_empty as f32,
                 is_center_move as f32,
                 is_straight_move as f32,
-                closest_enemy_distance.unwrap_or(0.0) / 5.0,
+                closest_enemy_distance.unwrap_or(0.0),
             ];
             parameters.apply(data).map(|f| Score(f))
         };
